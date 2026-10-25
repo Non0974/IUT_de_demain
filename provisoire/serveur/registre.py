@@ -1,0 +1,257 @@
+"""Registre des présences : chaque séance, l'émargement de chaque étudiant, les corrections.
+
+Le serveur y recopie l'émargement calculé à partir des badges (et des passages à la porte).
+Un enseignant ou le directeur des études peut corriger un statut (oubli de badge, absence
+justifiée...) : la correction est gardée avec son auteur, son motif et l'heure, et le calcul
+automatique ne l'écrase plus. Base SQLite, fournie avec Python.
+
+Statuts : attendu (le cours n'a pas encore commencé), présent, retard, absent,
+à vérifier (carte peut-être prêtée), justifié (absence justifiée).
+"""
+
+import csv
+import io
+import json
+import sqlite3
+import threading
+from datetime import date, datetime, timedelta
+
+STATUTS_MANUELS = ('présent', 'retard', 'absent', 'justifié')
+CLOTURE = 15 / 60            # h après la fin du cours : la séance est close, les "attendu" deviennent absents
+FIN_MATIN = 12.5             # h : un cours qui finit avant appartient à la demi-journée du matin
+
+
+def debut_semaine(jour):
+    return jour - timedelta(days=jour.weekday())
+
+
+class Registre:
+    def __init__(self, chemin=':memory:', noms_groupes=None):
+        self.base = sqlite3.connect(chemin, check_same_thread=False)
+        self.base.row_factory = sqlite3.Row
+        self.verrou = threading.RLock()
+        self.noms_groupes = noms_groupes or {}      # clé de groupe -> nom affiché
+        self.deja_ecrit = {}                        # (séance, étudiant) -> (statut, badge)
+        with self.verrou:
+            self.base.executescript('''
+                CREATE TABLE IF NOT EXISTS seances (
+                    id TEXT PRIMARY KEY, date TEXT, cours TEXT, salle TEXT, debut REAL, fin REAL,
+                    matiere TEXT, enseignant TEXT, groupes TEXT, cles TEXT, reel INTEGER,
+                    etat TEXT DEFAULT 'en cours');
+                CREATE TABLE IF NOT EXISTS presences (
+                    seance TEXT, etudiant TEXT, groupe TEXT, statut TEXT, badge REAL,
+                    corrige INTEGER DEFAULT 0, PRIMARY KEY (seance, etudiant));
+                CREATE TABLE IF NOT EXISTS corrections (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, seance TEXT, etudiant TEXT,
+                    avant TEXT, apres TEXT, motif TEXT, auteur TEXT, t REAL);
+                CREATE TABLE IF NOT EXISTS anomalies (
+                    seance TEXT, type TEXT, nombre INTEGER, detail TEXT, PRIMARY KEY (seance, type));
+                CREATE INDEX IF NOT EXISTS seances_date ON seances (date);
+                CREATE INDEX IF NOT EXISTS presences_etudiant ON presences (etudiant);
+            ''')
+            self.base.commit()
+
+    # ---------- écriture ----------
+
+    def noter(self, seance, liste, anomalies):
+        """seance : dict (id, date, cours, salle, debut, fin, matiere, enseignant, groupes, cles, reel)
+        liste : [{id, statut, badge}] ; anomalies : {'sans_badge': [...], 'pretes': [...], 'badges_seuls': [...]}"""
+        with self.verrou:
+            b = self.base
+            b.execute('INSERT OR IGNORE INTO seances (id, date, cours, salle, debut, fin, matiere, enseignant, groupes, cles, reel) '
+                      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                      (seance['id'], seance['date'], seance['cours'], seance['salle'], seance['debut'], seance['fin'],
+                       seance['matiere'], seance['enseignant'], json.dumps(seance['groupes'], ensure_ascii=False),
+                       json.dumps(seance['cles']), int(seance['reel'])))
+            for x in liste:
+                cle = (seance['id'], x['id'])
+                valeur = (x['statut'], x['badge'])
+                if self.deja_ecrit.get(cle) == valeur:
+                    continue
+                b.execute('INSERT INTO presences (seance, etudiant, groupe, statut, badge) VALUES (?, ?, ?, ?, ?) '
+                          'ON CONFLICT (seance, etudiant) DO UPDATE SET statut = excluded.statut, badge = excluded.badge '
+                          'WHERE corrige = 0',
+                          (seance['id'], x['id'], x['id'].rsplit('-', 1)[0], x['statut'], x['badge']))
+                self.deja_ecrit[cle] = valeur
+            types = {
+                'carte prêtée': (len(anomalies['pretes']), '; '.join(' et '.join(ids) for ids, _ in anomalies['pretes'])),
+                'entrée sans badge': (len(anomalies['sans_badge']), ''),
+                'badge sans passage': (len(anomalies['badges_seuls']), ''),
+            }
+            for type_, (n, detail) in types.items():
+                if n:
+                    b.execute('INSERT INTO anomalies VALUES (?, ?, ?, ?) ON CONFLICT (seance, type) '
+                              'DO UPDATE SET nombre = excluded.nombre, detail = excluded.detail',
+                              (seance['id'], type_, n, detail))
+            b.commit()
+
+    def cloturer(self, maintenant):
+        """Clôt les séances finies depuis plus de 15 min : ceux qui n'ont pas badgé sont absents."""
+        with self.verrou:
+            ouvertes = self.base.execute("SELECT id, date, fin FROM seances WHERE etat = 'en cours'").fetchall()
+            for s in ouvertes:
+                fin = datetime.fromisoformat(s['date']) + timedelta(hours=s['fin'] + CLOTURE)
+                if maintenant >= fin:
+                    self.base.execute("UPDATE presences SET statut = 'absent' WHERE seance = ? AND statut = 'attendu' AND corrige = 0", (s['id'],))
+                    self.base.execute("UPDATE seances SET etat = 'terminée' WHERE id = ?", (s['id'],))
+                    for cle in [k for k in self.deja_ecrit if k[0] == s['id']]:
+                        del self.deja_ecrit[cle]
+            self.base.commit()
+
+    def corriger(self, seance, etudiant, statut, motif, auteur, t):
+        if statut not in STATUTS_MANUELS:
+            raise ValueError(f'Statut impossible : {statut}')
+        if statut == 'justifié' and not (motif or '').strip():
+            raise ValueError('Une absence justifiée demande un motif.')
+        with self.verrou:
+            ligne = self.base.execute('SELECT statut FROM presences WHERE seance = ? AND etudiant = ?', (seance, etudiant)).fetchone()
+            if ligne is None:
+                raise KeyError('Étudiant absent de cette séance.')
+            self.base.execute('UPDATE presences SET statut = ?, corrige = 1 WHERE seance = ? AND etudiant = ?', (statut, seance, etudiant))
+            self.base.execute('INSERT INTO corrections (seance, etudiant, avant, apres, motif, auteur, t) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                              (seance, etudiant, ligne['statut'], statut, (motif or '').strip(), auteur, t))
+            self.base.commit()
+            self.deja_ecrit.pop((seance, etudiant), None)
+
+    # ---------- lecture ----------
+
+    def _seance_dict(self, s):
+        d = dict(s)
+        d['groupes'] = json.loads(d['groupes'])
+        d['cles'] = json.loads(d['cles'])
+        return d
+
+    COMPTES = '''SUM(p.statut = 'présent') AS presents, SUM(p.statut = 'retard') AS retards,
+                 SUM(p.statut = 'absent') AS absents, SUM(p.statut = 'justifié') AS justifies,
+                 SUM(p.statut = 'à vérifier') AS a_verifier, SUM(p.statut = 'attendu') AS attendus,
+                 COUNT(p.etudiant) AS inscrits'''
+
+    def seances_du_jour(self, jour, enseignant=None):
+        with self.verrou:
+            requete = f'SELECT s.*, {self.COMPTES}, (SELECT COUNT(*) FROM corrections c WHERE c.seance = s.id) AS corrections, ' \
+                      f'(SELECT COALESCE(SUM(nombre), 0) FROM anomalies a WHERE a.seance = s.id) AS anomalies ' \
+                      f'FROM seances s LEFT JOIN presences p ON p.seance = s.id WHERE s.date = ?'
+            args = [jour.isoformat()]
+            if enseignant:
+                requete += ' AND s.enseignant = ?'
+                args.append(enseignant)
+            lignes = self.base.execute(requete + ' GROUP BY s.id ORDER BY s.debut, s.salle', args).fetchall()
+            return [self._seance_dict(s) for s in lignes]
+
+    def seance(self, ident):
+        with self.verrou:
+            s = self.base.execute(f'SELECT s.*, {self.COMPTES} FROM seances s LEFT JOIN presences p ON p.seance = s.id '
+                                  'WHERE s.id = ? GROUP BY s.id', (ident,)).fetchone()
+            if s is None:
+                return None
+            d = self._seance_dict(s)
+            d['presences'] = [dict(p) for p in self.base.execute(
+                'SELECT etudiant, groupe, statut, badge, corrige FROM presences WHERE seance = ? ORDER BY etudiant', (ident,))]
+            d['anomalies'] = [dict(a) for a in self.base.execute('SELECT type, nombre, detail FROM anomalies WHERE seance = ?', (ident,))]
+            d['corrections'] = [dict(c) for c in self.base.execute(
+                'SELECT etudiant, avant, apres, motif, auteur, t FROM corrections WHERE seance = ? ORDER BY t DESC', (ident,))]
+            return d
+
+    def classes(self, du, au, cles=None):
+        """Bilan de chaque groupe sur la période (séances closes ou en cours)."""
+        with self.verrou:
+            lignes = self.base.execute(
+                f'''SELECT p.groupe AS cle, COUNT(DISTINCT p.etudiant) AS etudiants, COUNT(DISTINCT p.seance) AS seances,
+                    {self.COMPTES} FROM presences p JOIN seances s ON s.id = p.seance
+                    WHERE s.date BETWEEN ? AND ? GROUP BY p.groupe ORDER BY p.groupe''',
+                (du.isoformat(), au.isoformat())).fetchall()
+            resultat = []
+            for g in lignes:
+                if cles is not None and g['cle'] not in cles:
+                    continue
+                d = dict(g)
+                d['nom'] = self.noms_groupes.get(g['cle'], g['cle'])
+                d['taux'] = taux(d)
+                resultat.append(d)
+            return resultat
+
+    def classe(self, cle, du, au):
+        """Tableau d'une classe : une ligne par étudiant, une colonne par séance."""
+        with self.verrou:
+            seances = [self._seance_dict(s) for s in self.base.execute(
+                '''SELECT DISTINCT s.* FROM seances s JOIN presences p ON p.seance = s.id
+                   WHERE p.groupe = ? AND s.date BETWEEN ? AND ? ORDER BY s.date, s.debut''',
+                (cle, du.isoformat(), au.isoformat()))]
+            cases = {}
+            for p in self.base.execute(
+                    '''SELECT p.etudiant, p.seance, p.statut, p.corrige FROM presences p JOIN seances s ON s.id = p.seance
+                       WHERE p.groupe = ? AND s.date BETWEEN ? AND ?''', (cle, du.isoformat(), au.isoformat())):
+                cases.setdefault(p['etudiant'], {})[p['seance']] = {'statut': p['statut'], 'corrige': p['corrige']}
+            etudiants = []
+            for e in sorted(cases):
+                compte = {k: 0 for k in ('presents', 'retards', 'absents', 'justifies', 'a_verifier', 'attendus')}
+                for c in cases[e].values():
+                    compte[{'présent': 'presents', 'retard': 'retards', 'absent': 'absents', 'justifié': 'justifies',
+                            'à vérifier': 'a_verifier', 'attendu': 'attendus'}[c['statut']]] += 1
+                etudiants.append({'id': e, **compte, 'taux': taux(compte), 'cases': cases[e]})
+            return {'cle': cle, 'nom': self.noms_groupes.get(cle, cle), 'seances': seances, 'etudiants': etudiants}
+
+    def etudiant(self, ident, du, au):
+        with self.verrou:
+            lignes = [dict(x) for x in self.base.execute(
+                '''SELECT s.id AS seance, s.date, s.debut, s.fin, s.matiere, s.salle, s.enseignant, p.statut, p.badge, p.corrige
+                   FROM presences p JOIN seances s ON s.id = p.seance
+                   WHERE p.etudiant = ? AND s.date BETWEEN ? AND ? ORDER BY s.date, s.debut''',
+                (ident, du.isoformat(), au.isoformat()))]
+            corrections = [dict(c) for c in self.base.execute(
+                'SELECT seance, avant, apres, motif, auteur, t FROM corrections WHERE etudiant = ? ORDER BY t DESC', (ident,))]
+            compte = {k: sum(1 for x in lignes if x['statut'] == s) for k, s in
+                      (('presents', 'présent'), ('retards', 'retard'), ('absents', 'absent'),
+                       ('justifies', 'justifié'), ('a_verifier', 'à vérifier'), ('attendus', 'attendu'))}
+            groupe = ident.rsplit('-', 1)[0]
+            return {'id': ident, 'groupe': groupe, 'nom_groupe': self.noms_groupes.get(groupe, groupe),
+                    'seances': lignes, 'corrections': corrections, **compte, 'taux': taux(compte)}
+
+    def alertes_assiduite(self, du, au, cles=None, seuil=3):
+        """Étudiants avec beaucoup d'absences non justifiées ou de retards sur la période."""
+        with self.verrou:
+            lignes = self.base.execute(
+                '''SELECT p.etudiant, p.groupe, SUM(p.statut = 'absent') AS absents, SUM(p.statut = 'retard') AS retards
+                   FROM presences p JOIN seances s ON s.id = p.seance WHERE s.date BETWEEN ? AND ?
+                   GROUP BY p.etudiant HAVING absents >= ? OR retards >= ? ORDER BY absents DESC, retards DESC''',
+                (du.isoformat(), au.isoformat(), seuil, seuil)).fetchall()
+            return [dict(x) for x in lignes if cles is None or x['groupe'] in cles]
+
+    def export_csv(self, cle, du, au):
+        """Feuille de présence d'une classe (Excel, séparateur ;) avec la présence par demi-journée pour le CFA."""
+        c = self.classe(cle, du, au)
+        demi = {}
+        for s in c['seances']:
+            demi.setdefault((s['date'], 'matin' if s['fin'] <= FIN_MATIN else 'après-midi'), []).append(s['id'])
+        sortie = io.StringIO()
+        w = csv.writer(sortie, delimiter=';')
+        w.writerow([f'Classe : {c["nom"]}', f'du {du:%d/%m/%Y} au {au:%d/%m/%Y}'])
+        w.writerow(['Étudiant']
+                   + [f'{date.fromisoformat(s["date"]):%d/%m} {heure_texte(s["debut"])} {s["matiere"]}' for s in c['seances']]
+                   + [f'{date.fromisoformat(j):%d/%m} {m}' for j, m in demi]
+                   + ['Présences', 'Retards', 'Absences', 'Justifiées', 'Taux de présence'])
+        for e in c['etudiants']:
+            statuts = [e['cases'].get(s['id'], {}).get('statut', '') for s in c['seances']]
+            demis = []
+            for ids in demi.values():
+                st = [e['cases'].get(i, {}).get('statut') for i in ids if i in e['cases']]
+                if st and all(x in ('présent', 'retard') for x in st):
+                    demis.append('présent')
+                elif st and all(x in ('absent', 'justifié') for x in st):
+                    demis.append('justifié' if all(x == 'justifié' for x in st) else 'absent')
+                else:
+                    demis.append('partiel' if st else '')
+            w.writerow([e['id']] + statuts + demis + [e['presents'] + e['retards'], e['retards'], e['absents'],
+                                                      e['justifies'], f'{e["taux"]:.0%}' if e['taux'] is not None else ''])
+        return '﻿' + sortie.getvalue()
+
+
+def taux(compte):
+    """Taux de présence : présents et retards sur les séances déjà décidées."""
+    decides = compte['presents'] + compte['retards'] + compte['absents'] + compte['justifies'] + compte['a_verifier']
+    return (compte['presents'] + compte['retards']) / decides if decides else None
+
+
+def heure_texte(h):
+    minutes = round(h * 60)
+    return f'{minutes // 60:02d}h{minutes % 60:02d}'

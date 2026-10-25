@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion — CampusTwin</title>
+  <link rel="stylesheet" href="suivi.css">
+</head>
+<body class="page-connexion">
+  <main class="carte-connexion">
+    <div class="marque">
+      <span class="logo" aria-hidden="true">CT</span>
+      <div>
+        <strong>CampusTwin</strong>
+        <span>Suivi des classes — IUT de Sarcelles</span>
+      </div>
+    </div>
+    <form id="formulaire">
+      <label for="login">Identifiant</label>
+      <input id="login" name="login" autocomplete="username" required autofocus>
+      <label for="mdp">Mot de passe</label>
+      <input id="mdp" name="mdp" type="password" autocomplete="current-password" required>
+      <p id="erreur" class="erreur" role="alert" hidden></p>
+      <button type="submit" class="bouton principal-bouton large">Se connecter</button>
+    </form>
+    <p id="demo" class="note" hidden>Serveur en simulation : comptes de démonstration <b>directeur</b> / <b>demo</b> et <b>enseignant</b> / <b>demo</b>.</p>
+    <p class="note">Les présences sont des données personnelles : accès réservé à la direction des études, à la scolarité et aux enseignants pour leurs propres cours.</p>
+  </main>
+
+  <script type="module">
+    const params = new URLSearchParams(location.search);
+    const retour = params.get('retour');
+    // On ne revient que vers une page de ce site
+    const destination = retour && retour.startsWith('/') && !retour.startsWith('//') ? retour : '/suivi/';
+
+    fetch('/api/info').then(r => r.json()).then(d => { document.getElementById('demo').hidden = !d.simulation; }).catch(() => {});
+
+    document.getElementById('formulaire').addEventListener('submit', async e => {
+      e.preventDefault();
+      const erreur = document.getElementById('erreur');
+      erreur.hidden = true;
+      const r = await fetch('/api/connexion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login: document.getElementById('login').value.trim(), mot_de_passe: document.getElementById('mdp').value }),
+      });
+      if (r.ok) {
+        location.href = destination;
+        return;
+      }
+      const d = await r.json().catch(() => ({}));
+      erreur.textContent = d.erreur || 'Connexion impossible.';
+      erreur.hidden = false;
+      document.getElementById('mdp').select();
+    });
+  </script>
+</body>
+</html>

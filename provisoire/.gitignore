@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+
+# Données du serveur (mesures, table des cartes, vrais noms des enseignants : données personnelles)
+serveur/*.db
+serveur/cartes.json
+serveur/enseignants.json
+
+# Réglages des cartes ESP32 (mot de passe Wi-Fi)
+firmware/*/config.h
+
+# Données téléchargées pour les tests (trop lourdes, à retélécharger)
+donnees_reelles/donnees/
+
+# LaTeX
+docs/*.aux
+docs/*.log
+docs/*.out
+
+# Comptes de l'interface de suivi (empreintes des mots de passe)
+serveur/comptes.json

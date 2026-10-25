@@ -1,0 +1,1919 @@
+{
+ "source": "Cours reel=true : PDF CELCAT GEIIS BUT FI S4 TP1 et TP2, semaine 11 (9-13 mars 2026). Cours reel=false : simulés pour remplir les salles. Noms des enseignants remplacés par « Enseignant A, B… » (dépôt public) ; les vrais noms peuvent être remis en local avec serveur/enseignants.json.",
+ "jours": [
+  "Lundi 09/03",
+  "Mardi 10/03",
+  "Mercredi 11/03",
+  "Jeudi 12/03",
+  "Vendredi 13/03"
+ ],
+ "groupes": {
+  "TP1": {
+   "nom": "GEII S4 FI TP1",
+   "effectif": 9
+  },
+  "TP2": {
+   "nom": "GEII S4 FI TP2",
+   "effectif": 9
+  }
+ },
+ "cours": [
+  {
+   "id": "r0",
+   "jour": 0,
+   "debut": 8.25,
+   "fin": 9.5,
+   "matiere": "Cours",
+   "groupes": [
+    "GEII S4 FI TP1",
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP1",
+    "TP2"
+   ],
+   "effectif": 18,
+   "enseignant": "Enseignant A",
+   "salle": "SAR 109",
+   "reel": true
+  },
+  {
+   "id": "r1",
+   "jour": 0,
+   "debut": 9.5,
+   "fin": 12,
+   "matiere": "Cours",
+   "groupes": [
+    "GEII S4 FI TP1",
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP1",
+    "TP2"
+   ],
+   "effectif": 18,
+   "enseignant": "Enseignant A",
+   "salle": "SAR 122",
+   "reel": true
+  },
+  {
+   "id": "r2",
+   "jour": 0,
+   "debut": 13,
+   "fin": 15.5,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP1"
+   ],
+   "cles": [
+    "TP1"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant B",
+   "salle": "SAR 201",
+   "reel": true
+  },
+  {
+   "id": "r3",
+   "jour": 0,
+   "debut": 15.583,
+   "fin": 17.583,
+   "matiere": "Projet tutoré",
+   "groupes": [
+    "GEII S4 FI TP1"
+   ],
+   "cles": [
+    "TP1"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant C",
+   "salle": null,
+   "reel": true
+  },
+  {
+   "id": "r4",
+   "jour": 0,
+   "debut": 13,
+   "fin": 15.5,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant D",
+   "salle": "SAR 207",
+   "reel": true
+  },
+  {
+   "id": "r5",
+   "jour": 0,
+   "debut": 15.5,
+   "fin": 16.833,
+   "matiere": "Communication",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant E",
+   "salle": "SAR 122",
+   "reel": true
+  },
+  {
+   "id": "r6",
+   "jour": 0,
+   "debut": 16.833,
+   "fin": 19.333,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant B",
+   "salle": "SAR 206",
+   "reel": true
+  },
+  {
+   "id": "r7",
+   "jour": 1,
+   "debut": 10.75,
+   "fin": 12,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP1"
+   ],
+   "cles": [
+    "TP1"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant C",
+   "salle": "SAR 200",
+   "reel": true
+  },
+  {
+   "id": "r8",
+   "jour": 1,
+   "debut": 8.25,
+   "fin": 9.5,
+   "matiere": "Communication",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant E",
+   "salle": "SAR 101",
+   "reel": true
+  },
+  {
+   "id": "r9",
+   "jour": 1,
+   "debut": 9.5,
+   "fin": 12,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant D",
+   "salle": "SAR 200",
+   "reel": true
+  },
+  {
+   "id": "r10",
+   "jour": 1,
+   "debut": 13,
+   "fin": 15.5,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant D",
+   "salle": "SAR 200",
+   "reel": true
+  },
+  {
+   "id": "r11",
+   "jour": 1,
+   "debut": 15.667,
+   "fin": 18.167,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant D",
+   "salle": "SAR 200",
+   "reel": true
+  },
+  {
+   "id": "r12",
+   "jour": 2,
+   "debut": 8.25,
+   "fin": 10.75,
+   "matiere": "Communication",
+   "groupes": [
+    "GEII S4 FI TP1"
+   ],
+   "cles": [
+    "TP1"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant F",
+   "salle": "SAR 101",
+   "reel": true
+  },
+  {
+   "id": "r13",
+   "jour": 2,
+   "debut": 10.75,
+   "fin": 12,
+   "matiere": "Cours",
+   "groupes": [
+    "GEII S4 FI TP1",
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP1",
+    "TP2"
+   ],
+   "effectif": 18,
+   "enseignant": "Enseignant G",
+   "salle": "SAR 100",
+   "reel": true
+  },
+  {
+   "id": "r14",
+   "jour": 2,
+   "debut": 12,
+   "fin": 13,
+   "matiere": "Projet tutoré",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant C",
+   "salle": null,
+   "reel": true
+  },
+  {
+   "id": "r15",
+   "jour": 2,
+   "debut": 15.667,
+   "fin": 16.917,
+   "matiere": "Anglais",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant H",
+   "salle": "SAR 118",
+   "reel": true
+  },
+  {
+   "id": "r16",
+   "jour": 2,
+   "debut": 17,
+   "fin": 18.25,
+   "matiere": "Cours",
+   "groupes": [
+    "GEII S4 FI TP1",
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP1",
+    "TP2"
+   ],
+   "effectif": 18,
+   "enseignant": "Enseignant I",
+   "salle": "SAR 109",
+   "reel": true
+  },
+  {
+   "id": "r17",
+   "jour": 3,
+   "debut": 8.167,
+   "fin": 9.417,
+   "matiere": "Anglais",
+   "groupes": [
+    "GEII S4 FI TP1"
+   ],
+   "cles": [
+    "TP1"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant H",
+   "salle": "SAR 118",
+   "reel": true
+  },
+  {
+   "id": "r18",
+   "jour": 3,
+   "debut": 8.25,
+   "fin": 9.25,
+   "matiere": "Projet tutoré",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant C",
+   "salle": null,
+   "reel": true
+  },
+  {
+   "id": "r19",
+   "jour": 3,
+   "debut": 9.5,
+   "fin": 12,
+   "matiere": "Communication",
+   "groupes": [
+    "GEII S4 FI TP1",
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP1",
+    "TP2"
+   ],
+   "effectif": 18,
+   "enseignant": "Enseignant E",
+   "salle": "SAR 109",
+   "reel": true
+  },
+  {
+   "id": "r20",
+   "jour": 3,
+   "debut": 15.667,
+   "fin": 18.167,
+   "matiere": "Électronique",
+   "groupes": [
+    "GEII S4 FI TP1"
+   ],
+   "cles": [
+    "TP1"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant D",
+   "salle": "SAR 207",
+   "reel": true
+  },
+  {
+   "id": "r21",
+   "jour": 3,
+   "debut": 13,
+   "fin": 15.5,
+   "matiere": "Électronique",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant D",
+   "salle": "SAR 202",
+   "reel": true
+  },
+  {
+   "id": "r22",
+   "jour": 4,
+   "debut": 8.167,
+   "fin": 9.417,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP1"
+   ],
+   "cles": [
+    "TP1"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant C",
+   "salle": "SAR 200",
+   "reel": true
+  },
+  {
+   "id": "r23",
+   "jour": 4,
+   "debut": 9.5,
+   "fin": 12,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP1"
+   ],
+   "cles": [
+    "TP1"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant C",
+   "salle": "SAR 200",
+   "reel": true
+  },
+  {
+   "id": "r24",
+   "jour": 4,
+   "debut": 13,
+   "fin": 15.5,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP1"
+   ],
+   "cles": [
+    "TP1"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant C",
+   "salle": "SAR 200",
+   "reel": true
+  },
+  {
+   "id": "r25",
+   "jour": 4,
+   "debut": 15.667,
+   "fin": 18.167,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP1"
+   ],
+   "cles": [
+    "TP1"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant C",
+   "salle": "SAR 200",
+   "reel": true
+  },
+  {
+   "id": "r26",
+   "jour": 4,
+   "debut": 13,
+   "fin": 14.25,
+   "matiere": "Communication",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant E",
+   "salle": "SAR 101",
+   "reel": true
+  },
+  {
+   "id": "r27",
+   "jour": 4,
+   "debut": 16.833,
+   "fin": 18.083,
+   "matiere": "SAE",
+   "groupes": [
+    "GEII S4 FI TP2"
+   ],
+   "cles": [
+    "TP2"
+   ],
+   "effectif": 9,
+   "enseignant": "Enseignant D",
+   "salle": "SAR 200",
+   "reel": true
+  },
+  {
+   "id": "s1",
+   "jour": 0,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "Informatique",
+   "groupes": [
+    "Groupe simulé 1"
+   ],
+   "cles": [
+    "S1"
+   ],
+   "effectif": 28,
+   "enseignant": "—",
+   "salle": "SAR 100",
+   "reel": false
+  },
+  {
+   "id": "s2",
+   "jour": 0,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Informatique",
+   "groupes": [
+    "Groupe simulé 2"
+   ],
+   "cles": [
+    "S2"
+   ],
+   "effectif": 25,
+   "enseignant": "—",
+   "salle": "SAR 100",
+   "reel": false
+  },
+  {
+   "id": "s3",
+   "jour": 0,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "Informatique",
+   "groupes": [
+    "Groupe simulé 3"
+   ],
+   "cles": [
+    "S3"
+   ],
+   "effectif": 20,
+   "enseignant": "—",
+   "salle": "SAR 100",
+   "reel": false
+  },
+  {
+   "id": "s4",
+   "jour": 1,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Programmation",
+   "groupes": [
+    "Groupe simulé 4"
+   ],
+   "cles": [
+    "S4"
+   ],
+   "effectif": 18,
+   "enseignant": "—",
+   "salle": "SAR 100",
+   "reel": false
+  },
+  {
+   "id": "s5",
+   "jour": 1,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "Informatique",
+   "groupes": [
+    "Groupe simulé 5"
+   ],
+   "cles": [
+    "S5"
+   ],
+   "effectif": 26,
+   "enseignant": "—",
+   "salle": "SAR 100",
+   "reel": false
+  },
+  {
+   "id": "s6",
+   "jour": 2,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "Programmation",
+   "groupes": [
+    "Groupe simulé 6"
+   ],
+   "cles": [
+    "S6"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 100",
+   "reel": false
+  },
+  {
+   "id": "s7",
+   "jour": 2,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "Informatique",
+   "groupes": [
+    "Groupe simulé 7"
+   ],
+   "cles": [
+    "S7"
+   ],
+   "effectif": 21,
+   "enseignant": "—",
+   "salle": "SAR 100",
+   "reel": false
+  },
+  {
+   "id": "s8",
+   "jour": 3,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Programmation",
+   "groupes": [
+    "Groupe simulé 8"
+   ],
+   "cles": [
+    "S8"
+   ],
+   "effectif": 27,
+   "enseignant": "—",
+   "salle": "SAR 100",
+   "reel": false
+  },
+  {
+   "id": "s9",
+   "jour": 3,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "Informatique",
+   "groupes": [
+    "Groupe simulé 9"
+   ],
+   "cles": [
+    "S9"
+   ],
+   "effectif": 26,
+   "enseignant": "—",
+   "salle": "SAR 100",
+   "reel": false
+  },
+  {
+   "id": "s10",
+   "jour": 4,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "Informatique",
+   "groupes": [
+    "Groupe simulé 10"
+   ],
+   "cles": [
+    "S10"
+   ],
+   "effectif": 17,
+   "enseignant": "—",
+   "salle": "SAR 100",
+   "reel": false
+  },
+  {
+   "id": "s11",
+   "jour": 4,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "Programmation",
+   "groupes": [
+    "Groupe simulé 11"
+   ],
+   "cles": [
+    "S11"
+   ],
+   "effectif": 19,
+   "enseignant": "—",
+   "salle": "SAR 100",
+   "reel": false
+  },
+  {
+   "id": "s12",
+   "jour": 0,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Physique",
+   "groupes": [
+    "Groupe simulé 12"
+   ],
+   "cles": [
+    "S12"
+   ],
+   "effectif": 18,
+   "enseignant": "—",
+   "salle": "SAR 101",
+   "reel": false
+  },
+  {
+   "id": "s13",
+   "jour": 0,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "Communication",
+   "groupes": [
+    "Groupe simulé 13"
+   ],
+   "cles": [
+    "S13"
+   ],
+   "effectif": 14,
+   "enseignant": "—",
+   "salle": "SAR 101",
+   "reel": false
+  },
+  {
+   "id": "s14",
+   "jour": 1,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Gestion de projet",
+   "groupes": [
+    "Groupe simulé 14"
+   ],
+   "cles": [
+    "S14"
+   ],
+   "effectif": 17,
+   "enseignant": "—",
+   "salle": "SAR 101",
+   "reel": false
+  },
+  {
+   "id": "s15",
+   "jour": 2,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "Communication",
+   "groupes": [
+    "Groupe simulé 15"
+   ],
+   "cles": [
+    "S15"
+   ],
+   "effectif": 15,
+   "enseignant": "—",
+   "salle": "SAR 101",
+   "reel": false
+  },
+  {
+   "id": "s16",
+   "jour": 3,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "Communication",
+   "groupes": [
+    "Groupe simulé 16"
+   ],
+   "cles": [
+    "S16"
+   ],
+   "effectif": 17,
+   "enseignant": "—",
+   "salle": "SAR 101",
+   "reel": false
+  },
+  {
+   "id": "s17",
+   "jour": 3,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Mathématiques",
+   "groupes": [
+    "Groupe simulé 17"
+   ],
+   "cles": [
+    "S17"
+   ],
+   "effectif": 13,
+   "enseignant": "—",
+   "salle": "SAR 101",
+   "reel": false
+  },
+  {
+   "id": "s18",
+   "jour": 4,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "Gestion de projet",
+   "groupes": [
+    "Groupe simulé 18"
+   ],
+   "cles": [
+    "S18"
+   ],
+   "effectif": 12,
+   "enseignant": "—",
+   "salle": "SAR 101",
+   "reel": false
+  },
+  {
+   "id": "s19",
+   "jour": 4,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Anglais",
+   "groupes": [
+    "Groupe simulé 19"
+   ],
+   "cles": [
+    "S19"
+   ],
+   "effectif": 13,
+   "enseignant": "—",
+   "salle": "SAR 101",
+   "reel": false
+  },
+  {
+   "id": "s20",
+   "jour": 4,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "Physique",
+   "groupes": [
+    "Groupe simulé 20"
+   ],
+   "cles": [
+    "S20"
+   ],
+   "effectif": 12,
+   "enseignant": "—",
+   "salle": "SAR 101",
+   "reel": false
+  },
+  {
+   "id": "s21",
+   "jour": 0,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "Anglais",
+   "groupes": [
+    "Groupe simulé 21"
+   ],
+   "cles": [
+    "S21"
+   ],
+   "effectif": 26,
+   "enseignant": "—",
+   "salle": "SAR 109",
+   "reel": false
+  },
+  {
+   "id": "s22",
+   "jour": 0,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "Mathématiques",
+   "groupes": [
+    "Groupe simulé 22"
+   ],
+   "cles": [
+    "S22"
+   ],
+   "effectif": 27,
+   "enseignant": "—",
+   "salle": "SAR 109",
+   "reel": false
+  },
+  {
+   "id": "s23",
+   "jour": 1,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "Gestion de projet",
+   "groupes": [
+    "Groupe simulé 23"
+   ],
+   "cles": [
+    "S23"
+   ],
+   "effectif": 17,
+   "enseignant": "—",
+   "salle": "SAR 109",
+   "reel": false
+  },
+  {
+   "id": "s24",
+   "jour": 1,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Anglais",
+   "groupes": [
+    "Groupe simulé 24"
+   ],
+   "cles": [
+    "S24"
+   ],
+   "effectif": 24,
+   "enseignant": "—",
+   "salle": "SAR 109",
+   "reel": false
+  },
+  {
+   "id": "s25",
+   "jour": 1,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "Anglais",
+   "groupes": [
+    "Groupe simulé 25"
+   ],
+   "cles": [
+    "S25"
+   ],
+   "effectif": 23,
+   "enseignant": "—",
+   "salle": "SAR 109",
+   "reel": false
+  },
+  {
+   "id": "s26",
+   "jour": 2,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "Gestion de projet",
+   "groupes": [
+    "Groupe simulé 26"
+   ],
+   "cles": [
+    "S26"
+   ],
+   "effectif": 23,
+   "enseignant": "—",
+   "salle": "SAR 109",
+   "reel": false
+  },
+  {
+   "id": "s27",
+   "jour": 4,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "Gestion de projet",
+   "groupes": [
+    "Groupe simulé 27"
+   ],
+   "cles": [
+    "S27"
+   ],
+   "effectif": 19,
+   "enseignant": "—",
+   "salle": "SAR 109",
+   "reel": false
+  },
+  {
+   "id": "s28",
+   "jour": 4,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "Mathématiques",
+   "groupes": [
+    "Groupe simulé 28"
+   ],
+   "cles": [
+    "S28"
+   ],
+   "effectif": 24,
+   "enseignant": "—",
+   "salle": "SAR 109",
+   "reel": false
+  },
+  {
+   "id": "s29",
+   "jour": 1,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "Anglais",
+   "groupes": [
+    "Groupe simulé 29"
+   ],
+   "cles": [
+    "S29"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 118",
+   "reel": false
+  },
+  {
+   "id": "s30",
+   "jour": 2,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "Mathématiques",
+   "groupes": [
+    "Groupe simulé 30"
+   ],
+   "cles": [
+    "S30"
+   ],
+   "effectif": 18,
+   "enseignant": "—",
+   "salle": "SAR 118",
+   "reel": false
+  },
+  {
+   "id": "s31",
+   "jour": 2,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Physique",
+   "groupes": [
+    "Groupe simulé 31"
+   ],
+   "cles": [
+    "S31"
+   ],
+   "effectif": 16,
+   "enseignant": "—",
+   "salle": "SAR 118",
+   "reel": false
+  },
+  {
+   "id": "s32",
+   "jour": 2,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "Anglais",
+   "groupes": [
+    "Groupe simulé 32"
+   ],
+   "cles": [
+    "S32"
+   ],
+   "effectif": 16,
+   "enseignant": "—",
+   "salle": "SAR 118",
+   "reel": false
+  },
+  {
+   "id": "s33",
+   "jour": 3,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Mathématiques",
+   "groupes": [
+    "Groupe simulé 33"
+   ],
+   "cles": [
+    "S33"
+   ],
+   "effectif": 20,
+   "enseignant": "—",
+   "salle": "SAR 118",
+   "reel": false
+  },
+  {
+   "id": "s34",
+   "jour": 3,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "Mathématiques",
+   "groupes": [
+    "Groupe simulé 34"
+   ],
+   "cles": [
+    "S34"
+   ],
+   "effectif": 16,
+   "enseignant": "—",
+   "salle": "SAR 118",
+   "reel": false
+  },
+  {
+   "id": "s35",
+   "jour": 4,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "Communication",
+   "groupes": [
+    "Groupe simulé 35"
+   ],
+   "cles": [
+    "S35"
+   ],
+   "effectif": 21,
+   "enseignant": "—",
+   "salle": "SAR 118",
+   "reel": false
+  },
+  {
+   "id": "s36",
+   "jour": 4,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Gestion de projet",
+   "groupes": [
+    "Groupe simulé 36"
+   ],
+   "cles": [
+    "S36"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 118",
+   "reel": false
+  },
+  {
+   "id": "s37",
+   "jour": 4,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "Anglais",
+   "groupes": [
+    "Groupe simulé 37"
+   ],
+   "cles": [
+    "S37"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 118",
+   "reel": false
+  },
+  {
+   "id": "s38",
+   "jour": 1,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "Mathématiques",
+   "groupes": [
+    "Groupe simulé 38"
+   ],
+   "cles": [
+    "S38"
+   ],
+   "effectif": 12,
+   "enseignant": "—",
+   "salle": "SAR 122",
+   "reel": false
+  },
+  {
+   "id": "s39",
+   "jour": 1,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Anglais",
+   "groupes": [
+    "Groupe simulé 39"
+   ],
+   "cles": [
+    "S39"
+   ],
+   "effectif": 17,
+   "enseignant": "—",
+   "salle": "SAR 122",
+   "reel": false
+  },
+  {
+   "id": "s40",
+   "jour": 1,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "Mathématiques",
+   "groupes": [
+    "Groupe simulé 40"
+   ],
+   "cles": [
+    "S40"
+   ],
+   "effectif": 13,
+   "enseignant": "—",
+   "salle": "SAR 122",
+   "reel": false
+  },
+  {
+   "id": "s41",
+   "jour": 3,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "Anglais",
+   "groupes": [
+    "Groupe simulé 41"
+   ],
+   "cles": [
+    "S41"
+   ],
+   "effectif": 11,
+   "enseignant": "—",
+   "salle": "SAR 122",
+   "reel": false
+  },
+  {
+   "id": "s42",
+   "jour": 3,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "Physique",
+   "groupes": [
+    "Groupe simulé 42"
+   ],
+   "cles": [
+    "S42"
+   ],
+   "effectif": 16,
+   "enseignant": "—",
+   "salle": "SAR 122",
+   "reel": false
+  },
+  {
+   "id": "s43",
+   "jour": 3,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "Communication",
+   "groupes": [
+    "Groupe simulé 43"
+   ],
+   "cles": [
+    "S43"
+   ],
+   "effectif": 11,
+   "enseignant": "—",
+   "salle": "SAR 122",
+   "reel": false
+  },
+  {
+   "id": "s44",
+   "jour": 4,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "Communication",
+   "groupes": [
+    "Groupe simulé 44"
+   ],
+   "cles": [
+    "S44"
+   ],
+   "effectif": 13,
+   "enseignant": "—",
+   "salle": "SAR 122",
+   "reel": false
+  },
+  {
+   "id": "s45",
+   "jour": 0,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "TP Réseaux",
+   "groupes": [
+    "Groupe simulé 45"
+   ],
+   "cles": [
+    "S45"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 200",
+   "reel": false
+  },
+  {
+   "id": "s46",
+   "jour": 2,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "TP Électronique",
+   "groupes": [
+    "Groupe simulé 46"
+   ],
+   "cles": [
+    "S46"
+   ],
+   "effectif": 18,
+   "enseignant": "—",
+   "salle": "SAR 200",
+   "reel": false
+  },
+  {
+   "id": "s47",
+   "jour": 2,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Électronique",
+   "groupes": [
+    "Groupe simulé 47"
+   ],
+   "cles": [
+    "S47"
+   ],
+   "effectif": 23,
+   "enseignant": "—",
+   "salle": "SAR 200",
+   "reel": false
+  },
+  {
+   "id": "s48",
+   "jour": 3,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "TP Énergie",
+   "groupes": [
+    "Groupe simulé 48"
+   ],
+   "cles": [
+    "S48"
+   ],
+   "effectif": 15,
+   "enseignant": "—",
+   "salle": "SAR 200",
+   "reel": false
+  },
+  {
+   "id": "s49",
+   "jour": 3,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "TP Automatisme",
+   "groupes": [
+    "Groupe simulé 49"
+   ],
+   "cles": [
+    "S49"
+   ],
+   "effectif": 18,
+   "enseignant": "—",
+   "salle": "SAR 200",
+   "reel": false
+  },
+  {
+   "id": "s50",
+   "jour": 3,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Réseaux",
+   "groupes": [
+    "Groupe simulé 50"
+   ],
+   "cles": [
+    "S50"
+   ],
+   "effectif": 19,
+   "enseignant": "—",
+   "salle": "SAR 200",
+   "reel": false
+  },
+  {
+   "id": "s51",
+   "jour": 0,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "TP Énergie",
+   "groupes": [
+    "Groupe simulé 51"
+   ],
+   "cles": [
+    "S51"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 201",
+   "reel": false
+  },
+  {
+   "id": "s52",
+   "jour": 1,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Énergie",
+   "groupes": [
+    "Groupe simulé 52"
+   ],
+   "cles": [
+    "S52"
+   ],
+   "effectif": 16,
+   "enseignant": "—",
+   "salle": "SAR 201",
+   "reel": false
+  },
+  {
+   "id": "s53",
+   "jour": 2,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "TP Énergie",
+   "groupes": [
+    "Groupe simulé 53"
+   ],
+   "cles": [
+    "S53"
+   ],
+   "effectif": 18,
+   "enseignant": "—",
+   "salle": "SAR 201",
+   "reel": false
+  },
+  {
+   "id": "s54",
+   "jour": 2,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Électronique",
+   "groupes": [
+    "Groupe simulé 54"
+   ],
+   "cles": [
+    "S54"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 201",
+   "reel": false
+  },
+  {
+   "id": "s55",
+   "jour": 3,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "TP Automatisme",
+   "groupes": [
+    "Groupe simulé 55"
+   ],
+   "cles": [
+    "S55"
+   ],
+   "effectif": 20,
+   "enseignant": "—",
+   "salle": "SAR 201",
+   "reel": false
+  },
+  {
+   "id": "s56",
+   "jour": 3,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "TP Réseaux",
+   "groupes": [
+    "Groupe simulé 56"
+   ],
+   "cles": [
+    "S56"
+   ],
+   "effectif": 20,
+   "enseignant": "—",
+   "salle": "SAR 201",
+   "reel": false
+  },
+  {
+   "id": "s57",
+   "jour": 3,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Automatisme",
+   "groupes": [
+    "Groupe simulé 57"
+   ],
+   "cles": [
+    "S57"
+   ],
+   "effectif": 19,
+   "enseignant": "—",
+   "salle": "SAR 201",
+   "reel": false
+  },
+  {
+   "id": "s58",
+   "jour": 4,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "TP Électronique",
+   "groupes": [
+    "Groupe simulé 58"
+   ],
+   "cles": [
+    "S58"
+   ],
+   "effectif": 16,
+   "enseignant": "—",
+   "salle": "SAR 201",
+   "reel": false
+  },
+  {
+   "id": "s59",
+   "jour": 4,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Électronique",
+   "groupes": [
+    "Groupe simulé 59"
+   ],
+   "cles": [
+    "S59"
+   ],
+   "effectif": 13,
+   "enseignant": "—",
+   "salle": "SAR 201",
+   "reel": false
+  },
+  {
+   "id": "s60",
+   "jour": 0,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "TP Automatisme",
+   "groupes": [
+    "Groupe simulé 60"
+   ],
+   "cles": [
+    "S60"
+   ],
+   "effectif": 20,
+   "enseignant": "—",
+   "salle": "SAR 202",
+   "reel": false
+  },
+  {
+   "id": "s61",
+   "jour": 1,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "TP Automatisme",
+   "groupes": [
+    "Groupe simulé 61"
+   ],
+   "cles": [
+    "S61"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 202",
+   "reel": false
+  },
+  {
+   "id": "s62",
+   "jour": 2,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "TP Électronique",
+   "groupes": [
+    "Groupe simulé 62"
+   ],
+   "cles": [
+    "S62"
+   ],
+   "effectif": 17,
+   "enseignant": "—",
+   "salle": "SAR 202",
+   "reel": false
+  },
+  {
+   "id": "s63",
+   "jour": 2,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "TP Énergie",
+   "groupes": [
+    "Groupe simulé 63"
+   ],
+   "cles": [
+    "S63"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 202",
+   "reel": false
+  },
+  {
+   "id": "s64",
+   "jour": 3,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "TP Réseaux",
+   "groupes": [
+    "Groupe simulé 64"
+   ],
+   "cles": [
+    "S64"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 202",
+   "reel": false
+  },
+  {
+   "id": "s65",
+   "jour": 4,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "TP Énergie",
+   "groupes": [
+    "Groupe simulé 65"
+   ],
+   "cles": [
+    "S65"
+   ],
+   "effectif": 19,
+   "enseignant": "—",
+   "salle": "SAR 202",
+   "reel": false
+  },
+  {
+   "id": "s66",
+   "jour": 0,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "TP Réseaux",
+   "groupes": [
+    "Groupe simulé 66"
+   ],
+   "cles": [
+    "S66"
+   ],
+   "effectif": 15,
+   "enseignant": "—",
+   "salle": "SAR 206",
+   "reel": false
+  },
+  {
+   "id": "s67",
+   "jour": 1,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "TP Réseaux",
+   "groupes": [
+    "Groupe simulé 67"
+   ],
+   "cles": [
+    "S67"
+   ],
+   "effectif": 21,
+   "enseignant": "—",
+   "salle": "SAR 206",
+   "reel": false
+  },
+  {
+   "id": "s68",
+   "jour": 1,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "TP Automatisme",
+   "groupes": [
+    "Groupe simulé 68"
+   ],
+   "cles": [
+    "S68"
+   ],
+   "effectif": 18,
+   "enseignant": "—",
+   "salle": "SAR 206",
+   "reel": false
+  },
+  {
+   "id": "s69",
+   "jour": 1,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Énergie",
+   "groupes": [
+    "Groupe simulé 69"
+   ],
+   "cles": [
+    "S69"
+   ],
+   "effectif": 19,
+   "enseignant": "—",
+   "salle": "SAR 206",
+   "reel": false
+  },
+  {
+   "id": "s70",
+   "jour": 2,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Automatisme",
+   "groupes": [
+    "Groupe simulé 70"
+   ],
+   "cles": [
+    "S70"
+   ],
+   "effectif": 21,
+   "enseignant": "—",
+   "salle": "SAR 206",
+   "reel": false
+  },
+  {
+   "id": "s71",
+   "jour": 3,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "TP Réseaux",
+   "groupes": [
+    "Groupe simulé 71"
+   ],
+   "cles": [
+    "S71"
+   ],
+   "effectif": 19,
+   "enseignant": "—",
+   "salle": "SAR 206",
+   "reel": false
+  },
+  {
+   "id": "s72",
+   "jour": 3,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "TP Électronique",
+   "groupes": [
+    "Groupe simulé 72"
+   ],
+   "cles": [
+    "S72"
+   ],
+   "effectif": 19,
+   "enseignant": "—",
+   "salle": "SAR 206",
+   "reel": false
+  },
+  {
+   "id": "s73",
+   "jour": 3,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Automatisme",
+   "groupes": [
+    "Groupe simulé 73"
+   ],
+   "cles": [
+    "S73"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 206",
+   "reel": false
+  },
+  {
+   "id": "s74",
+   "jour": 4,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "TP Électronique",
+   "groupes": [
+    "Groupe simulé 74"
+   ],
+   "cles": [
+    "S74"
+   ],
+   "effectif": 19,
+   "enseignant": "—",
+   "salle": "SAR 206",
+   "reel": false
+  },
+  {
+   "id": "s75",
+   "jour": 4,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Automatisme",
+   "groupes": [
+    "Groupe simulé 75"
+   ],
+   "cles": [
+    "S75"
+   ],
+   "effectif": 16,
+   "enseignant": "—",
+   "salle": "SAR 206",
+   "reel": false
+  },
+  {
+   "id": "s76",
+   "jour": 0,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "TP Énergie",
+   "groupes": [
+    "Groupe simulé 76"
+   ],
+   "cles": [
+    "S76"
+   ],
+   "effectif": 24,
+   "enseignant": "—",
+   "salle": "SAR 207",
+   "reel": false
+  },
+  {
+   "id": "s77",
+   "jour": 1,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Automatisme",
+   "groupes": [
+    "Groupe simulé 77"
+   ],
+   "cles": [
+    "S77"
+   ],
+   "effectif": 24,
+   "enseignant": "—",
+   "salle": "SAR 207",
+   "reel": false
+  },
+  {
+   "id": "s78",
+   "jour": 2,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "TP Énergie",
+   "groupes": [
+    "Groupe simulé 78"
+   ],
+   "cles": [
+    "S78"
+   ],
+   "effectif": 20,
+   "enseignant": "—",
+   "salle": "SAR 207",
+   "reel": false
+  },
+  {
+   "id": "s79",
+   "jour": 2,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "TP Énergie",
+   "groupes": [
+    "Groupe simulé 79"
+   ],
+   "cles": [
+    "S79"
+   ],
+   "effectif": 21,
+   "enseignant": "—",
+   "salle": "SAR 207",
+   "reel": false
+  },
+  {
+   "id": "s80",
+   "jour": 2,
+   "debut": 13.5,
+   "fin": 15.5,
+   "matiere": "TP Électronique",
+   "groupes": [
+    "Groupe simulé 80"
+   ],
+   "cles": [
+    "S80"
+   ],
+   "effectif": 17,
+   "enseignant": "—",
+   "salle": "SAR 207",
+   "reel": false
+  },
+  {
+   "id": "s81",
+   "jour": 2,
+   "debut": 15.75,
+   "fin": 17.75,
+   "matiere": "TP Énergie",
+   "groupes": [
+    "Groupe simulé 81"
+   ],
+   "cles": [
+    "S81"
+   ],
+   "effectif": 20,
+   "enseignant": "—",
+   "salle": "SAR 207",
+   "reel": false
+  },
+  {
+   "id": "s82",
+   "jour": 4,
+   "debut": 8.25,
+   "fin": 10.25,
+   "matiere": "TP Électronique",
+   "groupes": [
+    "Groupe simulé 82"
+   ],
+   "cles": [
+    "S82"
+   ],
+   "effectif": 17,
+   "enseignant": "—",
+   "salle": "SAR 207",
+   "reel": false
+  },
+  {
+   "id": "s83",
+   "jour": 4,
+   "debut": 10.5,
+   "fin": 12.5,
+   "matiere": "TP Électronique",
+   "groupes": [
+    "Groupe simulé 83"
+   ],
+   "cles": [
+    "S83"
+   ],
+   "effectif": 22,
+   "enseignant": "—",
+   "salle": "SAR 207",
+   "reel": false
+  }
+ ]
+}

@@ -1,0 +1,216 @@
+% !TEX program = pdflatex
+% =====================================================================
+%  Synthèse d'avancement SAE S5 — « CampusTwin » (version 3)
+%  BOUBAYA Louay — GUARISE--PRELLER Ariel — POIRE Noah
+%  GEII — IUT de Cergy-Pontoise (site de Sarcelles)
+% =====================================================================
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage[a4paper,top=1.5cm,bottom=1.4cm,left=1.45cm,right=1.45cm,headsep=0.35cm]{geometry}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{xltabular}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{eurosym}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc}
+\usepackage[colorlinks=true,linkcolor=bleucy,urlcolor=bleucy,citecolor=bleucy]{hyperref}
+
+% ---------- Couleurs ----------
+\definecolor{bleucy}{RGB}{20,60,120}
+\definecolor{vertok}{RGB}{30,110,60}
+\definecolor{grisleg}{RGB}{120,120,120}
+\definecolor{bleuclair}{RGB}{225,235,248}
+
+% ---------- Titres de section ----------
+\titleformat{\section}{\normalfont\Large\bfseries\color{bleucy}}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries\color{bleucy!85}}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.1ex plus .3ex minus .2ex}{0.6ex}
+\titlespacing*{\subsection}{0pt}{0.8ex plus .2ex}{0.4ex}
+
+% ---------- En-têtes / pieds ----------
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{bleucy}\leaders\hrule height \headrulewidth\hfill}}
+\lhead{\footnotesize\color{bleucy}\textbf{CampusTwin} — une salle qui sait pourquoi son air est mauvais}
+\rhead{\footnotesize\color{bleucy}Synthèse SAE S5 — GEII}
+\cfoot{\footnotesize\thepage}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5ex}
+\renewcommand{\arraystretch}{1.2}
+
+\newcommand{\evol}[1]{\textcolor{vertok}{\textbf{#1}}}
+\newcommand{\COtwo}{CO\textsubscript{2}}
+\addto\captionsfrench{\renewcommand{\tablename}{Tableau}}
+
+\begin{document}
+
+% =====================================================================
+%  TITRE
+% =====================================================================
+\thispagestyle{empty}
+\begin{center}
+  {\color{grisleg}\small IUT de Cergy-Pontoise (site de Sarcelles) — Département GEII}\\[0.3em]
+  {\color{bleucy}\rule{0.85\linewidth}{1.2pt}}\\[0.5em]
+  {\LARGE\bfseries\color{bleucy} Synthèse de projet : CampusTwin}\\[0.2em]
+  {\large Une salle qui sait pourquoi son air est mauvais — BUT 3, semestre 5}\\[0.5em]
+  {\color{bleucy}\rule{0.85\linewidth}{1.2pt}}\\[0.6em]
+  {\large\bfseries BOUBAYA Louay \;\textbullet\; GUARISE-{}-PRELLER Ariel \;\textbullet\; POIRE Noah}\\[0.3em]
+  {\small\color{grisleg} 16 octobre 2026 — version 3}
+\end{center}
+
+% =====================================================================
+\section{Choix du projet}
+% =====================================================================
+Notre première idée (salle connectée avec capteurs de \COtwo{} et badge) n'était pas assez futuriste. La deuxième (jumeau numérique avec comptage sans caméra) existait déjà : un mémoire de master l'a déployée dans 26 salles (\href{https://dc.etsu.edu/etd/4702}{ETSU, 2026}). Nous avons donc cherché ce que personne ne fait encore, et recentré le projet dessus.
+
+\textbf{Le problème.} Les salles d'université sont souvent mal ventilées sans que personne ne le sache. À l'Université Grenoble Alpes, 32 salles ventilées mécaniquement sur 41 reçoivent moins de 25\,m³/h d'air neuf par occupant, et la ventilation d'un amphi a été trouvée à l'arrêt (\href{https://blog.landot-avocats.net/2025/06/14/qualite-de-lair-interieur-et-universites-1-etat-du-droit-2-lien-vers-une-conference-3-interview-du-pr-philippe-cinquin/}{étude UGA, 2025}). Sur plus de 60\,000 équipements suivis aux États-Unis, 40\,\% des centrales de traitement d'air signalent un défaut chaque jour (\href{https://eta-publications.lbl.gov/bibcite/reference/36129}{LBNL, 2023}). Les capteurs de \COtwo{} avec voyant ne règlent pas le problème : ils disent que l'air est mauvais, mais pas pourquoi, et dans un collège où les enseignants changent de salle, ils n'ont eu aucun effet net (\href{https://www.airparif.asso.fr/sites/default/files/document_publication/Aerons_Synthese_Airparif.pdf}{Airparif, 2021}).
+
+\textbf{Problématique :} comment une salle peut-elle savoir si elle reçoit assez d'air neuf, trouver la cause quand ce n'est pas le cas, et repérer quand ses propres capteurs se trompent ?
+
+\textbf{Notre idée.} Chaque personne assise rejette environ 15 à 20\,L de \COtwo{} par heure (\href{https://doi.org/10.1111/ina.12383}{Persily et de Jonge, 2017}). Avec le nombre de personnes $N$ et le \COtwo{} mesuré $C$, un modèle physique de la salle (bilan de masse) donne le débit d'air neuf réel $Q$ :
+\[
+V\,\frac{dC}{dt} = N\,G - Q\,(C - C_{\text{ext}})
+\qquad\text{et, salle vide :}\qquad
+C(t) - C_{\text{ext}} = \bigl(C_0 - C_{\text{ext}}\bigr)\,e^{-Q t / V}
+\]
+($V$ volume, $G$ \COtwo{} par personne, $C_{\text{ext}} \approx 420$\,ppm). Le point clé est d'utiliser deux situations différentes. Quand la salle est occupée, le comptage donne $Q$. Quand elle se vide, la décroissance du \COtwo{} donne $Q$ sans avoir besoin du comptage, et la nuit le \COtwo{} doit revenir vers 420\,ppm. En croisant les deux, le système sépare quatre causes : \evol{ventilation en panne}, \evol{fenêtre ouverte}, \evol{capteur de \COtwo{} qui dérive} et \evol{comptage faux}.
+
+\textbf{Ce que le projet apporte :}
+\begin{enumerate}[leftmargin=1.5em,itemsep=1pt,topsep=1pt]
+  \item Des capteurs qui se surveillent entre eux : le comptage contrôle le \COtwo, et le \COtwo{} contrôle le comptage.
+  \item Un modèle hybride (physique + apprentissage) qui s'auto-calibre : les paramètres de la salle sont appris en continu par moindres carrés récursifs, et un autotest injecte une dose de \COtwo{} connue pour mesurer le volume utile.
+  \item Un indicateur utile à l'université : le débit d'air neuf par occupant, comparé aux 25\,m³/h du code du travail (\href{https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000018532328}{R4222-6}), avec un bilan par cours.
+  \item Un comptage fiable sans caméra, par fusion de trois capteurs (temps de vol, thermique, radar).
+\end{enumerate}
+Le projet suit la réglementation qui arrive : la directive européenne EPBD de 2024 demande aux systèmes d'automatisation de « surveiller la qualité de l'environnement intérieur » (\href{https://eur-lex.europa.eu/legal-content/FR/TXT/HTML/?uri=OJ:L_202401275}{art.~13}), et le décret BACS leur demande de « détecter les pertes d'efficacité » (\href{https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000047427508}{R175-3}). Il touche les thématiques IA et IoT, Université du futur et Industrie 4.0. Un automate industriel exécute le diagnostic et pilote la ventilation de la maquette.
+
+% =====================================================================
+\section{État de l'art}\label{sec:etat}
+% =====================================================================
+{\footnotesize
+\renewcommand{\arraystretch}{1.12}
+\setlength{\LTpre}{2pt}\setlength{\LTpost}{2pt}\setlength{\LTcapwidth}{\linewidth}
+\begin{xltabular}{\linewidth}{>{\bfseries\raggedright\arraybackslash}p{2.35cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{3.1cm} >{\raggedright\arraybackslash}p{3.7cm}}
+\toprule
+\textbf{Thème} & \textbf{Ce qui existe} & \textbf{Limites} & \textbf{Ce qu'on en retient}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Thème} & \textbf{Ce qui existe} & \textbf{Limites} & \textbf{Ce qu'on en retient}\\
+\midrule
+\endhead
+\endfoot
+\bottomrule
+\caption{État de l'art et ce que nous en retenons.}\label{tab:etat}
+\endlastfoot
+Salles connectées &
+26 salles avec comptage à la porte et \COtwo{} (\href{https://dc.etsu.edu/etd/4702}{ETSU, 2026}) ; salle jumelle qui pilote le chauffage (\href{https://greendigital.uth.gr/smart_classroom}{UTH}) ; plateforme \href{https://www.applytosupply.digitalmarketplace.service.gov.uk/g-cloud/services/784383178323412}{SmartViz} &
+Elles affichent et pilotent, sans vérifier l'air réellement fourni &
+\evol{Vérifier le résultat}, pas seulement afficher \\
+\addlinespace[2pt]
+Capteurs de \COtwo{} &
+\href{https://partners.thethingsindustries.com/devices/nexelec-carbon--air-quality/}{Nexelec Carbon} ; un affichage fait aérer plus (\href{https://orbit.dtu.dk/en/publications/use-of-visual-cosub2sub-feedback-as-a-retrofit-solution-for-impro/}{Wargocki, 2015}), mais aucun effet net au collège (\href{https://www.airparif.asso.fr/sites/default/files/document_publication/Aerons_Synthese_Airparif.pdf}{Airparif}) &
+Ils disent que l'air est mauvais, pas pourquoi &
+\evol{Donner la cause} \\
+\addlinespace[2pt]
+Débit d'air estimé avec le \COtwo{} &
+Bilan avec occupation mesurée en écoles (\href{https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5334699/}{Batterman, 2017}) ; filtre de Kalman en salle de classe (\href{https://zenodo.org/records/1414578}{Duarte et al., 2018}) ; produit \href{https://businesshelp.airthings.com/en/articles/110898-business-dashboard-air-exchange-rate}{Airthings} &
+Ils estiment le débit, sans chercher la cause d'un écart ni contrôler leurs capteurs &
+\evol{Partir de ces méthodes} pour aller jusqu'au diagnostic \\
+\addlinespace[2pt]
+Gestion technique du bâtiment &
+Brevet Johnson Controls qui compare débit estimé et débit attendu (\href{https://patents.google.com/patent/US12546499B2/en}{US12546499}) ; ventilation selon le \COtwo{} en KNX (\href{https://www.knxtoday.com/2023/02/45412/theben-offers-clean-air-for-healthy-learning-with-theprema-p360-knx-multi\%EF\%BF\%BC.html}{Theben}) &
+Un écart est signalé, mais les causes ne sont pas séparées &
+\evol{Séparer les quatre causes} \\
+\addlinespace[2pt]
+Comptage sans caméra &
+Thermique MLX90640 : 100\,\% en passages simples, 80 à 90\,\% en cas difficiles (\href{https://arxiv.org/abs/2004.05685}{TIDOS}) ; barrière infrarouge 98,6\,\% / 95,9\,\% (\href{https://users.ece.cmu.edu/~agr/resources/publications/RTAS-FORK-17.pdf}{FORK}) ; Wi-Fi 95\,\% en labo (\href{https://www.comp.polyu.edu.hk/~labimcl/paper/Yang-2019-IOTJ-Door-Monitor.pdf}{Door-Monitor}) &
+Chaque capteur seul se trompe sur les groupes &
+\evol{Fusion de trois capteurs} \\
+\end{xltabular}
+}
+
+\textbf{Bilan.} Estimer le débit avec le \COtwo{} et l'occupation est connu, et un brevet compare déjà débit estimé et débit attendu. Nous n'avons trouvé aucun système qui sépare automatiquement les quatre causes en combinant un comptage indépendant et les moments où la salle est vide. C'est ce point que nous voulons démontrer.
+
+% =====================================================================
+\section{Matériel, modules et validation}
+% =====================================================================
+\begin{figure}[ht]
+\centering
+\resizebox{0.9\linewidth}{!}{%
+\begin{tikzpicture}[
+    >={Stealth[scale=1.2]},
+    font=\sffamily\small,
+    block/.style={draw, thick, rounded corners=2mm, align=center, minimum width=3.6cm, minimum height=1.3cm, inner sep=2mm},
+    sensor/.style={block, fill=blue!10, draw=blue!70!black},
+    mcu/.style={block, fill=orange!15, draw=orange!80!black},
+    actuator/.style={block, fill=purple!10, draw=purple!70!black},
+    app/.style={block, fill=green!15, draw=green!60!black},
+    box/.style={draw, dashed, thick, inner sep=4mm, rounded corners=3mm},
+    line/.style={draw, thick, ->}
+]
+\node[mcu, minimum height=2.6cm] (srv) {\textbf{Modèle hybride}\\Fusion du comptage\\Bilan de \COtwo{} auto-calibré\\\textit{Diagnostic des 4 causes}};
+\node[sensor, left=2.8cm of srv, yshift=1.3cm] (porte) {\textbf{Porte}\\XIAO ESP32S3\\Temps de vol, thermique, radar};
+\node[sensor, left=2.8cm of srv, yshift=-1.3cm] (air) {\textbf{Air}\\XIAO ESP32S3\\\COtwo{} (SCD-41), température};
+\node[actuator, right=2.8cm of srv] (api) {\textbf{Automate S7-1200}\\Ventilation de la maquette\\\textit{Arrêt d'urgence, repli}};
+\node[actuator, below=1.4cm of api] (maq) {\textbf{Maquette de salle}\\Ventilateur, trappe « fenêtre »\\\COtwo{} injecté (occupants)};
+\node[app, below=1.4cm of srv] (tdb) {\textbf{Tableau de bord}\\\textit{m³/h par occupant, causes}};
+\begin{scope}[on background layer]
+  \node[box, draw=blue!50, fill=blue!2, fit=(porte) (air)] (cap) {};
+  \node[above right, text=blue!80!black, font=\bfseries, xshift=2mm] at (cap.north west) {CAPTEURS};
+\end{scope}
+\draw[line] (porte.east) -- node[above, font=\scriptsize] {passages} (porte.east -| srv.west);
+\draw[line] (air.east) -- node[below, font=\scriptsize] {\COtwo, température} (air.east -| srv.west);
+\draw[line, <->, thick, purple!70!black] (srv) -- node[above, font=\scriptsize\bfseries] {Modbus TCP} (api);
+\draw[line, <->, thick, purple!70!black] (api) -- (maq);
+\draw[line] (srv) -- (tdb);
+\end{tikzpicture}
+}
+\caption{Architecture : capteurs (bleu, FP1 Acquérir), modèle hybride (orange, FP2 Traiter), automate et maquette (violet, FP3 Commander), tableau de bord (vert, FP4 Informer).}
+\label{fig:archi}
+\end{figure}
+
+\begin{table}[ht]
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.06}
+\begin{tabularx}{\linewidth}{>{\bfseries\raggedright\arraybackslash}p{3.6cm} X}
+\toprule
+\textbf{Cause} & \textbf{Ce que voit le système}\\
+\midrule
+Ventilation en panne & Débit trop faible en occupation \emph{et} décroissance lente en fin de cours \\
+Fenêtre ouverte & Débit trop fort alors que la ventilation est arrêtée, chute de température près de la fenêtre \\
+Capteur de \COtwo{} qui dérive & La nuit, salle vide, le \COtwo{} ne revient pas vers 420\,ppm \\
+Comptage faux & Le débit en occupation ne colle pas avec celui de la décroissance, qui ne dépend pas du comptage \\
+\bottomrule
+\end{tabularx}
+\caption{Séparation des quatre causes.}
+\label{tab:causes}
+\end{table}
+
+\textbf{Matériel} (environ 400\,\euro{} à commander, détail dans la proposition jointe) : deux cartes Seeed XIAO ESP32S3 ; à la porte un capteur temps de vol VL53L5CX, une caméra thermique MLX90640 et un radar LD2450 ; un capteur de \COtwo{} SCD-41 ; un automate Siemens S7-1200 et un serveur (Raspberry Pi ou vieux PC) prêtés par l'IUT ; une maquette (boîte de 60\,L, ventilateur, trappe « fenêtre », kit \COtwo{} d'aquarium avec électrovanne). Les traitements sont écrits en C++ sur les cartes et en Python sur le serveur ; l'automate est programmé en SCL.
+
+\textbf{Validation.}
+\begin{itemize}[leftmargin=1.3em,itemsep=0pt,topsep=1pt]
+  \item Comptage : au moins 300 passages comptés à la main (seul, à deux, arrêt dans la porte). Objectif : environ 97\,\% de passages justes et une erreur de 1 à 2 personnes sur l'effectif.
+  \item Maquette mise à l'échelle : débit d'environ 12\,L/min (temps de renouvellement d'environ 5 min) et injection d'environ 11\,mL/min de \COtwo, ce qui reproduit l'écart de \COtwo{} d'une salle de 25 personnes. Chaque cause est provoquée plusieurs fois devant un débit de référence mesuré, pour chiffrer le taux de détection et le temps de réaction.
+  \item Précision attendue sur le débit : environ $\pm$30\,\% en valeur absolue (incertitude sur $G$), $\pm$10 à 15\,\% pour comparer une salle à elle-même. Le calcul en occupation n'est fait que si l'écart de \COtwo{} dépasse 300\,ppm.
+  \item Vraie salle : décroissance en fin de cours et fenêtre ouverte.
+\end{itemize}
+
+\textbf{Risques.} Bouteille de \COtwo{} : 500\,g au plus, sanglée, électrovanne normalement fermée coupée par l'arrêt d'urgence, à valider avec l'enseignant. Air mal mélangé : capteur placé près de la reprise d'air, et le débit calculé est présenté comme un débit efficace. Données personnelles : pas de caméra, pas de badge étudiant nominatif.
+
+\end{document}

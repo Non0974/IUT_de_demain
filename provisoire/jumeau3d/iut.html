@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CampusTwin — IUT de Sarcelles</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="iut.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body class="page-iut">
+  <header>
+    <div class="titre">
+      <strong>CampusTwin</strong>
+      <span>IUT de Sarcelles — vue du directeur des études</span>
+    </div>
+    <div class="horloge"><span id="horloge-iut"></span><span><a class="lien-entete" href="/suivi/">Suivi des classes</a> · <a class="lien-entete" href="index.html">Salle SAR 200 en détail</a></span></div>
+  </header>
+  <div class="bandeau">Démo : les salles et les cours des groupes GEII S4 TP1 et TP2 (semaine 11) sont réels. Le plan est schématique ; les autres cours, les présences, le Wi-Fi et le CO₂ sont simulés.</div>
+
+  <main>
+    <div id="vue-iut"></div>
+
+    <aside class="panneau gauche large">
+      <h2>Qui est où</h2>
+      <div class="resume" id="resume"></div>
+      <input id="recherche" type="search" placeholder="Chercher un groupe, un enseignant, une salle…">
+      <div class="sous" id="resultat-recherche"></div>
+      <table id="tableau">
+        <thead><tr><th>Salle</th><th>Cours</th><th>Enseignant</th><th>Badgés</th><th>Pers.</th><th>CO₂</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="sous" id="libres"></div>
+      <div class="sous">● = salle avec capteurs à la porte (comptage exact). Ailleurs, le nombre de personnes vient du Wi-Fi.</div>
+    </aside>
+
+    <aside class="panneau droite">
+      <h2 id="titre-salle"></h2>
+      <div id="detail"></div>
+      <p id="lien-jumeau" hidden><a class="bouton-lien" href="index.html">Ouvrir le jumeau détaillé de cette salle</a></p>
+    </aside>
+  </main>
+
+  <footer class="pied-iut">
+    <div class="groupe"><span class="etiquette-groupe">Jour</span><div id="jours" class="boutons"></div></div>
+    <div class="groupe"><span class="etiquette-groupe">Étage</span>
+      <div class="boutons"><button data-etage="tous">Tous</button><button data-etage="1">1er</button><button data-etage="2">2e</button></div>
+    </div>
+    <div class="groupe"><span class="etiquette-groupe">Couleur</span>
+      <div class="boutons"><button data-mode="occupation">Occupation</button><button data-mode="air">Air (CO₂)</button></div>
+    </div>
+    <div class="groupe"><span class="etiquette-groupe">Vitesse</span>
+      <select id="vitesse-iut">
+        <option value="60">× 60 (1 s = 1 min)</option>
+        <option value="300" selected>× 300 (1 s = 5 min)</option>
+        <option value="900">× 900 (1 s = 15 min)</option>
+      </select>
+      <button id="pause-iut">Pause</button>
+    </div>
+  </footer>
+
+  <script type="module" src="js/iut/mainIut.js"></script>
+</body>
+</html>

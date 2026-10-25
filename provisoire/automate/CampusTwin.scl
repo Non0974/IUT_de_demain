@@ -1,0 +1,198 @@
+// CampusTwin — programme de l'automate S7-1200 (CPU 1212C AC/DC/RLY) qui pilote la maquette.
+// À importer dans TIA Portal : Sources externes > Ajouter une source externe > Générer les blocs.
+// Même logique que simulateurs/automate.py (qui sert à tester le serveur sans l'automate).
+//
+// Entrées / sorties (table de variables "CampusTwin", voir README) :
+//   %I0.0 AU            arrêt d'urgence, contact à ouverture (TRUE = pas d'arrêt d'urgence)
+//   %I0.1 Auto          commutateur Manu/Auto (TRUE = Auto)
+//   %I0.2 Couvercle     micro-interrupteur du couvercle de la boîte (TRUE = fermé)
+//   %Q0.0 Petite        relais petite vitesse du ventilateur
+//   %Q0.1 Grande        relais grande vitesse du ventilateur
+//   %Q0.2 Vanne         électrovanne CO2 (24 V, normalement fermée, aussi coupée en câblage par l'AU)
+//   %Q0.3 VoyantAuto    voyant vert
+//   %Q0.4 VoyantDefaut  voyant rouge
+//
+// Registres Modbus (MB_SERVER, holding registers, 40001 = indice 0) :
+//   0 vie du serveur (change à chaque échange)   1 consigne 0/1/2   2 personnes simulées 0..30
+//   10 état (bit 0 auto, bit 1 AU, bit 2 ventilateur, bit 3 vanne, bit 4 communication perdue)
+//   11 vitesse appliquée 0/1/2                   12 vie de l'automate
+
+DATA_BLOCK "DB_Echange"
+{ S7_Optimized_Access := 'FALSE' }   // MB_SERVER a besoin d'adresses absolues
+VERSION : 0.1
+NON_RETAIN
+   VAR
+      Registres : Array[0..31] of Word;
+      Connexion : TCON_IP_v4;
+   END_VAR
+
+BEGIN
+   Connexion.InterfaceId := 64;          // identifiant matériel de l'interface PROFINET (à vérifier dans TIA)
+   Connexion.ID := 1;
+   Connexion.ConnectionType := 11;       // TCP
+   Connexion.ActiveEstablished := FALSE; // l'automate attend que le serveur se connecte
+   Connexion.RemoteAddress.ADDR[1] := 0;
+   Connexion.RemoteAddress.ADDR[2] := 0;
+   Connexion.RemoteAddress.ADDR[3] := 0;
+   Connexion.RemoteAddress.ADDR[4] := 0;
+   Connexion.RemotePort := 0;
+   Connexion.LocalPort := 502;
+END_DATA_BLOCK
+
+FUNCTION_BLOCK "FB_Ventilation"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT
+      PasAU : Bool;              // TRUE = arrêt d'urgence relâché
+      Auto : Bool;
+      CouvercleFerme : Bool;
+   END_VAR
+
+   VAR_OUTPUT
+      Petite : Bool;
+      Grande : Bool;
+      Vanne : Bool;
+      VoyantAuto : Bool;
+      VoyantDefaut : Bool;
+   END_VAR
+
+   VAR_IN_OUT
+      Registres : Array[0..31] of Word;
+   END_VAR
+
+   VAR
+      VieServeurPrecedente : Word;
+      TempoVie : TON_TIME;       // plus de 5 s sans nouveau compteur de vie = communication perdue
+      TempoChangement : TON_TIME;   // 0,5 s moteur arrêté avant de changer de vitesse
+      CycleVanne : TON_TIME;     // période de 10 s de l'électrovanne
+      VitessePrecedente : Int;
+      VieAutomate : Word;
+      Clignotant : TON_TIME;
+      Clign : Bool;
+   END_VAR
+
+   VAR_TEMP
+      CommPerdue : Bool;
+      Consigne : Int;
+      Personnes : Int;
+      Vitesse : Int;
+      VanneDemandee : Bool;
+      Mot : Word;
+   END_VAR
+
+BEGIN
+   // --- communication avec le serveur : le compteur de vie doit changer ---
+   #TempoVie(IN := #Registres[0] = #VieServeurPrecedente, PT := T#5S);
+   #VieServeurPrecedente := #Registres[0];
+   #CommPerdue := #TempoVie.Q;
+
+   #Consigne := WORD_TO_INT(#Registres[1]);
+   IF #Consigne > 2 THEN
+      #Consigne := 2;
+   END_IF;
+   #Personnes := WORD_TO_INT(#Registres[2]);
+   IF #Personnes > 30 THEN
+      #Personnes := 30;
+   END_IF;
+
+   // --- vitesse du ventilateur ---
+   IF NOT #PasAU THEN
+      #Vitesse := 0;                       // arrêt d'urgence : tout s'arrête
+   ELSIF #CommPerdue THEN
+      #Vitesse := 1;                       // serveur muet : petite vitesse de secours
+   ELSIF #Auto THEN
+      #Vitesse := #Consigne;
+   ELSE
+      #Vitesse := 1;                       // mode manuel : petite vitesse
+   END_IF;
+
+   // Changement de vitesse : on coupe le moteur 0,5 s pour ne jamais fermer les deux relais ensemble
+   #TempoChangement(IN := #Vitesse <> #VitessePrecedente, PT := T#500MS);
+   IF #TempoChangement.Q THEN
+      #VitessePrecedente := #Vitesse;
+   END_IF;
+   #Petite := #VitessePrecedente = 1 AND #Vitesse = 1;
+   #Grande := #VitessePrecedente = 2 AND #Vitesse = 2 AND NOT #Petite;
+
+   // --- électrovanne CO2 : ouverte une part de 10 s proportionnelle aux personnes simulées ---
+   #CycleVanne(IN := NOT #CycleVanne.Q, PT := T#10S);
+   #VanneDemandee := TIME_TO_DINT(#CycleVanne.ET) < INT_TO_DINT(#Personnes) * 10000 / 30;
+   #Vanne := #VanneDemandee AND #PasAU AND #Auto AND NOT #CommPerdue AND #CouvercleFerme;
+
+   // --- voyants ---
+   #Clignotant(IN := NOT #Clignotant.Q, PT := T#500MS);
+   IF #Clignotant.Q THEN
+      #Clign := NOT #Clign;
+   END_IF;
+   #VoyantAuto := #Auto AND #PasAU;
+   #VoyantDefaut := NOT #PasAU OR (#CommPerdue AND #Clign);
+
+   // --- état renvoyé au serveur ---
+   #Mot := 0;
+   IF #Auto THEN #Mot := #Mot OR 16#0001; END_IF;
+   IF NOT #PasAU THEN #Mot := #Mot OR 16#0002; END_IF;
+   IF #Petite OR #Grande THEN #Mot := #Mot OR 16#0004; END_IF;
+   IF #Vanne THEN #Mot := #Mot OR 16#0008; END_IF;
+   IF #CommPerdue THEN #Mot := #Mot OR 16#0010; END_IF;
+   #Registres[10] := #Mot;
+   #Registres[11] := INT_TO_WORD(#Vitesse);
+   #VieAutomate := UINT_TO_WORD(WORD_TO_UINT(#VieAutomate) + 1);
+   #Registres[12] := #VieAutomate;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "FB_Modbus"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_OUTPUT
+      Erreur : Bool;
+      Statut : Word;
+   END_VAR
+
+   VAR
+      Serveur : MB_SERVER;       // instruction Communication > MODBUS TCP > MB_SERVER (multi-instance)
+   END_VAR
+
+BEGIN
+   // Serveur Modbus TCP : le PC CampusTwin lit et écrit les registres de DB_Echange
+   #Serveur(DISCONNECT := FALSE,
+            MB_HOLD_REG := "DB_Echange".Registres,
+            CONNECT := "DB_Echange".Connexion);
+   #Erreur := #Serveur.ERROR;
+   #Statut := #Serveur.STATUS;
+END_FUNCTION_BLOCK
+
+DATA_BLOCK "FB_Modbus_DB"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+"FB_Modbus"
+
+BEGIN
+END_DATA_BLOCK
+
+DATA_BLOCK "FB_Ventilation_DB"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+"FB_Ventilation"
+
+BEGIN
+END_DATA_BLOCK
+
+ORGANIZATION_BLOCK "Main"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+
+BEGIN
+   "FB_Modbus_DB"();
+
+   "FB_Ventilation_DB"(PasAU := "AU",
+                       Auto := "Auto",
+                       CouvercleFerme := "Couvercle",
+                       Petite => "Petite",
+                       Grande => "Grande",
+                       Vanne => "Vanne",
+                       VoyantAuto => "VoyantAuto",
+                       VoyantDefaut => "VoyantDefaut",
+                       Registres := "DB_Echange".Registres);
+END_ORGANIZATION_BLOCK

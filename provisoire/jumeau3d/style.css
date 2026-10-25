@@ -1,0 +1,181 @@
+:root {
+  --bleu: #143c78;
+  --gris: #5b6370;
+  --fond: #f4f6f9;
+  --carte: #ffffff;
+  --bord: #d7dde5;
+  --vert: #2e8b57;
+  --orange: #e67e22;
+  --rouge: #c0392b;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #1d2430;
+  background: var(--fond);
+}
+
+body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px;
+  background: var(--bleu);
+  color: #fff;
+}
+header .titre strong { font-size: 18px; margin-right: 10px; }
+header .titre span { opacity: 0.85; font-size: 14px; }
+header .horloge { display: flex; flex-direction: column; align-items: flex-end; font-size: 13px; }
+header .horloge #horloge { font-size: 17px; font-weight: 600; }
+.lien-entete { color: #fff; font-size: 12px; opacity: 0.9; }
+
+main {
+  position: relative;
+  min-height: 0;
+}
+
+#vue3d {
+  position: absolute;
+  inset: 0;
+}
+#vue3d canvas { display: block; }
+.calque-etiquettes { position: absolute; top: 0; left: 0; }
+
+.etiquette {
+  background: rgba(20, 60, 120, 0.85);
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.etiquette.alerte { background: rgba(192, 57, 43, 0.9); }
+
+.panneau {
+  position: absolute;
+  top: 12px;
+  width: 300px;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 13px;
+}
+.panneau.gauche { left: 12px; }
+.panneau.droite { right: 12px; width: 330px; }
+.panneau h2 { margin: 0 0 8px; font-size: 15px; color: var(--bleu); }
+.panneau h3 { margin: 12px 0 4px; font-size: 13px; color: var(--bleu); }
+
+.ligne {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  border-bottom: 1px dashed #e3e7ed;
+}
+.ligne b { text-align: right; }
+.sous { color: var(--gris); font-size: 12px; min-height: 14px; }
+
+.jauge {
+  position: relative;
+  height: 12px;
+  background: #e6eaf0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+#barre-air { height: 100%; width: 0; transition: width 0.3s; }
+.repere {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: var(--bleu);
+}
+
+.carte {
+  border: 1px solid var(--bord);
+  border-left-width: 5px;
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 8px;
+  background: var(--carte);
+}
+.carte-titre { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.carte-titre .etat { margin-left: auto; font-weight: 500; font-size: 12px; }
+.carte-texte { color: var(--gris); font-size: 12px; margin-top: 3px; }
+.pastille { width: 10px; height: 10px; border-radius: 50%; background: #aab2bd; }
+.carte.attente { border-left-color: #aab2bd; }
+.carte.ok { border-left-color: var(--vert); }
+.carte.ok .pastille { background: var(--vert); }
+.carte.suspect { border-left-color: var(--orange); background: #fff8f0; }
+.carte.suspect .pastille { background: var(--orange); }
+.carte.detecte { border-left-color: var(--rouge); background: #fdf1f0; }
+.carte.detecte .pastille { background: var(--rouge); }
+
+footer {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 14px;
+  background: #fff;
+  border-top: 1px solid var(--bord);
+}
+.commandes { display: flex; flex-direction: column; gap: 8px; }
+.groupe { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.etiquette-groupe { font-size: 12px; color: var(--gris); margin-right: 4px; }
+#pannes, #fraudes { display: flex; flex-wrap: wrap; gap: 6px; }
+
+button, select {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+button:hover { border-color: var(--bleu); }
+.bouton-panne.actif { background: var(--rouge); color: #fff; border-color: var(--rouge); }
+
+/* Émargement */
+.panneau h2.section { margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--bord); }
+.grille-etudiants {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  max-width: 280px;
+  gap: 3px;
+  margin: 6px 0 4px;
+}
+.grille-etudiants .case { width: auto; height: auto; aspect-ratio: 1; }
+.case { display: inline-block; width: 11px; height: 11px; border-radius: 2px; background: #e1e5eb; }
+.case.present { background: var(--vert); }
+.case.verifier { background: var(--orange); }
+.legende { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--gris); margin-bottom: 6px; }
+.legende .case { margin-left: 6px; }
+.legende .case:first-child { margin-left: 0; }
+.alerte-em { font-size: 12px; padding: 5px 7px; border-radius: 5px; margin-bottom: 5px; border-left: 4px solid var(--rouge); background: #fdf1f0; }
+.alerte-em.suspect { border-left-color: var(--orange); background: #fff8f0; }
+#telecharger { margin-top: 6px; width: 100%; }
+
+#courbe { width: 100%; height: 110px; border: 1px solid var(--bord); border-radius: 6px; background: #fbfcfd; }
+
+@media (max-width: 900px) {
+  .panneau { position: static; width: auto; max-height: none; margin: 8px; }
+  main { display: flex; flex-direction: column; }
+  #vue3d { position: relative; height: 55vh; }
+  footer { grid-template-columns: 1fr; }
+}

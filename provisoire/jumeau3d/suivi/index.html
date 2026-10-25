@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Suivi des classes — CampusTwin</title>
+  <link rel="stylesheet" href="suivi.css">
+</head>
+<body>
+  <a class="aller-contenu" href="#contenu">Aller au contenu</a>
+
+  <aside class="menu" aria-label="Menu principal">
+    <div class="marque">
+      <span class="logo" aria-hidden="true">CT</span>
+      <div>
+        <strong>CampusTwin</strong>
+        <span>IUT de Sarcelles</span>
+      </div>
+    </div>
+    <nav>
+      <a href="#/" data-rubrique="tableau"><span class="icone" aria-hidden="true">◧</span>Tableau de bord</a>
+      <a href="#/seances" data-rubrique="seances"><span class="icone" aria-hidden="true">☰</span>Séances</a>
+      <a href="#/classes" data-rubrique="classes"><span class="icone" aria-hidden="true">▦</span>Classes</a>
+      <div class="separateur direction-seulement">Bâtiment</div>
+      <a href="/iut.html" class="direction-seulement"><span class="icone" aria-hidden="true">⬚</span>Plan 3D de l'IUT</a>
+      <a href="/index.html" class="direction-seulement"><span class="icone" aria-hidden="true">◫</span>Salle SAR 200</a>
+    </nav>
+    <div class="pied-menu">
+      <span class="pastille-simulation" id="simulation" hidden>Simulation</span>
+      <div class="utilisateur">
+        <span id="utilisateur-nom"></span>
+        <span id="utilisateur-role" class="sous"></span>
+      </div>
+      <button type="button" id="deconnexion" class="bouton discret">Se déconnecter</button>
+    </div>
+  </aside>
+
+  <div class="principal">
+    <header class="haut">
+      <h1 id="titre">Suivi des classes</h1>
+      <div class="horloge" aria-live="off"><span id="horloge-date"></span><strong id="horloge-heure"></strong></div>
+    </header>
+    <main id="contenu" tabindex="-1">
+      <p class="chargement">Chargement…</p>
+    </main>
+  </div>
+
+  <dialog id="dialogue-statut" aria-labelledby="dialogue-titre">
+    <form method="dialog" id="formulaire-statut">
+      <h2 id="dialogue-titre">Modifier la présence</h2>
+      <p id="dialogue-texte"></p>
+      <label for="dialogue-motif">Motif <span id="dialogue-obligatoire" class="sous"></span></label>
+      <textarea id="dialogue-motif" rows="3" placeholder="Ex. : oubli de badge vérifié en classe, certificat médical…"></textarea>
+      <p class="sous">La modification est enregistrée avec votre nom et l'heure.</p>
+      <div class="boutons-dialogue">
+        <button type="button" class="bouton discret" id="dialogue-annuler">Annuler</button>
+        <button type="submit" class="bouton principal-bouton" id="dialogue-valider">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

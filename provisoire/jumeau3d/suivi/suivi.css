@@ -1,0 +1,291 @@
+/* CampusTwin — interface de suivi des classes */
+
+:root {
+  --fond: #f3f5f8;
+  --carte: #ffffff;
+  --bord: #e1e6ed;
+  --bord-fort: #cdd5df;
+  --texte: #1b2430;
+  --texte2: #566173;
+  --primaire: #143c78;
+  --primaire-survol: #0f2f60;
+  --primaire-clair: #e8eef8;
+  --menu: #0f2d5a;
+  --menu-texte: #c9d6ea;
+  --rayon: 10px;
+  --ombre: 0 1px 2px rgba(16, 32, 60, 0.06), 0 2px 8px rgba(16, 32, 60, 0.05);
+
+  /* Statuts : toujours avec une icône et un texte, jamais la couleur seule */
+  --present-fond: #e3f4ea;   --present: #1d6b3f;   --present-plein: #2e8b57;
+  --retard-fond: #fff1df;    --retard: #8a4b00;    --retard-plein: #e08a1e;
+  --absent-fond: #fde8e6;    --absent: #a12a1c;    --absent-plein: #c0392b;
+  --justifie-fond: #e8eef7;  --justifie: #2f4d7a;  --justifie-plein: #6b86b0;
+  --verifier-fond: #f3e8fb;  --verifier: #6b2f8f;  --verifier-plein: #8e44ad;
+  --attendu-fond: #ffffff;   --attendu: #5b6370;   --attendu-plein: #d3d9e1;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  color: var(--texte);
+  background: var(--fond);
+  display: grid;
+  grid-template-columns: 236px 1fr;
+}
+a { color: var(--primaire); }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, tr:focus-visible {
+  outline: 3px solid #f2b705;
+  outline-offset: 2px;
+}
+.sous { color: var(--texte2); font-size: 12px; }
+.aller-contenu { position: absolute; left: -999px; }
+.aller-contenu:focus { left: 8px; top: 8px; z-index: 10; background: #fff; padding: 6px 10px; }
+
+/* ---------- menu de gauche ---------- */
+
+.menu {
+  background: var(--menu);
+  color: var(--menu-texte);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  padding: 16px 12px;
+}
+.marque { display: flex; align-items: center; gap: 10px; padding: 0 6px 18px; }
+.marque strong { display: block; color: #fff; font-size: 16px; }
+.marque span { font-size: 12px; }
+.logo {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: grid; place-items: center;
+  background: #2f6fd6; color: #fff; font-weight: 700; letter-spacing: 0.5px;
+}
+.menu nav { display: flex; flex-direction: column; gap: 2px; }
+.menu nav a {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--menu-texte); text-decoration: none;
+  padding: 9px 10px; border-radius: 8px;
+}
+.menu nav a:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.menu nav a.actif { background: rgba(255, 255, 255, 0.14); color: #fff; font-weight: 600; }
+.menu .icone { width: 18px; text-align: center; opacity: 0.85; }
+.separateur { margin: 16px 10px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.6; }
+.pied-menu { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding: 0 6px; }
+.utilisateur { display: flex; flex-direction: column; color: #fff; }
+.utilisateur .sous { color: var(--menu-texte); }
+.pastille-simulation {
+  align-self: flex-start; font-size: 11px; font-weight: 600;
+  background: #f2b705; color: #3d2e00; padding: 2px 8px; border-radius: 99px;
+}
+.menu .bouton.discret { color: var(--menu-texte); border-color: rgba(255, 255, 255, 0.25); background: transparent; }
+
+/* ---------- haut de page et contenu ---------- */
+
+.principal { min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+.haut {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 16px 28px; background: var(--carte); border-bottom: 1px solid var(--bord);
+}
+.haut h1 { margin: 0; font-size: 20px; }
+.horloge { display: flex; flex-direction: column; align-items: flex-end; color: var(--texte2); font-size: 12px; }
+.horloge strong { color: var(--texte); font-size: 18px; }
+main { padding: 22px 28px 40px; outline: none; }
+.chargement { color: var(--texte2); }
+
+.section { margin-bottom: 26px; }
+.section > h2, .titre-section { font-size: 15px; margin: 0 0 10px; display: flex; align-items: baseline; gap: 10px; }
+.titre-section .sous { font-weight: 400; }
+
+.carte {
+  background: var(--carte); border: 1px solid var(--bord); border-radius: var(--rayon);
+  box-shadow: var(--ombre); padding: 16px;
+}
+.grille { display: grid; gap: 14px; }
+.grille.tuiles { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.grille.cartes { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.deux-colonnes { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; align-items: start; }
+
+/* Tuiles de chiffres */
+.tuile { display: flex; flex-direction: column; gap: 2px; }
+.tuile .valeur { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.tuile .libelle { color: var(--texte2); }
+.tuile.ton-alerte .valeur { color: var(--absent); }
+.tuile.ton-bon .valeur { color: var(--present); }
+
+/* ---------- statuts ---------- */
+
+.statut {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 600;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.statut .i { font-weight: 700; }
+.s-present { background: var(--present-fond); color: var(--present); }
+.s-retard { background: var(--retard-fond); color: var(--retard); }
+.s-absent { background: var(--absent-fond); color: var(--absent); }
+.s-justifie { background: var(--justifie-fond); color: var(--justifie); }
+.s-verifier { background: var(--verifier-fond); color: var(--verifier); }
+.s-attendu { background: var(--attendu-fond); color: var(--attendu); border: 1px dashed var(--bord-fort); }
+.etat-seance { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; padding: 2px 8px; border-radius: 6px; }
+.etat-en-cours { background: #e3f4ea; color: var(--present); }
+.etat-terminee { background: #eef1f5; color: var(--texte2); }
+.etat-a-venir { background: var(--primaire-clair); color: var(--primaire); }
+.etiquette-reel { font-size: 11px; padding: 1px 7px; border-radius: 99px; background: #e3f1e8; color: #1f6b40; }
+.etiquette-simule { font-size: 11px; padding: 1px 7px; border-radius: 99px; background: #eef0f3; color: var(--texte2); }
+
+/* Barre d'émargement : présents, retards, à vérifier, justifiés, absents, attendus */
+.barre {
+  display: flex; gap: 2px; height: 10px; border-radius: 5px; overflow: hidden;
+  background: var(--fond); min-width: 80px;
+}
+.barre span { display: block; height: 100%; }
+.barre .b-present { background: var(--present-plein); }
+.barre .b-retard { background: var(--retard-plein); }
+.barre .b-verifier { background: var(--verifier-plein); }
+.barre .b-justifie { background: var(--justifie-plein); }
+.barre .b-absent { background: var(--absent-plein); }
+.barre .b-attendu { background: var(--attendu-plein); }
+.legende { display: flex; flex-wrap: wrap; gap: 12px; color: var(--texte2); font-size: 12px; margin-top: 8px; }
+.legende span { display: inline-flex; align-items: center; gap: 5px; }
+.legende i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+/* ---------- séances en cours ---------- */
+
+.carte-seance { display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: inherit; }
+.carte-seance:hover { border-color: var(--bord-fort); }
+.carte-seance .entete { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.carte-seance .salle { font-weight: 700; font-size: 15px; }
+.carte-seance .matiere { font-weight: 600; }
+.carte-seance .chiffres { display: flex; justify-content: space-between; color: var(--texte2); font-size: 12px; }
+.carte-seance .air { font-size: 12px; color: var(--texte2); }
+
+.ppm-bon { color: var(--present); font-weight: 600; }
+.ppm-moyen { color: var(--retard); font-weight: 600; }
+.ppm-mauvais { color: var(--absent); font-weight: 600; }
+
+/* ---------- alertes ---------- */
+
+.alertes { display: flex; flex-direction: column; gap: 8px; }
+.alerte {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 12px; border-radius: 8px; border-left: 4px solid;
+  text-decoration: none; color: var(--texte);
+}
+.alerte.detecte { background: var(--absent-fond); border-color: var(--absent-plein); }
+.alerte.suspect { background: var(--retard-fond); border-color: var(--retard-plein); }
+.alerte .i { font-weight: 700; }
+.alerte .quoi { font-size: 12px; color: var(--texte2); }
+.vide { color: var(--texte2); padding: 10px 0; }
+
+/* ---------- tableaux ---------- */
+
+.tableau-conteneur { overflow-x: auto; border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--carte); box-shadow: var(--ombre); }
+table.liste { width: 100%; border-collapse: collapse; }
+table.liste th {
+  text-align: left; font-weight: 600; font-size: 12px; color: var(--texte2);
+  background: #f8f9fb; border-bottom: 1px solid var(--bord); padding: 9px 12px; white-space: nowrap;
+  position: sticky; top: 0;
+}
+table.liste td { padding: 9px 12px; border-bottom: 1px solid var(--bord); vertical-align: middle; }
+table.liste tr:last-child td { border-bottom: none; }
+table.liste tr.cliquable { cursor: pointer; }
+table.liste tr.cliquable:hover td { background: #f6f8fc; }
+table.liste td.nowrap { white-space: nowrap; }
+table.liste td.nombre, table.liste th.nombre { text-align: right; font-variant-numeric: tabular-nums; }
+.cellule-barre { display: flex; align-items: center; gap: 10px; min-width: 170px; }
+.cellule-barre .barre { flex: 1; }
+
+/* Grille d'une classe : étudiants x séances */
+table.grille-classe th.seance { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; font-weight: 500; padding: 8px 4px; height: 140px; vertical-align: bottom; }
+table.grille-classe td.case { text-align: center; padding: 4px; }
+.case-statut {
+  display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 6px;
+  font-size: 12px; font-weight: 700; text-decoration: none;
+}
+.case-statut.corrige { box-shadow: inset 0 0 0 2px currentColor; }
+
+/* ---------- boutons et formulaires ---------- */
+
+.bouton {
+  font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--bord-fort); background: #fff; color: var(--texte); text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.bouton:hover { border-color: var(--primaire); }
+.bouton.principal-bouton { background: var(--primaire); border-color: var(--primaire); color: #fff; }
+.bouton.principal-bouton:hover { background: var(--primaire-survol); }
+.bouton.discret { background: transparent; }
+.bouton.petit { padding: 3px 8px; font-size: 12px; }
+.bouton.large { width: 100%; justify-content: center; padding: 10px; }
+.actions { display: flex; flex-wrap: wrap; gap: 4px; }
+.barre-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
+.barre-outils .espace { flex: 1; }
+input, select, textarea { font: inherit; padding: 7px 10px; border: 1px solid var(--bord-fort); border-radius: 8px; background: #fff; }
+label { font-weight: 600; font-size: 13px; }
+.case-a-cocher { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; }
+
+/* En-tête d'une séance, d'une classe ou d'un étudiant */
+.fiche-entete { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+.fiche-entete h2 { margin: 0 0 4px; font-size: 20px; }
+.fiche-entete .infos { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--texte2); }
+.retour { display: inline-block; margin-bottom: 10px; text-decoration: none; font-size: 13px; }
+
+/* Dialogue de correction */
+dialog { border: none; border-radius: 12px; padding: 22px; width: min(440px, 92vw); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); }
+dialog::backdrop { background: rgba(15, 30, 55, 0.45); }
+dialog h2 { margin: 0 0 8px; font-size: 17px; }
+dialog form { display: flex; flex-direction: column; gap: 8px; }
+.boutons-dialogue { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+
+/* Message après une modification */
+.message:empty { display: none; }
+.message { padding: 9px 12px; border-radius: 8px; margin: 0 0 14px; }
+.message.ok { background: var(--present-fond); color: var(--present); }
+.message.erreur { background: var(--absent-fond); color: var(--absent); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ---------- page de connexion ---------- */
+
+body.page-connexion { display: grid; place-items: center; grid-template-columns: 1fr; padding: 20px; background: linear-gradient(160deg, #0f2d5a, #1f4f9a); }
+.carte-connexion { background: #fff; border-radius: 14px; padding: 28px; width: min(400px, 100%); box-shadow: 0 16px 50px rgba(0, 0, 0, 0.3); }
+.carte-connexion .marque strong { color: var(--texte); }
+.carte-connexion .marque span { color: var(--texte2); }
+.carte-connexion form { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 14px; }
+.carte-connexion input { margin-bottom: 8px; }
+.erreur { color: var(--absent); background: var(--absent-fond); padding: 8px 10px; border-radius: 8px; margin: 0 0 8px; }
+.note { color: var(--texte2); font-size: 12px; margin: 8px 0 0; }
+
+/* ---------- téléphone et tablette ---------- */
+
+@media (max-width: 900px) {
+  body { grid-template-columns: 1fr; }
+  .menu { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; }
+  .marque { padding: 0; }
+  .menu nav { flex-direction: row; flex-wrap: wrap; flex: 1; }
+  .separateur { display: none; }
+  .pied-menu { margin: 0; flex-direction: row; align-items: center; }
+  .utilisateur { display: none; }
+  .haut { padding: 12px 16px; }
+  main { padding: 16px; }
+  .deux-colonnes { grid-template-columns: 1fr; }
+}
+
+/* ---------- impression : feuille d'émargement ---------- */
+
+.seulement-impression, .col-impression { display: none; }
+@media print {
+  body { display: block; background: #fff; font-size: 12px; }
+  .menu, .haut, .barre-outils, .actions, .pas-impression, .retour { display: none !important; }
+  main { padding: 0; }
+  .seulement-impression { display: block; }
+  .col-impression { display: table-cell; }
+  .carte, .tableau-conteneur { box-shadow: none; border-color: #999; }
+  .statut { border: 1px solid #999; }
+  table.liste th { position: static; }
+  td.signature { width: 30%; }
+}

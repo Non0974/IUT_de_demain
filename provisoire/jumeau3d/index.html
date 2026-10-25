@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CampusTwin — jumeau 3D de la salle</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="titre">
+      <strong>CampusTwin</strong>
+      <span>Une salle qui sait pourquoi son air est mauvais</span>
+    </div>
+    <div class="horloge"><span id="horloge"></span><span id="cours"></span><span><a class="lien-entete" href="/suivi/">Suivi des classes</a> · <a class="lien-entete" href="iut.html">Vue de tout l'IUT</a></span></div>
+  </header>
+
+  <main>
+    <div id="vue3d"></div>
+
+    <aside class="panneau gauche">
+      <h2>Salle (simulation)</h2>
+      <div class="ligne"><span>Personnes comptées</span><b><span id="personnes"></span> <small id="personnes-reel"></small></b></div>
+      <div class="ligne"><span>CO₂ mesuré</span><b id="co2"></b></div>
+      <div class="sous" id="correction"></div>
+      <div class="ligne"><span>Ventilation commandée</span><b id="commande"></b></div>
+      <h3>Débit d'air réel estimé</h3>
+      <div class="ligne"><span>Avec le comptage (salle occupée)</span><b id="q-occ"></b></div>
+      <div class="ligne"><span>Sans le comptage (salle qui se vide)</span><b id="q-dec"></b></div>
+      <h3>Air neuf par personne</h3>
+      <div class="jauge"><div id="barre-air"></div><div class="repere" title="25 m³/h (code du travail)"></div></div>
+      <div class="sous"><span id="air-personne"></span> — minimum 25 m³/h</div>
+
+      <h2 class="section">Émargement</h2>
+      <div class="sous">Badge NFC de la carte étudiante, vérifié par le comptage de la porte</div>
+      <div class="ligne"><span id="em-libelle">Badges / passages</span><b id="em-compte"></b></div>
+      <div class="grille-etudiants" id="em-grille"></div>
+      <div class="legende"><span class="case present"></span>présent <span class="case verifier"></span>à vérifier <span class="case absent"></span>absent</div>
+      <div id="em-alertes"></div>
+      <div class="sous" id="em-dernier"></div>
+      <button id="telecharger">Télécharger la feuille du jour (CSV)</button>
+    </aside>
+
+    <aside class="panneau droite">
+      <h2>Diagnostic</h2>
+      <div id="diagnostic"></div>
+    </aside>
+  </main>
+
+  <footer>
+    <div class="commandes">
+      <div class="groupe">
+        <span class="etiquette-groupe">Provoquer une panne</span>
+        <div id="pannes"></div>
+      </div>
+      <div class="groupe">
+        <span class="etiquette-groupe">Tester l'émargement</span>
+        <div id="fraudes"></div>
+      </div>
+      <div class="groupe">
+        <span class="etiquette-groupe">Vitesse</span>
+        <select id="vitesse">
+          <option value="60">× 60 (1 s = 1 min)</option>
+          <option value="300" selected>× 300 (1 s = 5 min)</option>
+          <option value="900">× 900 (1 s = 15 min)</option>
+          <option value="1800">× 1800 (1 s = 30 min)</option>
+        </select>
+        <button id="pause">Pause</button>
+        <button id="reinitialiser">Recommencer</button>
+      </div>
+    </div>
+    <canvas id="courbe"></canvas>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+/* Vue de tout l'IUT (en plus de style.css) */
+
+body.page-iut { grid-template-rows: auto auto 1fr auto; }
+
+.bandeau {
+  padding: 5px 18px;
+  font-size: 12px;
+  color: #6b4e16;
+  background: #fff4d6;
+  border-bottom: 1px solid #f0dca6;
+}
+
+/* Trois colonnes : liste | plan 3D | détail de la salle */
+.page-iut main {
+  display: grid;
+  grid-template-columns: 380px 1fr 340px;
+  grid-template-areas: "gauche vue droite";
+  min-height: 0;
+}
+.page-iut #vue-iut { grid-area: vue; position: relative; min-height: 0; overflow: hidden; }
+.page-iut #vue-iut canvas { display: block; }
+.page-iut .panneau {
+  position: static;
+  width: auto;
+  max-height: none;
+  height: 100%;
+  border-radius: 0;
+  border-width: 0 1px;
+  background: #fff;
+}
+.page-iut .panneau.gauche { grid-area: gauche; }
+.page-iut .panneau.droite { grid-area: droite; }
+
+.etiquette.salle { text-align: center; line-height: 1.25; font-size: 11px; cursor: pointer; }
+.etiquette.etage { background: rgba(60, 66, 76, 0.85); font-weight: 600; }
+
+.resume { display: flex; gap: 12px; margin-bottom: 8px; font-size: 12px; }
+.resume b { font-size: 16px; color: var(--bleu); }
+.resume .rouge b { color: var(--rouge); }
+
+#recherche { width: 100%; font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--bord); border-radius: 6px; margin-bottom: 4px; }
+
+#tableau { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+#tableau th { text-align: left; color: var(--gris); font-weight: 500; border-bottom: 1px solid var(--bord); padding: 3px 4px; }
+#tableau td { padding: 4px; border-bottom: 1px dashed #e3e7ed; vertical-align: top; }
+#tableau tr[data-salle] { cursor: pointer; }
+#tableau tr[data-salle]:hover { background: #f1f5fb; }
+#tableau tr.choisie { background: #e6eefa; }
+#tableau tr.alerte td:first-child { box-shadow: inset 3px 0 0 var(--rouge); }
+#tableau small { color: var(--gris); }
+
+.air { font-weight: 600; }
+.air.bon { color: var(--vert); }
+.air.moyen { color: var(--orange); }
+.air.mauvais { color: var(--rouge); }
+
+.cours-carte { border: 1px solid var(--bord); border-radius: 6px; padding: 7px 9px; margin: 6px 0; background: #fff; }
+.etiquette-source { margin-left: auto; font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 8px; }
+.etiquette-source.reel { background: #e3f1e8; color: #1f6b40; }
+.etiquette-source.simule { background: #eceef1; color: var(--gris); }
+
+.puces { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+.puce { font-size: 10px; min-width: 22px; text-align: center; padding: 2px 3px; border-radius: 3px; background: #e1e5eb; color: #333; }
+.puce.present { background: var(--vert); color: #fff; }
+.puce.retard { background: var(--orange); color: #fff; }
+.puce.absent { background: #c9ced6; color: #555; }
+.puce.attendu { background: #fff; border: 1px dashed #aab2bd; }
+.puce.verifier { background: var(--rouge); color: #fff; }
+
+.bouton-lien { display: inline-block; padding: 5px 10px; border: 1px solid var(--bleu); border-radius: 6px; color: var(--bleu); text-decoration: none; font-size: 13px; }
+
+.pied-iut { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.boutons { display: flex; gap: 4px; }
+.boutons button.actif { background: var(--bleu); color: #fff; border-color: var(--bleu); }
+
+@media (max-width: 1100px) {
+  .page-iut main {
+    grid-template-columns: 1fr;
+    grid-template-areas: "vue" "gauche" "droite";
+    overflow-y: auto;
+  }
+  .page-iut #vue-iut { height: 55vh; }
+  .page-iut .panneau { height: auto; border-width: 1px 0 0; }
+}

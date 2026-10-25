@@ -1,0 +1,106 @@
+{
+  "source": "Noms et places : emplois du temps CELCAT GEIIS BUT FI S4, semaine 11 (2025-2026). Surface estimée (TD 2 m²/place, TP 3, info 2,4). Ventilation inventée pour la simulation.",
+  "hauteur": 2.7,
+  "salles": [
+    {
+      "id": "SAR 100",
+      "libelle": "Salle informatique",
+      "type": "INFO",
+      "places": 31,
+      "etage": 1,
+      "surface": 74.4,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
+      "id": "SAR 101",
+      "libelle": "Salle de TD",
+      "type": "TD",
+      "places": 19,
+      "etage": 1,
+      "surface": 38,
+      "ventilation": "fenetre",
+      "equipee": false
+    },
+    {
+      "id": "SAR 109",
+      "libelle": "Salle de TD",
+      "type": "TD",
+      "places": 29,
+      "etage": 1,
+      "surface": 58,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
+      "id": "SAR 118",
+      "libelle": "Salle de TD",
+      "type": "TD",
+      "places": 27,
+      "etage": 1,
+      "surface": 54,
+      "ventilation": "faible",
+      "equipee": false
+    },
+    {
+      "id": "SAR 122",
+      "libelle": "Salle de TD",
+      "type": "TD",
+      "places": 19,
+      "etage": 1,
+      "surface": 38,
+      "ventilation": "fenetre",
+      "equipee": false
+    },
+    {
+      "id": "SAR 200",
+      "libelle": "Salle de TP",
+      "type": "TP",
+      "places": 26,
+      "etage": 2,
+      "surface": 78,
+      "ventilation": "meca",
+      "equipee": true
+    },
+    {
+      "id": "SAR 201",
+      "libelle": "Salle de TP",
+      "type": "TP",
+      "places": 24,
+      "etage": 2,
+      "surface": 72,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
+      "id": "SAR 202",
+      "libelle": "Salle de TP",
+      "type": "TP",
+      "places": 25,
+      "etage": 2,
+      "surface": 75,
+      "ventilation": "faible",
+      "equipee": false
+    },
+    {
+      "id": "SAR 206",
+      "libelle": "Salle de TP",
+      "type": "TP",
+      "places": 24,
+      "etage": 2,
+      "surface": 72,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
+      "id": "SAR 207",
+      "libelle": "Salle de TP",
+      "type": "TP",
+      "places": 26,
+      "etage": 2,
+      "surface": 78,
+      "ventilation": "meca",
+      "equipee": false
+    }
+  ]
+}
