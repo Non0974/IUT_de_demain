@@ -30,6 +30,7 @@ EXCES_MIN_OCC = 250            # ppm : en dessous, le CO2 monte trop peu pour me
 DEPARTS_CALIBRATION = 3        # départs utilisés pour le recalage
 RATIO_MIN, RATIO_MAX = 0.7, 1.3
 RETOUR_NORMAL = 0.5            # h de mesures normales avant d'oublier une anomalie
+JOURNEE = (7.0, 19.5)          # h : débits appris seulement pendant la journée de cours
 
 
 def regression_pente(xs, ys):
@@ -63,6 +64,9 @@ class EstimateurSalle:
         self.rapports_bruts = []
         self.decroissances = []
         self.comparaisons = deque(maxlen=3)   # rapports occ/dec (recalés) des derniers départs
+        # Débits mesurés récemment (un point toutes les 10 min au plus), pour le jumeau prédictif
+        self.debits_occupee = deque(maxlen=30)    # (niveau, Q) salle occupée
+        self.debits_vide = deque(maxlen=30)       # (niveau, Q) salle qui se vide
 
     # ---------- entrées ----------
 
@@ -105,6 +109,7 @@ class EstimateurSalle:
         q_brut = self.volume * (production - (sum(fin) / len(fin) - sum(debut) / len(debut))) / exces
         q = q_brut / (self.biais or 1.0)
         self.occ = {'Q': q, 'Q_brut': q_brut, 'Qatt': self.attendu(niveau), 't': t, 'niveau': niveau}
+        self._retenir(self.debits_occupee, t, niveau, q)
         if self.occ['Qatt']:
             r = q / self.occ['Qatt']
             if r < RATIO_MIN or r > RATIO_MAX:
@@ -140,6 +145,8 @@ class EstimateurSalle:
         pente = regression_pente([x['t'] for x in fen], [log(x['C'] - self.c_ext) for x in fen])
         q = -pente * self.volume
         self.dec = {'Q': q, 'Qatt': self.attendu(e['niveau']), 't': e['t'], 'niveau': e['niveau']}
+        if fen[-1]['t'] - fen[0]['t'] >= 2 * DUREE_MIN_DECROISSANCE and JOURNEE[0] <= e['h'] <= JOURNEE[1]:
+            self._retenir(self.debits_vide, e['t'], e['niveau'], q)
         if not self.vide['compare'] and fen[-1]['t'] - fen[0]['t'] >= 2 * DUREE_MIN_DECROISSANCE:
             self.vide['compare'] = True
             self._apres_depart(self.vide['occ_avant'], q, e['niveau'])
@@ -157,19 +164,39 @@ class EstimateurSalle:
 
     def _apres_depart(self, occ_avant, q_dec, niveau_dec):
         """Une salle vient de se vider : on compare les deux méthodes (ou on se recale)."""
+        # Débit de référence de la salle (ventilation inconnue) : les premières décroissances
+        if self.q_ref is None and not self.debits:
+            self.decroissances.append(q_dec)
+            if len(self.decroissances) >= DEPARTS_CALIBRATION:
+                self.q_ref = median(self.decroissances)
         rapport = self._rapport(occ_avant, q_dec, niveau_dec, brut=self.en_calibration()) if occ_avant else None
         if self.en_calibration():
-            self.decroissances.append(q_dec)
             if rapport:
                 self.rapports_bruts.append(rapport)
             if len(self.rapports_bruts) >= DEPARTS_CALIBRATION:
                 self.biais = median(self.rapports_bruts)
-                if self.q_ref is None and not self.debits:
-                    self.q_ref = median(self.decroissances)
                 self.occ = None
             return
         if rapport:
             self.comparaisons.append(rapport)
+
+    def _retenir(self, liste, t, niveau, q):
+        if q > 0 and (not liste or t - liste[-1][2] >= 10 / 60 or liste[-1][0] != niveau):
+            liste.append((niveau, q, t))
+        elif q > 0 and liste and liste[-1][0] == niveau:
+            liste[-1] = (niveau, q, t)          # même épisode : on garde la dernière estimation
+
+    def debit_appris(self, occupee, niveau=None):
+        """Débit de la salle pour la prévision : connu (automate), ou médiane des débits mesurés."""
+        if niveau in self.debits:
+            return self.debits[niveau]
+        # Une seule mesure dans le bon état (salle occupée ou vide) vaut mieux que plusieurs dans l'autre :
+        # avec une fenêtre ouverte pendant le cours, les deux débits n'ont rien à voir
+        for liste in ((self.debits_occupee, self.debits_vide) if occupee else (self.debits_vide, self.debits_occupee)):
+            valeurs = [q for n, q, _ in liste if n == niveau] or [q for _, q, _ in liste]
+            if valeurs:
+                return median(valeurs)
+        return None
 
     # ---------- niveau de base la nuit ----------
 

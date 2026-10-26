@@ -7,7 +7,7 @@ Règles d'accès (données personnelles, RGPD) :
 
 from datetime import date, datetime, timedelta
 
-from registre import debut_semaine, taux
+from registre import debut_semaine, heure_texte, taux
 from salle import heure_du_jour, seance_id
 
 TOUT_VOIR = ('directeur', 'scolarite')
@@ -77,7 +77,7 @@ class Suivi:
                                      'alertes': etat['alertes']})
             en_cours.sort(key=lambda s: (s['salle'], s['debut']))
             # Séances à venir aujourd'hui (pas encore dans le registre) : emploi du temps
-            a_venir = [c for c in campus.edt['cours'] if c['jour'] == aujourd_hui.weekday() and c['debut'] > h
+            a_venir = [c for c in campus.planning.cours_du_jour(aujourd_hui) if c['debut'] > h
                        and c['salle'] and (enseignant is None or c['enseignant'] == enseignant)]
             a_venir.sort(key=lambda c: c['debut'])
             terminees = [s for s in seances if s['etat'] == 'terminée']
@@ -91,6 +91,16 @@ class Suivi:
                 for a in s['alertes']:
                     if a['niveau'] == 'detecte':
                         alertes.append({'niveau': 'detecte', 'salle': s['salle'], 'seance': s['id'], 'texte': a['texte']})
+            if utilisateur['role'] in TOUT_VOIR:
+                p = campus.previsions()
+                for s in p['salles']:
+                    if s['au_dessus_1200'] is not None and s['au_dessus_1200'] - h <= 2:
+                        alertes.append({'niveau': 'suspect', 'salle': s['salle'], 'prevision': True,
+                                        'texte': f'Air mauvais prévu : {s["pic"]["co2"]} ppm vers {heure_texte(s["pic"]["heure"])}.'})
+                for x in p['propositions']:
+                    alertes.append({'niveau': 'suspect', 'salle': x['salle'], 'proposition': True,
+                                    'texte': f'Proposition : déplacer {x["matiere"]} ({x["groupes"][0]}) de {x["salle"]} '
+                                             f'à {x["proposee"]} ({x["pic"]} ppm prévus -> {x["pic_propose"]}).'})
             du = debut_semaine(aujourd_hui)
             for e in campus.registre.alertes_assiduite(du, du + timedelta(days=6), self.cles_de(utilisateur)):
                 alertes.append({'niveau': 'suspect', 'etudiant': e['etudiant'], 'nom': self.nom(e['etudiant']),
@@ -126,8 +136,8 @@ class Suivi:
             maintenant = datetime.fromtimestamp(self.campus.t)
         h = heure_du_jour(maintenant.timestamp())
         if jour >= maintenant.date():
-            for c in self.campus.edt['cours']:
-                if c['jour'] != jour.weekday() or not c['salle'] or c['id'] in deja:
+            for c in self.campus.planning.cours_du_jour(jour):
+                if not c['salle'] or c['id'] in deja:
                     continue
                 if enseignant and c['enseignant'] != enseignant:
                     continue

@@ -1,11 +1,13 @@
 # Serveur CampusTwin
 
-Le serveur tourne sur un vieux PC ou un Raspberry Pi de l'IUT. **Python 3.10 ou plus suffit, rien à installer.** Il :
+Le serveur tourne sur un vieux PC ou un Raspberry Pi de l'IUT. **Python 3.10 ou plus suffit, rien à installer** (sauf pour l'assistant IA, en option). Il :
 - reçoit les mesures des cartes ESP32 ;
 - calcule l'état de chaque salle : personnes, émargement, Wi-Fi, air, diagnostic ;
 - tient le registre des présences (séances, corrections, export) ;
+- prévoit le CO₂ de chaque salle pour les 2 prochaines heures, ventile en avance la salle de l'automate et propose des changements de salle ;
 - pilote l'automate en Modbus TCP ;
-- sert l'interface de suivi des classes (avec comptes) et le jumeau 3D.
+- sert l'interface de suivi des classes (avec comptes) et le jumeau 3D ;
+- répond aux questions posées en français (assistant IA).
 
 ```
 python serveur/serveur.py                    vraies cartes et vrai automate (voir config.py)
@@ -55,7 +57,12 @@ Le serveur les remet dans l'emploi du temps et dans l'interface.
 | [registre.py](registre.py) | Registre des présences (`registre.db`) : séances, statut de chaque étudiant, corrections avec auteur et motif, anomalies, export CSV |
 | [suivi.py](suivi.py) | Ce que lit l'interface de suivi, avec les règles d'accès |
 | [comptes.py](comptes.py) | Comptes, mots de passe et sessions |
-| [config.py](config.py) | Adresse de l'automate, débits connus, clé des capteurs, sel des cartes |
+| [planning.py](planning.py) | Emploi du temps de chaque jour, avec les changements de salle acceptés |
+| [prevision.py](prevision.py) | Jumeau prédictif : personnes attendues et CO₂ de chaque salle pour les 2 prochaines heures, et précision mesurée |
+| [commande.py](commande.py) | Ventilation anticipée de la salle de l'automate (commande prédictive) et bilan d'énergie face à la règle simple |
+| [reaffectation.py](reaffectation.py) | Propositions de changement de salle quand l'air va devenir mauvais |
+| [assistant.py](assistant.py) | Assistant IA : outils en lecture seule, pseudonymes, appel à l'API Claude |
+| [config.py](config.py) | Adresse de l'automate, débits connus, clé des capteurs, sel des cartes, réglages de la ventilation et de l'assistant |
 
 ## Messages des capteurs
 
@@ -77,7 +84,7 @@ Heure : `t` (secondes depuis 1970) si la carte a l'heure exacte. Sinon `age_ms`,
 
 ## Ce que lit le site
 
-Toutes ces adresses demandent d'être connecté. Celles du jumeau 3D (`/api/etat`, `/api/flux`, `/api/historique`, `/api/commande`, `/api/simulation/panne`) sont réservées au directeur et à la scolarité.
+Toutes ces adresses demandent d'être connecté. Celles du jumeau 3D et des prévisions (`/api/etat`, `/api/flux`, `/api/historique`, `/api/commande`, `/api/simulation/panne`, `/api/previsions`, `/api/proposition`) sont réservées au directeur et à la scolarité.
 
 | Adresse | Contenu |
 | --- | --- |
@@ -93,8 +100,36 @@ Toutes ces adresses demandent d'être connecté. Celles du jumeau 3D (`/api/etat
 | `GET /api/etat` | État de toutes les salles et de l'automate |
 | `GET /api/flux` | Le même état toutes les secondes (Server-Sent Events) |
 | `GET /api/historique?salle=SAR 200` | CO₂ et personnes de la journée, une valeur par minute |
-| `POST /api/commande` | `{"auto": false, "niveau": "grande"}` : forcer la ventilation |
+| `POST /api/commande` | `{"auto": false, "niveau": "grande"}` : forcer la ventilation ; `{"strategie": "predictive"}` ou `"reactive"` : jumeau ou règle simple |
+| `GET /api/previsions` | Prévision de chaque salle, plan de ventilation, bilan d'énergie, propositions de salle |
+| `POST /api/proposition` | `{"action": "accepter", "cours", "salle"}` ou `{"action": "ignorer", "cours"}` |
+| `GET /api/assistant` | L'assistant est-il prêt, questions suggérées, conversation en cours |
+| `POST /api/assistant` | `{"question": "…"}` : réponse de l'assistant ; `{"nouvelle": true}` : nouvelle conversation |
 | `POST /api/simulation/panne` | `{"panne": "fenetre"}` : provoquer une panne (mode simulation seulement) |
+
+## Jumeau prédictif
+
+- **Prévision.** Pour chaque salle : les cours de l'emploi du temps, le nombre de personnes attendues (effectif × taux de présence appris sur 14 jours), et le débit d'air appris par la salle. Le jumeau simule le CO₂ des 2 heures suivantes. Toutes les 10 min, il note sa prévision à 30 et 60 min et la compare à la mesure.
+- **Ventilation anticipée (SAR 200).** Chaque minute, le jumeau essaie les vitesses possibles pour les 20 minutes suivantes, simule 90 minutes et garde le plan le moins coûteux : énergie (chauffage de l'air neuf + ventilateur) plus une pénalité au-dessus de 800 et 1000 ppm. Il garde la petite vitesse 20 min après chaque cours et le soir, sinon le diagnostic ne peut plus mesurer la décroissance ni la dérive du capteur.
+- **Changement de salle.** Si l'air d'un cours doit dépasser 1200 ppm, le jumeau cherche une salle libre du même type, assez grande, dont il connaît la ventilation, où le pic reste sous 1200 ppm. Le directeur accepte ou ignore dans la page Anticipation. Un cours déplacé change dans le planning du jour.
+- **Limite.** En simulation, la prévision utilise la même physique que le bâtiment simulé : sa précision y est forcément bonne. Le vrai test se fera sur la salle réelle.
+
+## Assistant IA (en option)
+
+On pose une question en français dans la page « Assistant IA » : « Qui est absent en SAR 109 ? », « Quelle salle aura l'air mauvais dans l'heure ? ». Le serveur envoie la question à Claude (Anthropic), qui lit les données avec 9 outils, puis répond.
+
+Pour l'activer :
+```
+pip install anthropic
+set ANTHROPIC_API_KEY=sk-ant-...        (clé à créer sur console.anthropic.com, puis relancer le serveur)
+```
+Sans ça, la page dit que l'assistant est hors ligne et tout le reste marche.
+
+- **L'IA ne voit aucun nom.** Avant l'envoi, chaque étudiant devient ETU-001, ETU-002… (un jeu par conversation) et chaque enseignant « Enseignant A, B… ». Un nom tapé dans la question est remplacé aussi. Les motifs d'absence (parfois médicaux) et les auteurs des corrections ne partent pas. Le serveur remet les vrais noms dans la réponse affichée.
+- **Mêmes droits que la personne connectée.** Un enseignant n'a que ses séances et ses classes, et pas les outils du bâtiment ni des prévisions.
+- **Lecture seule.** Corriger une présence ou déplacer un cours reste un clic humain.
+- **Coût.** Quelques centimes par question. 30 questions par heure et par compte au plus, 15 questions par conversation (`config.py`).
+- **Réglages** (`config.py`) : modèle `claude-opus-5-5`, effort `medium` (`low` répond plus vite). Si le modèle refuse une question par erreur, l'API la relance sur le modèle de secours conseillé par Anthropic (`fallbacks: "default"`).
 
 ## Ce que les données réelles ont changé dans le diagnostic
 
@@ -111,4 +146,6 @@ Voir [donnees_reelles](../donnees_reelles/README.md).
 python tests/test_scenarios.py     une semaine simulée, chaque panne et chaque fraude doit être trouvée
 python tests/test_automate.py      échange Modbus et sécurité de l'automate simulé
 python tests/test_suivi.py         comptes, droits, registre des présences, corrections, export
+python tests/test_prevision.py     prévisions, ventilation anticipée (jumeau contre règle simple), changement de salle
+python tests/test_assistant.py     assistant IA avec un faux client : aucun nom envoyé, droits, refus, page web
 ```

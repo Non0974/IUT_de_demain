@@ -2,7 +2,7 @@
 (personnes, émargement, Wi-Fi, air, diagnostic), tient le registre des présences, pilote
 l'automate et sert l'interface de suivi des classes et le jumeau 3D.
 
-Python seul suffit (aucune bibliothèque à installer).
+Python seul suffit (aucune bibliothèque à installer), sauf pour l'assistant IA : pip install anthropic.
 
     python serveur/serveur.py                         vraies cartes et vrai automate (voir config.py)
     python serveur/serveur.py --simulation            bâtiment simulé + automate simulé, pour tester
@@ -30,8 +30,13 @@ RACINE = ICI.parent
 sys.path.insert(0, str(ICI))
 
 import config                                   # noqa: E402
+from assistant import SUGGESTIONS, Assistant, ErreurIA, Indisponible, Occupe   # noqa: E402
 from automate import PontAutomate, niveau_automatique   # noqa: E402
+from commande import HORIZON, BilanVentilation, CommandePredictive, bornes_vitesse   # noqa: E402
 from comptes import Comptes, comptes_de_demo    # noqa: E402
+from planning import Planning                   # noqa: E402
+from prevision import Prevision                 # noqa: E402
+from reaffectation import propositions          # noqa: E402
 from registre import Registre                   # noqa: E402
 from salle import EtatSalle, heure_du_jour, seance_id   # noqa: E402
 from stockage import Stockage                   # noqa: E402
@@ -44,14 +49,18 @@ FICHIER_ENSEIGNANTS = ICI / 'enseignants.json'  # "Enseignant A" -> vrai nom (se
 SYNCHRO = 30                                    # s entre deux copies de l'émargement dans le registre
 
 
+def charger_enseignants():
+    """« Enseignant A » -> vrai nom, si serveur/enseignants.json existe (seulement en local)."""
+    return json.loads(FICHIER_ENSEIGNANTS.read_text(encoding='utf-8')) if FICHIER_ENSEIGNANTS.exists() else {}
+
+
 def charger_edt():
     """Emploi du temps. Dans le dépôt public, les enseignants s'appellent « Enseignant A, B… » ;
     si serveur/enseignants.json existe, on remet les vrais noms."""
     edt = json.loads((DONNEES / 'edt.json').read_text(encoding='utf-8'))
-    if FICHIER_ENSEIGNANTS.exists():
-        noms = json.loads(FICHIER_ENSEIGNANTS.read_text(encoding='utf-8'))
-        for c in edt['cours']:
-            c['enseignant'] = noms.get(c['enseignant'], c['enseignant'])
+    noms = charger_enseignants()
+    for c in edt['cours']:
+        c['enseignant'] = noms.get(c['enseignant'], c['enseignant'])
     return edt
 
 
@@ -68,19 +77,30 @@ class Campus:
         bat = json.loads((DONNEES / 'salles.json').read_text(encoding='utf-8'))
         self.edt = charger_edt()
         self.annuaire = json.loads(FICHIER_CARTES.read_text(encoding='utf-8')) if FICHIER_CARTES.exists() else {}
-        self.salles = {s['id']: EtatSalle(s, bat['hauteur'], config, self.edt, self.annuaire) for s in bat['salles']}
         noms_groupes = {cle: c['groupes'][i] for c in self.edt['cours'] for i, cle in enumerate(c['cles'])}
         self.registre = registre or Registre(noms_groupes=noms_groupes)
         self.registre.noms_groupes = noms_groupes
+        self.planning = Planning(self.edt, self.registre)
+        self.batiment = bat
+        self.salles = {s['id']: EtatSalle(s, bat['hauteur'], config, self.edt, self.annuaire, self.planning)
+                       for s in bat['salles']}
         self.stockage = stockage
         self.pont = pont
         self.verrou = threading.RLock()
         self.t = time.time()
         self.simulation = None
         self.avance_rapide = False
-        self.mode = {'auto': True, 'niveau': 'petite'}
+        self.mode = {'auto': True, 'niveau': 'petite', 'strategie': config.STRATEGIE}
         self.messages = 0
         self.derniere_synchro = 0
+        # Jumeau prédictif et ventilation anticipée
+        self.prevision = Prevision(self, config)
+        auto = self.salles.get(config.SALLE_AUTOMATE)
+        self.commande = CommandePredictive(config, auto.estimateur.volume) if auto else None
+        self.bilan = BilanVentilation(self.commande) if auto else None
+        self.consigne = None
+        self.derniere_decision = 0
+        self._previsions = (None, None)              # (minute, résultat) : recalculé une fois par minute
 
     @property
     def noms(self):
@@ -139,17 +159,35 @@ class Campus:
             if salle is None:
                 return
             h = heure_du_jour(self.t)
-            jour = datetime.fromtimestamp(self.t).weekday()
-            fins = [c['fin'] for c in self.edt['cours'] if c['salle'] == salle.id and c['jour'] == jour]
+            jour = datetime.fromtimestamp(self.t).date()
+            cours = [c for c in self.planning.cours_du_jour(jour) if c['salle'] == salle.id]
+            fins = [c['fin'] for c in cours]
             co2 = salle.co2 - salle.estimateur.correction if salle.co2 is not None else None
-            consigne = niveau_automatique(salle.nombre(), co2, h, max(fins) if fins else None) \
-                if self.mode['auto'] else self.mode['niveau']
+
+            def regle(n, c):
+                """Règle simple d'avant : selon le nombre de personnes, petite vitesse toute la journée."""
+                return niveau_automatique(n, c, h, max(fins) if fins else None)
+
+            if not self.mode['auto']:
+                consigne = self.mode['niveau']
+            elif self.mode['strategie'] == 'predictive' and co2 is not None and self.commande:
+                # Le jumeau décide une fois par minute, en regardant 90 min devant
+                if self.consigne is None or abs(self.t - self.derniere_decision) >= 60:
+                    occupation = self.prevision.occupation(salle.id, self.t, HORIZON)
+                    bornes = bornes_vitesse(cours, h, HORIZON, occupation)
+                    self.consigne = self.commande.decider(co2, occupation, bornes)
+                    self.derniere_decision = self.t
+                consigne = self.consigne
+            else:
+                consigne = regle(salle.nombre(), co2)
             self.pont.regler(consigne, personnes=salle.nombre())
             etat = self.pont.etat
             # La ventilation suit ce que l'automate applique vraiment (ou la consigne s'il ne répond pas,
             # ou si la simulation avance trop vite pour lui)
             connecte = etat.get('connecte') and etat.get('vitesse') != '?' and not self.avance_rapide
             salle.niveau = etat['vitesse'] if connecte else consigne
+            if co2 is not None and self.bilan:
+                self.bilan.avancer(self.t, salle.nombre(), co2, salle.niveau, regle)
 
     # ---------- registre des présences ----------
 
@@ -169,6 +207,8 @@ class Campus:
                               'cles': c['cles'], 'reel': c['reel']}
                     self.registre.noter(seance, liste, anomalies)
             self.registre.cloturer(datetime.fromtimestamp(t))
+            plan = {config.SALLE_AUTOMATE: self.commande.plan} if self.commande and self.commande.plan else None
+            self.prevision.verifier(t, plan)
 
     def boucle(self):
         while True:
@@ -197,6 +237,52 @@ class Campus:
                 'salles': {i: s.etat(self.t) for i, s in self.salles.items()},
             }
 
+    # ---------- jumeau prédictif ----------
+
+    def previsions(self, frais=False):
+        """Prévision de chaque salle, plan de ventilation, bilan d'énergie, propositions de salles."""
+        with self.verrou:
+            minute = int(self.t // 60)
+            if not frais and self._previsions[0] == minute:
+                return self._previsions[1]
+            resultat = self._calculer_previsions()
+            self._previsions = (minute, resultat)
+            return resultat
+
+    def _calculer_previsions(self):
+        with self.verrou:
+            t = self.t
+            jour = datetime.fromtimestamp(t).date()
+            plan = self.commande.plan if self.commande and self.mode['strategie'] == 'predictive' else None
+            salles = []
+            for sid in self.salles:
+                p = self.prevision.prevoir(sid, t, 120, niveaux=plan if sid == config.SALLE_AUTOMATE else None)
+                if p:
+                    salles.append(self.prevision.resume(p))
+            h0 = heure_du_jour(t)
+            segments = []
+            for k, n in enumerate(plan or []):
+                if segments and segments[-1]['niveau'] == n:
+                    segments[-1]['fin'] = h0 + (k + 1) / 60
+                else:
+                    segments.append({'debut': h0 + k / 60, 'fin': h0 + (k + 1) / 60, 'niveau': n})
+            auto = self.salles.get(config.SALLE_AUTOMATE)
+            return {
+                'date': jour.isoformat(), 'heure': h0,
+                'salles': salles,
+                'precision': self.prevision.precision(),
+                'taux_presence': round(self.prevision.taux(jour), 3),
+                'commande': {
+                    'salle': config.SALLE_AUTOMATE,
+                    'strategie': self.mode['strategie'], 'auto': self.mode['auto'],
+                    'niveau': auto.niveau if auto else None,
+                    'plan': segments,
+                    'bilan': self.bilan.resume() if self.bilan else None,
+                },
+                'propositions': propositions(self, t),
+                'changements': self.registre.changements_du_jour(jour),
+            }
+
     def historique(self, salle):
         with self.verrou:
             s = self.salles.get(salle)
@@ -206,11 +292,14 @@ class Campus:
 # Adresses ouvertes sans compte : la connexion, et ce qu'envoient les capteurs (protégé par leur clé)
 PUBLIQUES = {'/api/connexion', '/api/mesure', '/api/cartes', '/api/info'}
 # Adresses réservées au directeur des études et à la scolarité (le jumeau 3D voit tout le bâtiment)
-DIRECTION = {'/api/etat', '/api/flux', '/api/historique', '/api/commande', '/api/simulation/panne'}
+DIRECTION = {'/api/etat', '/api/flux', '/api/historique', '/api/commande', '/api/simulation/panne',
+             '/api/previsions', '/api/proposition'}
 
 
-def creer_gestionnaire(campus, comptes):
+def creer_gestionnaire(campus, comptes, client_ia=None):
+    """client_ia : faux client de l'API Claude, pour les tests."""
     suivi = Suivi(campus)
+    assistant = Assistant(campus, suivi, charger_enseignants(), config, client_ia)
 
     class Gestionnaire(SimpleHTTPRequestHandler):
         def end_headers(self):
@@ -312,6 +401,12 @@ def creer_gestionnaire(campus, comptes):
                     self.end_headers()
                     self.wfile.write(corps)
                     return
+                if chemin == '/api/assistant':
+                    role = 'direction' if u['role'] in TOUT_VOIR else 'enseignant'
+                    return self._json(assistant.etat() | {'suggestions': SUGGESTIONS[role],
+                                                          'conversation': assistant.historique(self._jeton())})
+                if chemin == '/api/previsions':
+                    return self._json(campus.previsions())
                 if chemin == '/api/etat':
                     return self._json(campus.etat())
                 if chemin == '/api/historique':
@@ -370,6 +465,19 @@ def creer_gestionnaire(campus, comptes):
                 if chemin == '/api/deconnexion':
                     comptes.deconnecter(self._jeton())
                     return self._json({'ok': True}, entetes=[('Set-Cookie', 'session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0')])
+                if chemin == '/api/assistant':
+                    corps = self._corps()
+                    if corps.get('nouvelle'):
+                        assistant.oublier(self._jeton())
+                        return self._json({'ok': True})
+                    try:
+                        return self._json(assistant.repondre(u, self._jeton(), str(corps.get('question', ''))))
+                    except Indisponible as e:
+                        return self._json({'erreur': str(e)}, 503)
+                    except Occupe as e:
+                        return self._json({'erreur': str(e)}, 429)
+                    except ErreurIA as e:
+                        return self._json({'erreur': str(e)}, 502)
                 if chemin == '/api/seance/statut':
                     return self._json(suivi.corriger(u, self._corps()))
                 if chemin == '/api/commande':
@@ -379,7 +487,24 @@ def creer_gestionnaire(campus, comptes):
                             campus.mode['auto'] = bool(corps['auto'])
                         if corps.get('niveau') in ('arret', 'petite', 'grande'):
                             campus.mode['niveau'] = corps['niveau']
+                        if corps.get('strategie') in ('predictive', 'reactive'):
+                            campus.mode['strategie'] = corps['strategie']
+                            campus.consigne = None
                     return self._json({'ok': True, 'mode': campus.mode})
+                if chemin == '/api/proposition':
+                    corps = self._corps()
+                    with campus.verrou:
+                        jour = datetime.fromtimestamp(campus.t).date()
+                        if corps.get('action') == 'accepter':
+                            if corps.get('salle') not in campus.salles:
+                                raise ValueError('Salle inconnue.')
+                            campus.planning.changer_salle(jour, corps['cours'], corps['salle'], u['nom'], campus.t)
+                        elif corps.get('action') == 'ignorer':
+                            campus.registre.ignorer_proposition(jour, corps['cours'], u['nom'], campus.t)
+                        else:
+                            raise ValueError('Action inconnue.')
+                        campus.previsions(frais=True)
+                    return self._json({'ok': True})
                 if chemin == '/api/simulation/panne':
                     if not campus.simulation:
                         return self._json({'erreur': 'pas en mode simulation'}, 400)
@@ -402,7 +527,8 @@ def lancer_simulation(campus, vitesse, jours_historique=5):
     module = charger_simulateur('batiment')
     debut_direct = module.DEBUT_SEMAINE
     debut = debut_direct - timedelta(days=7) if jours_historique else debut_direct
-    sim = module.SimulateurBatiment(campus.recevoir, lambda salle: campus.salles[salle].niveau or 'petite', debut=debut)
+    sim = module.SimulateurBatiment(campus.recevoir, lambda salle: campus.salles[salle].niveau or 'petite', debut=debut,
+                                    cours_du_jour=campus.planning.cours_du_jour)
     campus.simulation = sim
     campus.t = sim.t
     campus.ajouter_cartes(sim.annuaire())

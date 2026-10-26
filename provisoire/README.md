@@ -28,6 +28,14 @@ SAE BUT 3 GEII, IUT de Cergy-Pontoise, site de Sarcelles. Louay Boubaya, Ariel G
   - Un enseignant peut corriger un statut (oubli de badge, absence justifiée) : la correction est gardée avec son nom, l'heure et le motif.
   - Export CSV pour le CFA, avec la présence par demi-journée.
   - Un enseignant ne voit que ses cours et ses classes (RGPD).
+  - Anticipation : CO₂ prévu, plan de ventilation, énergie économisée, propositions de salle.
+  - Assistant IA : questions en français.
+- **Jumeau prédictif.** Le jumeau prévoit le CO₂ de chaque salle pour les 2 prochaines heures, avec l'emploi du temps, le taux de présence et le débit d'air qu'il a appris.
+  - Dans SAR 200, il ventile avant que la salle se remplisse et coupe quand personne n'arrive (commande prédictive). Sur une semaine simulée : 17 % d'énergie de ventilation en moins que la règle simple, et 171 minutes au-dessus de 1000 ppm au lieu de 239.
+  - Si l'air d'un cours va dépasser 1200 ppm, il propose une salle libre où l'air restera bon. Le directeur accepte ou ignore, dans la page Anticipation.
+- **Assistant IA.** On pose une question en français : « Qui est absent en SAR 109 ? », « Quelle salle aura l'air mauvais dans l'heure ? ». Claude (Anthropic) lit les données et répond.
+  - Il ne voit aucun nom : les étudiants deviennent ETU-001, ETU-002…, les enseignants « Enseignant A, B… », et les motifs d'absence ne partent pas. Le serveur remet les vrais noms à l'affichage.
+  - Il a les droits de la personne connectée et ne modifie rien.
 - **Vue 3D du directeur des études.** Le plan 3D de l'IUT montre, pour chaque salle :
   - le cours, le groupe et l'enseignant ;
   - les présents, retards et absents ;
@@ -38,11 +46,11 @@ SAE BUT 3 GEII, IUT de Cergy-Pontoise, site de Sarcelles. Louay Boubaya, Ariel G
 
 | Dossier | Contenu | État |
 | --- | --- | --- |
-| [jumeau3d/suivi](jumeau3d/suivi) | Interface de suivi des classes (tableau de bord, séances, classes, étudiants) | marche, vérifiée dans le navigateur |
+| [jumeau3d/suivi](jumeau3d/suivi) | Interface de suivi des classes (tableau de bord, séances, classes, étudiants, anticipation, assistant IA) | marche, vérifiée dans le navigateur |
 | [jumeau3d](jumeau3d) | Jumeau 3D : vue de tout l'IUT (`iut.html`) et salle SAR 200 en détail (`index.html`) | marche, vérifié dans le navigateur |
-| [serveur](serveur) | Serveur Python sans installation : capteurs, diagnostic, registre des présences, comptes, lien avec l'automate | marche, testé en simulation |
+| [serveur](serveur) | Serveur Python sans installation : capteurs, diagnostic, registre des présences, comptes, prévisions, ventilation anticipée, lien avec l'automate, assistant IA | marche, testé en simulation (assistant : testé avec un faux client, pas encore avec la vraie API) |
 | [simulateurs](simulateurs) | Bâtiment simulé (mêmes messages que les vraies cartes) et automate simulé (Modbus TCP) | marche |
-| [tests](tests) | Une semaine simulée avec chaque panne et chaque fraude ; échange Modbus et sécurité de l'automate | tous les tests passent |
+| [tests](tests) | Pannes et fraudes sur une semaine simulée, automate, suivi des classes, prévisions, assistant IA | tous les tests passent |
 | [firmware](firmware) | Code des cartes XIAO ESP32S3 : nœud salle (CO₂, badge, écran) et nœud porte (fusion des 3 capteurs) | compile, pas encore testé sur le matériel |
 | [automate](automate) | Programme SCL du S7-1200 et branchements | écrit, pas encore compilé dans TIA Portal |
 | [donnees_reelles](donnees_reelles) | Tests sur des données publiques réelles (ROBOD, salle danoise OU44) et IA du Wi-Fi | fait |
@@ -62,6 +70,8 @@ Puis ouvrir http://localhost:8000 et se connecter avec un compte de démonstrati
 
 Le serveur simule le bâtiment et l'automate. Au démarrage, il joue aussi la semaine précédente en quelques secondes, pour que le registre ait déjà des séances. Dans la page de la salle SAR 200, les boutons provoquent des pannes ou des fraudes, et on voit le diagnostic les trouver.
 
+L'assistant IA demande en plus `pip install anthropic` et une clé API Claude (voir [serveur](serveur/README.md#assistant-ia-en-option)). Sans eux, sa page dit qu'il est hors ligne et tout le reste marche.
+
 ## Ce qui est réel et ce qui est simulé
 
 - **Réel :**
@@ -79,4 +89,6 @@ Les pages l'indiquent dans un bandeau.
 python tests/test_scenarios.py     une semaine simulée : chaque panne et chaque fraude est trouvée
 python tests/test_automate.py      échange Modbus et sécurité de l'automate
 python tests/test_suivi.py         comptes, droits, registre des présences, corrections, export
+python tests/test_prevision.py     prévisions, ventilation anticipée contre règle simple, changement de salle
+python tests/test_assistant.py     assistant IA avec un faux client : aucun nom envoyé, droits, page web
 ```

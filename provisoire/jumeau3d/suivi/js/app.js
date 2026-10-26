@@ -10,6 +10,8 @@ import { vueSeance } from './vues/seance.js';
 import { vueClasses } from './vues/classes.js';
 import { vueClasse } from './vues/classe.js';
 import { vueEtudiant } from './vues/etudiant.js';
+import { vueAnticipation } from './vues/anticipation.js';
+import { vueAssistant } from './vues/assistant.js';
 
 const ROUTES = [
   [/^\/?$/, 'tableau', vueTableau],
@@ -18,6 +20,8 @@ const ROUTES = [
   [/^\/classes$/, 'classes', vueClasses],
   [/^\/classe\/(.+)$/, 'classes', vueClasse],
   [/^\/etudiant\/(.+)$/, 'classes', vueEtudiant],
+  [/^\/anticipation$/, 'anticipation', vueAnticipation],
+  [/^\/assistant$/, 'assistant', vueAssistant],
 ];
 
 const ROLES = { directeur: 'Directeur des études', scolarite: 'Scolarité', enseignant: 'Enseignant' };

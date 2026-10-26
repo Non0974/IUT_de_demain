@@ -46,6 +46,11 @@ class Registre:
                     avant TEXT, apres TEXT, motif TEXT, auteur TEXT, t REAL);
                 CREATE TABLE IF NOT EXISTS anomalies (
                     seance TEXT, type TEXT, nombre INTEGER, detail TEXT, PRIMARY KEY (seance, type));
+                CREATE TABLE IF NOT EXISTS changements (
+                    date TEXT, cours TEXT, salle_avant TEXT, salle_apres TEXT, auteur TEXT, t REAL,
+                    PRIMARY KEY (date, cours));
+                CREATE TABLE IF NOT EXISTS propositions_ignorees (
+                    date TEXT, cours TEXT, auteur TEXT, t REAL, PRIMARY KEY (date, cours));
                 CREATE INDEX IF NOT EXISTS seances_date ON seances (date);
                 CREATE INDEX IF NOT EXISTS presences_etudiant ON presences (etudiant);
             ''')
@@ -112,6 +117,42 @@ class Registre:
                               (seance, etudiant, ligne['statut'], statut, (motif or '').strip(), auteur, t))
             self.base.commit()
             self.deja_ecrit.pop((seance, etudiant), None)
+
+    # ---------- changements de salle (propositions du jumeau acceptées) ----------
+
+    def changer_salle(self, jour, cours, avant, apres, auteur, t):
+        with self.verrou:
+            self.base.execute('INSERT OR REPLACE INTO changements VALUES (?, ?, ?, ?, ?, ?)',
+                              (jour.isoformat(), cours, avant, apres, auteur, t))
+            self.base.commit()
+
+    def changements(self):
+        with self.verrou:
+            return {(r['date'], r['cours']): r['salle_apres'] for r in self.base.execute('SELECT * FROM changements')}
+
+    def changements_du_jour(self, jour):
+        with self.verrou:
+            return [dict(r) for r in self.base.execute('SELECT * FROM changements WHERE date = ? ORDER BY t', (jour.isoformat(),))]
+
+    def ignorer_proposition(self, jour, cours, auteur, t):
+        with self.verrou:
+            self.base.execute('INSERT OR REPLACE INTO propositions_ignorees VALUES (?, ?, ?, ?)', (jour.isoformat(), cours, auteur, t))
+            self.base.commit()
+
+    def propositions_ignorees(self, jour):
+        with self.verrou:
+            return {r['cours'] for r in self.base.execute('SELECT cours FROM propositions_ignorees WHERE date = ?', (jour.isoformat(),))}
+
+    def taux_presence(self, avant, jours=14):
+        """Part des étudiants présents (ou en retard) sur les séances closes des derniers jours."""
+        with self.verrou:
+            r = self.base.execute(
+                '''SELECT SUM(p.statut IN ('présent', 'retard')) AS presents,
+                          SUM(p.statut IN ('présent', 'retard', 'absent', 'justifié', 'à vérifier')) AS decides
+                   FROM presences p JOIN seances s ON s.id = p.seance
+                   WHERE s.etat = 'terminée' AND s.date BETWEEN ? AND ?''',
+                ((avant - timedelta(days=jours)).isoformat(), avant.isoformat())).fetchone()
+            return r['presents'] / r['decides'] if r['decides'] else None
 
     # ---------- lecture ----------
 

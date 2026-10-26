@@ -4,6 +4,7 @@ from collections import deque
 from datetime import datetime
 
 from estimateur import EstimateurSalle
+from planning import Planning
 
 TOLERANCE = 10 / 3600           # h : un badge et un passage à moins de 10 s vont ensemble
 DOUBLE_BADGE = 3                # s : deux cartes badgées à moins de 3 s pour un seul passage = carte prêtée
@@ -60,15 +61,18 @@ class ModeleWifi:
 
 
 class EtatSalle:
-    def __init__(self, salle, hauteur, config, edt, annuaire):
+    def __init__(self, salle, hauteur, config, edt, annuaire, planning=None):
         self.id = salle['id']
         self.salle = salle
         self.edt = edt
+        self.planning = planning or Planning(edt)   # cours du jour, salles changées comprises
         self.annuaire = annuaire            # empreinte de carte -> {id, groupe}
         self.porte = salle['equipee']        # capteurs de comptage à la porte
         debits = config.DEBITS.get(self.id)
-        self.estimateur = EstimateurSalle(salle['surface'] * hauteur, debits, config.G_PERSONNE, config.C_EXT,
-                                          biais=config.BIAIS_CONNU.get(self.id))
+        # Le biais compare le comptage de la porte et la décroissance : sans capteurs à la porte, il n'a
+        # pas de sens. Il mélangerait même deux débits vraiment différents (fenêtre ouverte en cours).
+        biais = config.BIAIS_CONNU.get(self.id, None if salle['equipee'] else 1.0)
+        self.estimateur = EstimateurSalle(salle['surface'] * hauteur, debits, config.G_PERSONNE, config.C_EXT, biais=biais)
         self.wifi = ModeleWifi()
         self.n_porte = 0
         self.n_wifi = None
@@ -199,7 +203,7 @@ class EtatSalle:
     def cours_actifs(self, t, marge_avant=10 / 60):
         d = datetime.fromtimestamp(t)
         h = heure_du_jour(t)
-        return [c for c in self.edt['cours'] if c['salle'] == self.id and c['jour'] == d.weekday()
+        return [c for c in self.planning.cours_du_jour(d.date()) if c['salle'] == self.id
                 and c['debut'] - marge_avant <= h <= c['fin'] + 5 / 60]
 
     def inscrits(self, cours):

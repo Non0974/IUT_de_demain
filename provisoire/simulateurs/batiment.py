@@ -73,9 +73,10 @@ class SalleSimulee:
 
 
 class SimulateurBatiment:
-    def __init__(self, envoyer, niveau_commande=lambda salle: 'petite', graine=1, debut=DEBUT_SEMAINE):
+    def __init__(self, envoyer, niveau_commande=lambda salle: 'petite', graine=1, debut=DEBUT_SEMAINE, cours_du_jour=None):
         """envoyer(message) : reçoit chaque message ; niveau_commande(salle) : commande de l'automate ;
-        debut : date et heure du début de la simulation."""
+        debut : date et heure du début de la simulation ;
+        cours_du_jour(date) : cours du jour avec les salles changées (par défaut, l'emploi du temps tel quel)."""
         self.envoyer = envoyer
         self.niveau_commande = niveau_commande
         self.alea = random.Random(graine)
@@ -83,6 +84,7 @@ class SimulateurBatiment:
         edt = json.loads((DONNEES / 'edt.json').read_text(encoding='utf-8'))
         self.groupes = edt['groupes']
         self.cours = edt['cours']
+        self.cours_du_jour = cours_du_jour or (lambda d: [c for c in self.cours if c['jour'] == d.weekday()])
         self.salles = {s['id']: SalleSimulee(s, bat['hauteur'], self.alea) for s in bat['salles']}
         self.t = debut.timestamp()
         self.jour_prepare = None
@@ -111,11 +113,10 @@ class SimulateurBatiment:
         return dict(self.cartes)
 
     def _preparer_jour(self, date):
-        jour = date.weekday()
         alea = random.Random(1000 + date.toordinal())
         self.participations = {}
-        for c in self.cours:
-            if c['jour'] != jour or not c['salle']:
+        for c in self.cours_du_jour(date.date()):
+            if not c['salle']:
                 continue
             personnes = []
             for cle in c['cles']:
@@ -159,8 +160,9 @@ class SimulateurBatiment:
         entrees = {s: [] for s in self.salles}
         sorties = {s: [] for s in self.salles}
         appareils = {s: 0 for s in self.salles}
+        salles_du_jour = {c['id']: c['salle'] for c in self.cours_du_jour(date.date())}
         for c, personnes in self.participations.values():
-            salle = self.salles[c['salle']]
+            salle = self.salles[salles_du_jour.get(c['id']) or c['salle']]   # un cours déplacé va dans sa nouvelle salle
             for p in personnes:
                 dedans = not p['absent'] and p['arrivee'] <= heure < p['depart']
                 if dedans and not p['dedans']:
