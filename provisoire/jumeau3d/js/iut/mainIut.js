@@ -39,7 +39,7 @@ async function essayerServeur() {
     const flux = new EventSource('/api/flux');
     flux.onmessage = e => { etat = depuisServeur(JSON.parse(e.data)); };
     document.querySelector('.bandeau').textContent = d.simulation
-      ? 'Données du serveur CampusTwin : bâtiment simulé par le serveur (mêmes messages que les vraies cartes). Les salles et les cours de TP1/TP2 sont réels.'
+      ? 'Données du serveur CampusTwin : bâtiment simulé par le serveur (mêmes messages que les vraies cartes). Les 23 salles et les cours de la classe BUT3 ESE FA S5 sont réels.'
       : 'Données du serveur CampusTwin : capteurs réels.';
     // Le temps est celui du serveur : on cache les boutons de jour et de vitesse
     for (const id of ['jours', 'vitesse-iut', 'pause-iut']) document.getElementById(id).closest('.groupe').hidden = true;

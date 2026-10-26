@@ -16,6 +16,7 @@ from capacite import libre
 from registre import heure_texte
 
 SEUIL = 1200                # ppm : pic prévu qui déclenche une recherche
+BON_AIR = 1000              # ppm : sous ce pic, l'air de la salle proposée est bon
 GAIN_MINIMUM = 250          # ppm : pour l'air seul, on ne propose que si l'air est nettement meilleur ailleurs
 DANS_LES = 4                # h : horizon des prévisions d'air
 PAS_AVANT = 0.25            # h : un cours qui commence dans moins de 15 min n'est plus déplacé
@@ -70,8 +71,9 @@ def propositions(campus, t):
                 continue
             if motifs == ['air'] and pic - pic_ailleurs < GAIN_MINIMUM:
                 continue
-            # Pour l'air, le meilleur air ; pour la place seule, la plus petite salle qui suffit
-            tri = (pic_ailleurs, s['places']) if 'air' in motifs else (s['places'], pic_ailleurs)
+            # D'abord une salle où l'air reste bon, puis la plus petite qui suffit (on garde les grandes salles
+            # pour les grands groupes), puis le meilleur air
+            tri = (pic_ailleurs >= BON_AIR, s['places'], pic_ailleurs)
             if meilleure is None or tri < meilleure[0]:
                 meilleure = (tri, sid, pic_ailleurs)
         if meilleure is None and motifs == ['air']:

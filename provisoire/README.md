@@ -31,7 +31,7 @@ SAE BUT 3 GEII, IUT de Cergy-Pontoise, site de Sarcelles. Louay Boubaya, Ariel G
   - Anticipation : CO₂ prévu, plan de ventilation, énergie économisée, places des salles, propositions de salle.
   - Assistant IA : questions en français.
 - **Jumeau prédictif.** Le jumeau prévoit le CO₂ de chaque salle pour les 2 prochaines heures, avec l'emploi du temps, le taux de présence et le débit d'air qu'il a appris.
-  - Dans SAR 200, il ventile avant que la salle se remplisse et coupe quand personne n'arrive (commande prédictive). Sur une semaine simulée : 17 % d'énergie de ventilation en moins que la règle simple, et 172 minutes au-dessus de 1000 ppm au lieu de 214.
+  - Dans SAR 200, il ventile avant que la salle se remplisse et coupe quand personne n'arrive (commande prédictive). Sur une semaine simulée : 17 % d'énergie de ventilation en moins que la règle simple, et 134 minutes au-dessus de 1000 ppm au lieu de 257.
   - **Places des salles.** Il apprend le taux de présence de chaque groupe et de chaque demi-journée (on vient moins le vendredi après-midi), et prévoit combien d'étudiants viendront à chaque cours : 1,4 étudiant d'écart en moyenne. Une frise montre le remplissage de chaque salle sur la journée, et une alerte part en direct quand une salle a plus de monde que de places.
   - Si l'air d'un cours va dépasser 1200 ppm, ou s'il y aura plus d'étudiants que de places, il propose une salle libre qui convient. Le directeur accepte ou ignore, dans la page Anticipation.
 - **Assistant IA.** On pose une question en français : « Qui est absent en SAR 109 ? », « Quelle salle aura l'air mauvais dans l'heure ? ». Claude (Anthropic) lit les données et répond.
@@ -76,7 +76,8 @@ L'assistant IA demande en plus `pip install anthropic` et une clé API Claude (v
 ## Ce qui est réel et ce qui est simulé
 
 - **Réel :**
-  - les 10 salles et leurs places, et les cours des groupes GEII S4 TP1 et TP2 de la semaine 11 (emplois du temps CELCAT) ;
+  - les 23 salles du bâtiment et leurs places (CELCAT) ;
+  - les cours de notre classe, BUT3 ESE FA S5, la semaine du 16 au 20 novembre 2026 (CELCAT) ;
   - les tests sur ROBOD et la salle danoise.
 - **Simulé pour l'instant :**
   - le plan des étages (schématique) ;

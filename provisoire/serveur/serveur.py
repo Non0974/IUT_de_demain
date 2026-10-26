@@ -65,6 +65,11 @@ def charger_edt():
     return edt
 
 
+def enseignant_de_demo(edt):
+    """Compte « enseignant » de la démonstration : l'enseignant du premier vrai cours de la semaine."""
+    return min((c for c in edt['cours'] if c['reel'] and c['salle']), key=lambda c: (c['jour'], c['debut']))['enseignant']
+
+
 def charger_simulateur(nom):
     """Charge un module de simulateurs/ (il porte parfois le même nom qu'un module du serveur)."""
     spec = util.spec_from_file_location(f'{nom}_simule', RACINE / 'simulateurs' / f'{nom}.py')
@@ -571,8 +576,7 @@ def main():
         stockage = None                              # on n'enregistre pas la simulation
         registre = Registre()                        # en mémoire
         edt = charger_edt()
-        enseignant_demo = next(c['enseignant'] for c in edt['cours'] if c['reel'] and c['salle'] == config.SALLE_AUTOMATE)
-        comptes = comptes_de_demo(enseignant_demo)
+        comptes = comptes_de_demo(enseignant_de_demo(edt))
     else:
         pont = PontAutomate(config.AUTOMATE_IP, config.AUTOMATE_PORT, config.AUTOMATE_PERIODE)
         stockage = Stockage(str(ICI / config.BASE))

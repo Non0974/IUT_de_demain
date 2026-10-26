@@ -1,7 +1,37 @@
 {
-  "source": "Noms et places : emplois du temps CELCAT GEIIS BUT FI S4, semaine 11 (2025-2026). Surface estimée (TD 2 m²/place, TP 3, info 2,4). Ventilation inventée pour la simulation.",
+  "source": "Noms et places : emplois du temps CELCAT de CY Cergy Paris Université, site de Sarcelles (2025-2026 et 2026-2027). Étage et surface estimés (TD 2 m²/place, TP 3, info 2,4, réunion 2,5, amphi 1). Ventilation inventée pour la simulation.",
   "hauteur": 2.7,
   "salles": [
+    {
+      "id": "SAR 047-049",
+      "libelle": "Salle de TP",
+      "type": "TP",
+      "places": 24,
+      "etage": 0,
+      "surface": 72.0,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
+      "id": "SAR 084",
+      "libelle": "Amphithéâtre",
+      "type": "AMPHI",
+      "places": 80,
+      "etage": 0,
+      "surface": 80.0,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
+      "id": "SAR Amphi 1",
+      "libelle": "Amphithéâtre",
+      "type": "AMPHI",
+      "places": 120,
+      "etage": 0,
+      "surface": 120.0,
+      "ventilation": "meca",
+      "equipee": false
+    },
     {
       "id": "SAR 100",
       "libelle": "Salle informatique",
@@ -23,6 +53,46 @@
       "equipee": false
     },
     {
+      "id": "SAR 102",
+      "libelle": "Salle informatique",
+      "type": "INFO",
+      "places": 25,
+      "etage": 1,
+      "surface": 60.0,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
+      "id": "SAR 103",
+      "libelle": "Salle de TD",
+      "type": "TD",
+      "places": 19,
+      "etage": 1,
+      "surface": 38.0,
+      "ventilation": "fenetre",
+      "equipee": false
+    },
+    {
+      "id": "SAR 105",
+      "libelle": "Salle informatique",
+      "type": "INFO",
+      "places": 15,
+      "etage": 1,
+      "surface": 36.0,
+      "ventilation": "fenetre",
+      "equipee": false
+    },
+    {
+      "id": "SAR 107",
+      "libelle": "Salle de réunion (visio)",
+      "type": "REUNION",
+      "places": 19,
+      "etage": 1,
+      "surface": 47.5,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
       "id": "SAR 109",
       "libelle": "Salle de TD",
       "type": "TD",
@@ -39,6 +109,16 @@
       "places": 27,
       "etage": 1,
       "surface": 54,
+      "ventilation": "faible",
+      "equipee": false
+    },
+    {
+      "id": "SAR 120",
+      "libelle": "Salle de TD",
+      "type": "TD",
+      "places": 27,
+      "etage": 1,
+      "surface": 54.0,
       "ventilation": "faible",
       "equipee": false
     },
@@ -83,6 +163,16 @@
       "equipee": false
     },
     {
+      "id": "SAR 204",
+      "libelle": "Salle de TP",
+      "type": "TP",
+      "places": 24,
+      "etage": 2,
+      "surface": 72.0,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
       "id": "SAR 206",
       "libelle": "Salle de TP",
       "type": "TP",
@@ -99,6 +189,46 @@
       "places": 26,
       "etage": 2,
       "surface": 78,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
+      "id": "SAR 209",
+      "libelle": "Salle de TP",
+      "type": "TP",
+      "places": 25,
+      "etage": 2,
+      "surface": 75.0,
+      "ventilation": "fenetre",
+      "equipee": false
+    },
+    {
+      "id": "SAR 216-218",
+      "libelle": "Salle informatique",
+      "type": "INFO",
+      "places": 26,
+      "etage": 2,
+      "surface": 62.4,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
+      "id": "SAR 219",
+      "libelle": "Salle de TP",
+      "type": "TP",
+      "places": 26,
+      "etage": 2,
+      "surface": 78.0,
+      "ventilation": "meca",
+      "equipee": false
+    },
+    {
+      "id": "SAR 221",
+      "libelle": "Salle de TD",
+      "type": "TD",
+      "places": 54,
+      "etage": 2,
+      "surface": 108.0,
       "ventilation": "meca",
       "equipee": false
     }

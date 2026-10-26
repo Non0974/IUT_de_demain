@@ -6,17 +6,17 @@ L'interface de suivi des classes est dans [suivi](suivi) (servie par le serveur 
 
 ## Vue de tout l'IUT (`iut.html`)
 
-- Les 10 salles et leurs places viennent des emplois du temps CELCAT (GEIIS BUT FI S4, semaine 11, 2025-2026) : SAR 100, 101, 109, 118, 122 au 1er étage, SAR 200, 201, 202, 206, 207 au 2e.
-- Les cours des groupes TP1 et TP2 de cette semaine sont **réels** (étiquette « EDT réel »). Les autres cours sont simulés pour remplir les salles.
+- Les 23 salles et leurs places viennent des emplois du temps CELCAT (2025-2026 et 2026-2027) : 2 amphithéâtres (80 et 120 places) et 2 salles au rez-de-chaussée, 9 salles au 1er étage, 10 au 2e. L'étage est déduit du numéro.
+- Les cours de la classe BUT3 ESE FA S5 (TD1 = TP1 + TP2) de la semaine du 16 novembre 2026 sont **réels** (étiquette « EDT réel »), lus dans CELCAT. Les autres cours sont simulés pour remplir les salles.
 - **Le plan est schématique** : on n'a pas le vrai plan. Pour le corriger, on modifie l'ordre et le côté des salles dans `js/iut/batiment.js` (le plan d'évacuation du couloir suffit).
 - Le nombre de personnes vient des capteurs de la porte en SAR 200, et du Wi-Fi ailleurs (±2 personnes, comme mesuré sur les données ROBOD, voir `../donnees_reelles`).
 - L'émargement se fait par badge dans chaque salle. Le directeur voit les présents, les retards et les absents de chaque cours, pas les déplacements d'un étudiant dans le bâtiment (RGPD).
-- Les effectifs (9 par groupe), la ventilation des salles et le CO₂ sont inventés pour la démo : un bandeau le rappelle en haut de la page.
+- Les effectifs (9 par demi-groupe, à confirmer), la ventilation des salles et le CO₂ sont inventés pour la démo : un bandeau le rappelle en haut de la page.
 
 | Fichier | Rôle |
 | --- | --- |
 | `donnees/salles.json` | Les salles (places, surface, étage) : lu aussi par le serveur |
-| `donnees/edt.json` | Emploi du temps de la semaine 11, cours réels et simulés : lu aussi par le serveur |
+| `donnees/edt.json` | Emploi du temps de la semaine du 16 novembre 2026, cours réels et simulés : lu aussi par le serveur |
 | `js/iut/batiment.js` | Disposition des salles sur le plan |
 | `js/iut/edt.js` | Lecture de l'emploi du temps |
 | `js/iut/simulationIut.js` | Qui vient, quand, badges, Wi-Fi, CO₂ de chaque salle |
@@ -71,5 +71,5 @@ En ouvrant directement `index.html` (double-clic), le navigateur bloque les modu
 ## Prochaines étapes
 
 1. Récupérer le vrai plan des étages (plan d'évacuation) et corriger `js/iut/batiment.js`.
-2. Lire l'emploi du temps directement depuis CELCAT (export iCal) au lieu de le recopier.
+2. Lire l'emploi du temps de toutes les salles dans CELCAT, pas seulement celui de notre classe.
 3. Demander à la DSI le nombre d'appareils connectés par borne Wi-Fi.

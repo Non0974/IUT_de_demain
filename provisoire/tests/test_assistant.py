@@ -190,7 +190,7 @@ def main():
 
     # 3. Enseignant : pas les outils de la direction, pas les classes des autres
     edt = campus.edt
-    nom_ens = next(c['enseignant'] for c in edt['cours'] if c['reel'] and c['salle'] == config.SALLE_AUTOMATE)
+    nom_ens = serveur.enseignant_de_demo(edt)
     ens = {'login': 'enseignant', 'role': 'enseignant', 'nom': f'{nom_ens} (démo)', 'enseignant': nom_ens}
     siennes = suivi.cles_de(ens)
     autre = sorted({k for c in edt['cours'] for k in c['cles']} - siennes)[0]
@@ -243,8 +243,8 @@ def main():
                    and diag['salle'] == 'SAR 101' and len(diag['causes']) == (5 if diag['capteurs_a_la_porte'] else 4)))
     verifs.append(('outil inconnu refusé', res['toolu_11'][1]))
     cap = json.loads(res['toolu_13'][0])
-    verifs.append(('places des salles : 10 salles, créneaux libres, présence apprise', not res['toolu_13'][1]
-                   and len(cap['salles']) == 10 and all('creneaux_libres' in s for s in cap['salles'])
+    verifs.append((f'places des salles : {len(campus.batiment["salles"])} salles, créneaux libres, présence apprise',
+                   not res['toolu_13'][1] and len(cap['salles']) == len(campus.batiment['salles']) and all('creneaux_libres' in s for s in cap['salles'])
                    and cap['presence_apprise']['groupes_du_jour']))
 
     # 6. Réponse coupée pendant un appel d'outil : erreur, et la conversation reste comme avant

@@ -95,7 +95,7 @@ const niveauRemplissage = r => REMPLISSAGE.find(n => r >= n.min);
 
 function frise(cap) {
   const L = 760;
-  const marge = { g: 84, d: 8, h: 22 };
+  const marge = { g: 112, d: 8, h: 22 };              // assez pour « SAR Amphi 1 · 120 »
   const ligne = 28;
   const epaisseur = 22;
   const [h0, h1] = [8, 19];

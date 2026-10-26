@@ -375,7 +375,7 @@ class Outils:
         du, au = self._periode(e)
         cle = (e.get('classe') or '').strip()
         noms = self.campus.registre.noms_groupes
-        if cle not in noms:                      # l'IA a peut-être donné le nom (« GEII S4 FI TP1 ») au lieu de la clé
+        if cle not in noms:                      # l'IA a peut-être donné le nom (« GEIIS BUT ESE FA S5 TP1 ») au lieu de la clé
             cle = next((k for k, n in noms.items() if n.casefold() == cle.casefold()), cle)
         d = self.suivi.classe(self.u, cle, du, au)
 

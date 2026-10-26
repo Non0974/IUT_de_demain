@@ -2,7 +2,7 @@
 // Ils affichent un état qui vient soit de la simulation du navigateur, soit du serveur
 // (même forme dans les deux cas, voir etatLocal() dans simulationIut.js).
 
-import { SALLES } from './batiment.js';
+import { SALLES, nomEtage } from './batiment.js';
 import { COURS, JOURS, heureTexte } from './edt.js';
 
 const SALLE_PAR_ID = Object.fromEntries(SALLES.map(s => [s.id, s]));
@@ -108,7 +108,7 @@ export function creerPanneauIut({ surSelection, surJour, surEtage, surMode, surV
     const air = etatAir(co2);
     $('titre-salle').textContent = `${s.id} — ${s.libelle}`;
     const h = [];
-    h.push(`<div class="sous">${s.places} places, ${s.etage === 1 ? '1er' : `${s.etage}e`} étage. ${s.equipee
+    h.push(`<div class="sous">${s.places} places, ${nomEtage(s.etage)}. ${s.equipee
       ? 'Capteurs à la porte : comptage exact.'
       : 'Pas de capteurs à la porte : comptage par le Wi-Fi (±2 personnes).'}</div>`);
     if (!e.cours.length) {

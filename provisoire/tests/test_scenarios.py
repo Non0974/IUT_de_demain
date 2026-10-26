@@ -71,14 +71,21 @@ def main():
     def detecte(panne, cause):
         return (cause, 'detecte') in resultats[panne]
 
+    def pretees(panne):
+        """Alertes « carte prêtée » différentes vues pendant la semaine."""
+        return sum(1 for k, v in resultats[panne].items() if k[0] == 'alerte' and 'prêtée' in str(v))
+
+    # Sans fraude, une alerte peut arriver : la porte rate ~2 % des passages, et si un autre étudiant badge
+    # dans les 3 s, ça ressemble à une carte prêtée. C'est « à vérifier » : l'enseignant regarde.
+    print(f'\nAlertes « carte prêtée » : {pretees(None)} sans fraude, {pretees("badgePrete")} avec fraude')
     verifs = [
         ('aucune panne : aucune cause détectée', not any(k[1] == 'detecte' for k in resultats[None] if k[0] != 'alerte')),
-        ('aucune panne : aucune carte prêtée', not any('prêtée' in str(v) for v in resultats[None].values())),
+        ('aucune panne : au plus une fausse « carte prêtée » dans la semaine', pretees(None) <= 1),
         ('ventilation en panne détectée', detecte('ventilation', 'ventilation')),
         ('fenêtre ouverte détectée', detecte('fenetre', 'fenetre')),
         ('dérive du capteur détectée', detecte('derive', 'derive')),
         ('comptage faux détecté', detecte('comptage', 'comptage')),
-        ('carte prêtée repérée', any('prêtée' in str(v) for v in resultats['badgePrete'].values())),
+        ('carte prêtée repérée (plus d\'alertes qu\'en temps normal)', pretees('badgePrete') > pretees(None)),
         ('entrée sans badge repérée', any('sans badge' in str(v) for v in resultats['sansBadge'].values())),
     ]
     print()

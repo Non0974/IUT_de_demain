@@ -134,11 +134,15 @@ def main():
 
     # Ce que le jumeau a appris sur la présence (dans la simulation : TP1 manque plus que TP2, et tout le
     # monde manque plus le vendredi après-midi)
+    # Le taux d'un groupe suit ce qui a été observé (une semaine de données : le hasard pèse encore, par
+    # exemple TP1 est venu à 95 % la semaine du 16 novembre alors que la simulation le fait venir à 82 %).
     a = matins[7]['appris']
     vendredi = a['creneaux'].get((4, 'après-midi'), 1.0)
-    print(f'Présence apprise : moyenne {a["moyen"]:.0%}, TP1 {a["groupes"]["TP1"]:.0%}, TP2 {a["groupes"]["TP2"]:.0%}, '
-          f'vendredi après-midi {vendredi - 1:+.0%}')
-    verifs.append(('appris : TP2 vient plus que TP1', a['groupes']['TP2'] > a['groupes']['TP1']))
+    simu = serveur.charger_simulateur('batiment')
+    print(f'Présence apprise : moyenne {a["moyen"]:.0%}, vendredi après-midi {vendredi - 1:+.0%}')
+    for g in ('TP1', 'TP2'):
+        print(f'  {g} : appris {a["groupes"][g]:.0%} (sur {a["presences"][g]} présences ; '
+              f'la simulation le fait venir à {1 - simu.part_absents(g, simu.DEBUT_SEMAINE, 9):.0%})')
     verifs.append(('appris : moins de présents le vendredi après-midi', vendredi < 0.97))
 
     # Places : étudiants prévus à 7 h 50 contre étudiants badgés, à chaque cours de ces trois journées

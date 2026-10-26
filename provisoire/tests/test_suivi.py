@@ -12,6 +12,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from datetime import timedelta
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
@@ -33,7 +34,7 @@ def demarrer():
     pont = PontAutomate('127.0.0.1', PORT_AUTOMATE, 0.5)
     campus = serveur.Campus(None, pont, Registre())
     edt = campus.edt
-    enseignant = next(c['enseignant'] for c in edt['cours'] if c['reel'] and c['salle'] == config.SALLE_AUTOMATE)
+    enseignant = serveur.enseignant_de_demo(edt)
     comptes = comptes_de_demo(enseignant)
     pont.demarrer()
     debut = time.time()
@@ -79,8 +80,10 @@ def main():
     code, t, _ = appel('/api/tableau', cookie=dir_)
     verifs.append(('tableau de bord', code == 200 and 'chiffres' in t))
 
-    # Vendredi de la semaine précédente : séances closes avec émargement
-    code, s, _ = appel('/api/seances?date=2026-03-06', cookie=dir_)
+    # Semaine précédente (jouée au démarrage) : son vendredi a des séances closes avec émargement
+    lundi = (serveur.charger_simulateur('batiment').DEBUT_SEMAINE - timedelta(days=7)).date()
+    vendredi, periode = lundi + timedelta(days=4), f'du={lundi}&au={lundi + timedelta(days=6)}'
+    code, s, _ = appel(f'/api/seances?date={vendredi}', cookie=dir_)
     seances = s['seances']
     closes = [x for x in seances if x['etat'] == 'terminée']
     verifs.append(('séances de la semaine précédente dans le registre', code == 200 and len(closes) >= 5))
@@ -88,8 +91,8 @@ def main():
     taux = sum(x['presents'] + x['retards'] for x in closes) / max(1, sum(x['inscrits'] for x in closes))
     verifs.append((f'taux de présence plausible ({taux:.0%})', 0.75 <= taux <= 0.98))
 
-    # Détail d'une séance réelle de TP1 en SAR 200 et correction d'un absent
-    seance = next(x for x in closes if x['reel'] and x['salle'] == 'SAR 200')
+    # Détail d'une séance réelle de la classe et correction d'un absent
+    seance = next(x for x in closes if x['reel'] and 'TP1' in x['cles'])
     code, d, _ = appel(f'/api/seance?id={seance["id"]}', cookie=dir_)
     absent = next((p for p in d['presences'] if p['statut'] == 'absent'), d['presences'][0])
     code, d2, _ = appel('/api/seance/statut', {'seance': seance['id'], 'etudiant': absent['etudiant'],
@@ -101,19 +104,19 @@ def main():
     code, _, _ = appel('/api/seance/statut', {'seance': seance['id'], 'etudiant': absent['etudiant'], 'statut': 'justifié'}, cookie=dir_)
     verifs.append(('absence justifiée sans motif : refusée', code == 400))
 
-    code, c, _ = appel('/api/classes?du=2026-03-02&au=2026-03-08', cookie=dir_)
+    code, c, _ = appel(f'/api/classes?{periode}', cookie=dir_)
     tp1 = next(x for x in c['classes'] if x['cle'] == 'TP1')
     verifs.append(('bilan des classes (TP1)', code == 200 and tp1['etudiants'] == 9 and tp1['taux'] is not None))
-    code, cl, _ = appel('/api/classe?id=TP1&du=2026-03-02&au=2026-03-08', cookie=dir_)
+    code, cl, _ = appel(f'/api/classe?id=TP1&{periode}', cookie=dir_)
     verifs.append(('tableau de la classe TP1', code == 200 and len(cl['etudiants']) == 9 and len(cl['seances']) >= 5))
-    code, e, _ = appel(f'/api/etudiant?id={absent["etudiant"]}&du=2026-03-02&au=2026-03-08', cookie=dir_)
+    code, e, _ = appel(f'/api/etudiant?id={absent["etudiant"]}&{periode}', cookie=dir_)
     verifs.append(('fiche étudiant avec la correction', code == 200 and e['justifies'] >= 1 and e['corrections']))
-    code, csv, _ = appel('/api/export?classe=TP1&du=2026-03-02&au=2026-03-08', cookie=dir_)
+    code, csv, _ = appel(f'/api/export?classe=TP1&{periode}', cookie=dir_)
     verifs.append(('export CSV de la classe', code == 200 and 'Taux de présence' in csv and 'TP1-01' in csv))
 
     # Enseignant : seulement ses séances et ses classes
     code, ens = connexion('enseignant', 'demo')
-    code, s, _ = appel('/api/seances?date=2026-03-06', cookie=ens)
+    code, s, _ = appel(f'/api/seances?date={vendredi}', cookie=ens)
     verifs.append(('enseignant : seulement ses séances', code == 200 and s['seances'] and all(x['enseignant'] == enseignant for x in s['seances'])))
     autre = next(x for x in seances if x['enseignant'] != enseignant)
     code, _, _ = appel(f'/api/seance?id={autre["id"]}', cookie=ens)

@@ -1,5 +1,5 @@
-// Emploi du temps de la semaine 11 (du lundi 9 au vendredi 13 mars 2026).
-// Les cours des groupes GEIIS BUT FI S4 TP1 et TP2 sont recopiés des PDF CELCAT (donc réels).
+// Emploi du temps de la semaine du lundi 16 au vendredi 20 novembre 2026.
+// Les cours de la classe GEIIS BUT3 ESE FA S5 (TD1 = TP1 + TP2) viennent de CELCAT (donc réels).
 // Les autres groupes qui utilisent les salles ne sont pas connus : on les a complétés avec des cours
 // simulés, marqués reel: false.
 

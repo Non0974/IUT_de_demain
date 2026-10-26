@@ -24,7 +24,7 @@ SEL = 'campustwin-demo'    # sel du hachage des cartes (le vrai est secret, dans
 
 # Débit de la ventilation de SAR 200 selon la commande de l'automate (m3/h, fuites comprises)
 DEBITS_SAR200 = {'arret': 25, 'petite': 375, 'grande': 725}
-DEBUT_SEMAINE = datetime(2026, 3, 9, 7, 0)   # lundi 9 mars 2026, 7 h
+DEBUT_SEMAINE = datetime(2026, 11, 16, 7, 0)  # lundi 16 novembre 2026, 7 h (semaine réelle de l'emploi du temps)
 ABSENCES = (0.03, 0.20)     # part d'absents d'un groupe, tirée une fois pour chaque groupe
 VENDREDI_APRES_MIDI = 0.08  # absents en plus le vendredi après-midi
 

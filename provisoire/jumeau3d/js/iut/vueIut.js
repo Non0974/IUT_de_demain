@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { SALLES, ETAGES, LONGUEUR_BATIMENT, PROFONDEUR, COULOIR } from './batiment.js';
+import { SALLES, ETAGES, LONGUEUR_BATIMENT, PROFONDEUR, COULOIR, nomEtage } from './batiment.js';
 
 const ECART = 6;   // m entre deux étages posés côte à côte
 
@@ -64,7 +64,8 @@ export function creerVueIut(conteneur, surClic) {
     g.add(couloir);
     const div = document.createElement('div');
     div.className = 'etiquette etage';
-    div.textContent = etage === 1 ? '1er étage' : `${etage}e étage`;
+    const nom = nomEtage(etage);
+    div.textContent = nom[0].toUpperCase() + nom.slice(1);
     const label = new CSS2DObject(div);
     label.position.set(0, 0.3, -largeur / 2 - 1.2);
     g.add(label);

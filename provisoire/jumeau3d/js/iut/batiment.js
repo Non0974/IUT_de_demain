@@ -1,5 +1,5 @@
-// Salles du site de Sarcelles. Noms et nombres de places tirés des emplois du temps CELCAT 2025-2026
-// (GEIIS BUT FI S4, semaine 11).
+// Salles du site de Sarcelles. Noms et nombres de places tirés des emplois du temps CELCAT
+// (2025-2026 et 2026-2027).
 // La disposition est SCHÉMATIQUE : on n'a pas encore le vrai plan. Pour la corriger, il suffit
 // de changer l'ordre ou le côté des salles ici (le plan d'évacuation affiché dans les couloirs suffit).
 // Pour ajouter une salle ou changer ses places, modifier donnees/salles.json.
@@ -18,8 +18,12 @@ export const SALLES = donnees.salles.map(s => ({ ...s }));
 
 export const ETAGES = [...new Set(SALLES.map(s => s.etage))].sort();
 
+export function nomEtage(etage) {
+  return etage === 0 ? 'rez-de-chaussée' : etage === 1 ? '1er étage' : `${etage}e étage`;
+}
+
 function numero(salle) {
-  return Number(salle.id.replace(/\D/g, ''));
+  return Number((salle.id.match(/\d+/) || ['0'])[0]);   // « SAR 047-049 » -> 47, « SAR Amphi 1 » -> 1
 }
 
 // Place les salles : numéros pairs d'un côté du couloir, impairs de l'autre, dans l'ordre des numéros
@@ -31,7 +35,7 @@ function disposer() {
       const rangee = SALLES.filter(s => s.etage === etage && numero(s) % 2 === cote)
         .sort((a, b) => numero(a) - numero(b));
       for (const s of rangee) {
-        s.largeur = Math.max(5, s.surface / PROFONDEUR);
+        s.largeur = Math.max(6.5, s.surface / PROFONDEUR);   // assez large pour son étiquette
         s.profondeur = PROFONDEUR;
         s.volume = s.surface * HAUTEUR_SALLE;
         s.x = x + s.largeur / 2;
