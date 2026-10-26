@@ -1,6 +1,6 @@
 # CampusTwin — jumeau 3D de l'IUT et de la salle
 
-L'interface de suivi des classes est dans [suivi](suivi) (servie par le serveur à l'adresse `/suivi/`) : tableau de bord, séances, classes, fiches des étudiants, Anticipation (prévisions, ventilation, changements de salle) et Assistant IA. Ce dossier contient aussi le jumeau 3D, en deux pages :
+L'interface de suivi des classes est dans [suivi](suivi) (servie par le serveur à l'adresse `/suivi/`) : tableau de bord, séances, classes, fiches des étudiants, Anticipation (prévisions, ventilation, places des salles, changements de salle) et Assistant IA. Ce dossier contient aussi le jumeau 3D, en deux pages :
 - **`iut.html` : tout l'IUT de Sarcelles**, pour le directeur des études. On voit quelle salle est occupée, par quel cours et quel groupe, avec quel enseignant, combien de personnes, qui a badgé et la qualité de l'air.
 - **`index.html` : la salle SAR 200 en détail** (la salle équipée de capteurs à la porte), avec le diagnostic de l'air et l'émargement vérifié.
 

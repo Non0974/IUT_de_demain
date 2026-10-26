@@ -151,7 +151,7 @@ def main():
     verifs.append(("pas d'outil imposé ni de température, réflexion réglée par l'effort",
                    'tool_choice' not in kw and 'temperature' not in kw and 'thinking' not in kw
                    and kw['output_config'] == {'effort': config.ASSISTANT_EFFORT}))
-    verifs.append(('9 outils stricts pour la direction', len(kw['tools']) == 9 and all(t['strict'] for t in kw['tools'])
+    verifs.append(('10 outils stricts pour la direction', len(kw['tools']) == 10 and all(t['strict'] for t in kw['tools'])
                    and kw['system'] == SYSTEME))
     res = vu['res2']
     tableau = json.loads(res['toolu_1'][0])
@@ -229,7 +229,7 @@ def main():
         if not res:
             return reponse(outil(8, 'detail_etudiant', etudiant='ETU-999', du='', au=''),
                            outil(9, 'diagnostic_salle', salle=12), outil(10, 'diagnostic_salle', salle='sar  101'),
-                           outil(11, 'outil_qui_n_existe_pas'))
+                           outil(11, 'outil_qui_n_existe_pas'), outil(13, 'capacite_salles'))
         vu['res5'] = res
         return reponse(texte('Fini.'))
 
@@ -242,6 +242,10 @@ def main():
     verifs.append(('diagnostic de SAR 101 (4 causes : pas de capteurs à la porte)', not res['toolu_10'][1]
                    and diag['salle'] == 'SAR 101' and len(diag['causes']) == (5 if diag['capteurs_a_la_porte'] else 4)))
     verifs.append(('outil inconnu refusé', res['toolu_11'][1]))
+    cap = json.loads(res['toolu_13'][0])
+    verifs.append(('places des salles : 10 salles, créneaux libres, présence apprise', not res['toolu_13'][1]
+                   and len(cap['salles']) == 10 and all('creneaux_libres' in s for s in cap['salles'])
+                   and cap['presence_apprise']['groupes_du_jour']))
 
     # 6. Réponse coupée pendant un appel d'outil : erreur, et la conversation reste comme avant
     avant = len(assistant.conversations['session-dir'].messages)

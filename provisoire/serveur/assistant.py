@@ -50,6 +50,7 @@ Comment travailler :
 - Émargement : présent, retard, absent, justifié, à vérifier (carte peut-être prêtée), attendu (le cours n'a pas commencé).
 - Personnes dans une salle : comptage exact à la porte quand la salle est équipée, sinon estimation par le Wi-Fi (à 2 personnes près environ).
 - CO₂ : bon sous 800 ppm, moyen jusqu'à 1200 ppm, mauvais au-dessus.
+- Places : une salle est trop petite s'il y a plus d'étudiants que de places, pleine au-dessus de 90 %, trop grande sous 40 % (avec au moins 10 places vides).
 - Si un outil répond « Refusé », la personne connectée n'a pas les droits : dis-le simplement, sans chercher à contourner.
 
 Tu ne modifies rien. Corriger une présence se fait dans la page Séances, accepter un changement de salle dans la page Anticipation : tu peux dire où cliquer.
@@ -102,8 +103,13 @@ OUTILS = {o['nom']: o for o in [
     _outil('previsions_air', True,
            "Ce que le jumeau prévoit pour les 2 prochaines heures : pic de CO₂ de chaque salle et son heure, heure "
            "de dépassement de 1000 et 1200 ppm, plan de ventilation de la salle de l'automate et énergie économisée, "
-           "propositions de changement de salle. Appelle-le pour toute question sur l'avenir, l'air, l'énergie ou "
-           "un déplacement de cours."),
+           "propositions de changement de salle (air mauvais ou salle trop petite). Appelle-le pour toute question sur "
+           "l'avenir, l'air, l'énergie ou un déplacement de cours."),
+    _outil('capacite_salles', True,
+           "Places des salles aujourd'hui : pour chaque salle, ses places et ses cours (étudiants comptés pour un cours "
+           "commencé, prévus pour un cours à venir avec le taux de présence appris pour chaque groupe), salles trop "
+           "petites, pleines ou trop grandes, et créneaux libres. Appelle-le pour toute question de place : salle trop "
+           "petite ou trop grande, salle libre de N places à une heure donnée, taux d'occupation des salles."),
     _outil('diagnostic_salle', True,
            "Diagnostic d'une salle : CO₂ mesuré et corrigé, débit d'air mesuré et attendu, recalage, et les causes "
            "surveillées (ventilation en panne, fenêtre ouverte, capteur qui dérive, capteur mal placé, et comptage "
@@ -117,11 +123,12 @@ DEFINITIONS = {
 }
 LIBELLES = {'tableau_de_bord': 'Tableau de bord', 'salles_maintenant': 'Salles', 'seances_du_jour': 'Séances du jour',
             'detail_seance': 'Émargement', 'classes': 'Classes', 'detail_classe': 'Classe', 'detail_etudiant': 'Étudiant',
-            'previsions_air': 'Prévisions', 'diagnostic_salle': 'Diagnostic'}
+            'previsions_air': 'Prévisions', 'diagnostic_salle': 'Diagnostic', 'capacite_salles': 'Places des salles'}
 SUGGESTIONS = {
     'direction': ['Qui est dans quelle salle en ce moment ?', 'Qui est absent dans les cours de ce matin ?',
                   "Quelle salle aura l'air mauvais dans les deux heures ?", 'Quelle classe a le plus d\'absences cette semaine ?',
-                  'Pourquoi le CO₂ monte en SAR 101 ?', "Combien d'énergie la ventilation a économisé aujourd'hui ?"],
+                  'Pourquoi le CO₂ monte en SAR 101 ?', "Combien d'énergie la ventilation a économisé aujourd'hui ?",
+                  'Trouve une salle libre de 25 places cet après-midi.'],
     'enseignant': ['Qui est absent à mon cours en ce moment ?', "Où et quand j'ai cours demain ?",
                    'Quels étudiants de mes classes ont le plus d\'absences cette semaine ?'],
 }
@@ -443,11 +450,51 @@ class Outils:
             'propositions_de_salle': [
                 {'cours': x['cours'], 'matiere': x['matiere'], 'groupes': x['groupes'],
                  'enseignant': self.p.enseignant(x['enseignant']), 'de': _heure(x['debut']), 'a': _heure(x['fin']),
-                 'personnes': x['personnes'], 'salle_prevue': x['salle'], 'pic_prevu_ppm': x['pic'],
-                 'salle_proposee': x['proposee'], 'pic_avec_changement_ppm': x['pic_propose']} for x in p['propositions']],
+                 'raisons': [{'air': 'air mauvais prévu', 'trop_petite': 'salle trop petite'}[m] for m in x['motifs']],
+                 'etudiants_attendus': x['etudiants'], 'salle_prevue': x['salle'], 'places': x['places'],
+                 'pic_prevu_ppm': x['pic'], 'salle_proposee': x['proposee'] or 'aucune salle libre assez grande',
+                 'places_salle_proposee': x['places_proposee'], 'pic_avec_changement_ppm': x['pic_propose']}
+                for x in p['propositions']],
             'changements_acceptes_aujourd_hui': [{'cours': c['cours'], 'de': c['salle_avant'], 'vers': c['salle_apres']}
                                                  for c in p['changements']],
             'erreur_moyenne_des_previsions_ppm': p['precision'],
+        }
+
+    def capacite_salles(self, e):
+        cap = self.campus.previsions()['capacite']
+        etats = {'trop_petite': 'trop petite', 'pleine': 'pleine', 'adaptee': 'adaptée', 'trop_grande': 'trop grande'}
+        sources = {'porte': 'comptés à la porte', 'badges': 'badgés', 'prévu': 'prévus'}
+        ouverture, fermeture = cap['journee'][0], 19.0
+
+        def libres(cours):
+            creneaux, h = [], ouverture
+            for c in cours:
+                if c['debut'] - h >= 0.5:
+                    creneaux.append(f'{heure_texte(h)}-{heure_texte(c["debut"])}')
+                h = max(h, c['fin'])
+            if fermeture - h >= 0.5:
+                creneaux.append(f'{heure_texte(h)}-{heure_texte(fermeture)}')
+            return creneaux
+
+        ch = cap['chiffres']
+        a = cap['appris']
+        return {
+            'heure': _heure(cap['heure']),
+            'chiffres': {'remplissage_moyen': ch['remplissage_moyen'], 'occupation_des_salles_8h_18h': ch['occupation'],
+                         'cours_salle_trop_petite': ch['trop_petite'], 'cours_salle_pleine': ch['pleine'],
+                         'cours_salle_trop_grande': ch['trop_grande']},
+            'salles': [{
+                'salle': s['salle'], 'type': s['libelle'], 'places': s['places'], 'occupation_8h_18h': s['occupation'],
+                'creneaux_libres': libres(s['cours']),
+                'cours': [{'cours': c['cours'], 'matiere': c['matiere'], 'groupes': c['groupes'],
+                           'enseignant': self.p.enseignant(c['enseignant']), 'de': _heure(c['debut']), 'a': _heure(c['fin']),
+                           'moment': c['moment'], 'inscrits': c['inscrits'], 'etudiants': c['etudiants'],
+                           'etudiants_sont': sources[c['source']], 'remplissage': c['remplissage'], 'salle_est': etats[c['etat']],
+                           **({'salle_plus_petite_libre': c['plus_petite']['salle']} if c['plus_petite'] else {})}
+                          for c in s['cours']],
+            } for s in cap['salles']],
+            'presence_apprise': {'taux_moyen': a['moyen'], 'effet_demi_journee_aujourd_hui': a['demi_journees'],
+                                 'groupes_du_jour': [{'classe': g['cle'], 'nom': g['nom'], 'taux': g['taux']} for g in a['groupes']]},
         }
 
     def diagnostic_salle(self, e):

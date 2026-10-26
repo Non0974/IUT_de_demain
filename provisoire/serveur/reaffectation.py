@@ -1,10 +1,10 @@
-"""Réaffectation intelligente des salles : le jumeau propose de déplacer un cours quand l'air de sa
-salle sera mauvais, vers une salle libre où il restera bon.
-
-Pour chaque cours qui commence dans les 4 prochaines heures (et pas avant 15 min), on prévoit le pic
-de CO2 dans sa salle. S'il dépasse 1200 ppm, on simule le même cours dans chaque salle libre du même
-type (TD, TP, informatique) assez grande, avec ce qui s'y passera avant, et on propose la meilleure.
-Le directeur des études accepte ou ignore : rien ne bouge sans lui.
+"""Réaffectation intelligente des salles : le jumeau propose de déplacer un cours vers une salle libre
+quand sa salle ne convient pas :
+  - air : le pic de CO2 prévu dépasse 1200 ppm (cours qui commencent dans les 4 prochaines heures) ;
+  - trop petite : plus d'étudiants attendus que de places (tous les cours qui restent dans la journée).
+On simule le cours dans chaque salle libre du même type (TD, TP, informatique) avec assez de places, avec
+ce qui s'y passera avant, et on propose la meilleure. Le directeur des études accepte ou ignore : rien
+ne bouge sans lui. Sans salle libre assez grande, le problème est quand même signalé.
 
 On ne propose que des salles dont le jumeau a déjà MESURÉ le débit d'air : en essai, une salle encore
 inconnue (débit supposé) a donné 1700 ppm au lieu des 1000 prévus.
@@ -12,11 +12,13 @@ inconnue (débit supposé) a donné 1700 ppm au lieu des 1000 prévus.
 
 from datetime import datetime
 
+from capacite import libre
+from registre import heure_texte
+
 SEUIL = 1200                # ppm : pic prévu qui déclenche une recherche
-GAIN_MINIMUM = 250          # ppm : on ne propose que si l'air est nettement meilleur ailleurs
-DANS_LES = 4                # h
+GAIN_MINIMUM = 250          # ppm : pour l'air seul, on ne propose que si l'air est nettement meilleur ailleurs
+DANS_LES = 4                # h : horizon des prévisions d'air
 PAS_AVANT = 0.25            # h : un cours qui commence dans moins de 15 min n'est plus déplacé
-MARGE = 0.25                # h : une salle doit être libre 15 min avant et après
 
 
 def pic_pendant(prevision, debut, fin):
@@ -35,36 +37,68 @@ def propositions(campus, t):
     ignorees = campus.registre.propositions_ignorees(jour)
     salles = {s['id']: s for s in campus.batiment['salles']}
     resultat = []
-    a_verifier = [c for c in cours_du_jour if h0 + PAS_AVANT < c['debut'] < h0 + DANS_LES and c['id'] not in ignorees]
+    a_verifier = sorted((c for c in cours_du_jour if h0 + PAS_AVANT < c['debut'] and c['id'] not in ignorees),
+                        key=lambda c: c['debut'])
     if not a_verifier:
         return resultat
     minutes = int((max(c['fin'] for c in a_verifier) - h0) * 60) + 5
     prevues = {sid: campus.prevision.prevoir(sid, t, minutes) for sid in salles}
+    prises = []                                       # salles déjà proposées à un autre cours
     for c in a_verifier:
+        etudiants = campus.prevision.etudiants_attendus(c, jour)
+        places = salles[c['salle']]['places']
         pic = pic_pendant(prevues[c['salle']], c['debut'], c['fin'])
-        if pic is None or pic < SEUIL:
+        motifs = []
+        if c['debut'] < h0 + DANS_LES and pic is not None and pic >= SEUIL:
+            motifs.append('air')
+        if etudiants > places:
+            motifs.append('trop_petite')
+        if not motifs:
             continue
-        attendus = campus.prevision.attendus(c, jour)
         meilleure = None
         for sid, s in salles.items():
-            if sid == c['salle'] or s['type'] != salles[c['salle']]['type'] or s['places'] < attendus:
+            if sid == c['salle'] or s['type'] != salles[c['salle']]['type'] or s['places'] < etudiants:
                 continue
-            occupee = any(x['salle'] == sid and x['debut'] - MARGE < c['fin'] and x['fin'] + MARGE > c['debut']
-                          for x in cours_du_jour)
-            if occupee:
+            if not libre(cours_du_jour, sid, c['debut'], c['fin']) or any(
+                    x == sid and d < c['fin'] and f > c['debut'] for x, d, f in prises):
                 continue
             p = campus.prevision.prevoir(sid, t, minutes, cours_en_plus=[{**c, 'salle': sid}])
             if p is None or p['source_debit'] == 'a priori':
                 continue                                   # ventilation pas encore mesurée : on ne parie pas dessus
             pic_ailleurs = pic_pendant(p, c['debut'], c['fin'])
-            if pic_ailleurs is not None and (meilleure is None or pic_ailleurs < meilleure[1]):
-                meilleure = (sid, pic_ailleurs)
-        if meilleure and pic - meilleure[1] >= GAIN_MINIMUM and meilleure[1] < SEUIL:
-            resultat.append({
-                'cours': c['id'], 'matiere': c['matiere'], 'groupes': c['groupes'], 'enseignant': c['enseignant'],
-                'debut': c['debut'], 'fin': c['fin'], 'personnes': attendus,
-                'salle': c['salle'], 'pic': round(pic),
-                'proposee': meilleure[0], 'pic_propose': round(meilleure[1]),
-                'reel': c['reel'],
-            })
+            if pic_ailleurs is None or pic_ailleurs >= SEUIL:
+                continue
+            if motifs == ['air'] and pic - pic_ailleurs < GAIN_MINIMUM:
+                continue
+            # Pour l'air, le meilleur air ; pour la place seule, la plus petite salle qui suffit
+            tri = (pic_ailleurs, s['places']) if 'air' in motifs else (s['places'], pic_ailleurs)
+            if meilleure is None or tri < meilleure[0]:
+                meilleure = (tri, sid, pic_ailleurs)
+        if meilleure is None and motifs == ['air']:
+            continue                                       # pas mieux ailleurs : rien à proposer
+        if meilleure:
+            prises.append((meilleure[1], c['debut'], c['fin']))
+        resultat.append({
+            'cours': c['id'], 'matiere': c['matiere'], 'groupes': c['groupes'], 'enseignant': c['enseignant'],
+            'debut': c['debut'], 'fin': c['fin'], 'motifs': motifs,
+            'personnes': etudiants + 1, 'etudiants': etudiants, 'inscrits': c['effectif'],
+            'salle': c['salle'], 'places': places, 'pic': round(pic) if pic is not None else None,
+            'proposee': meilleure[1] if meilleure else None,
+            'places_proposee': salles[meilleure[1]]['places'] if meilleure else None,
+            'pic_propose': round(meilleure[2]) if meilleure else None,
+            'reel': c['reel'],
+        })
     return resultat
+
+
+def texte_proposition(x):
+    """Une phrase pour les alertes du tableau de bord."""
+    raisons = []
+    if 'air' in x['motifs']:
+        raisons.append(f'{x["pic"]} ppm prévus')
+    if 'trop_petite' in x['motifs']:
+        raisons.append(f'{x["etudiants"]} étudiants attendus pour {x["places"]} places')
+    cours = f'{x["matiere"]} ({x["groupes"][0]}, {heure_texte(x["debut"])})'
+    if x['proposee'] is None:
+        return f'{cours} en {x["salle"]} : {" et ".join(raisons)}. Aucune salle libre assez grande.'
+    return f'Proposition : déplacer {cours} de {x["salle"]} à {x["proposee"]} ({" et ".join(raisons)}).'

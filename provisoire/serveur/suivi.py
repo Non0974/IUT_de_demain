@@ -7,6 +7,7 @@ Règles d'accès (données personnelles, RGPD) :
 
 from datetime import date, datetime, timedelta
 
+from reaffectation import texte_proposition
 from registre import debut_semaine, heure_texte, taux
 from salle import heure_du_jour, seance_id
 
@@ -98,9 +99,8 @@ class Suivi:
                         alertes.append({'niveau': 'suspect', 'salle': s['salle'], 'prevision': True,
                                         'texte': f'Air mauvais prévu : {s["pic"]["co2"]} ppm vers {heure_texte(s["pic"]["heure"])}.'})
                 for x in p['propositions']:
-                    alertes.append({'niveau': 'suspect', 'salle': x['salle'], 'proposition': True,
-                                    'texte': f'Proposition : déplacer {x["matiere"]} ({x["groupes"][0]}) de {x["salle"]} '
-                                             f'à {x["proposee"]} ({x["pic"]} ppm prévus -> {x["pic_propose"]}).'})
+                    alertes.append({'niveau': 'detecte' if x['proposee'] is None else 'suspect', 'salle': x['salle'],
+                                    'proposition': True, 'texte': texte_proposition(x)})
             du = debut_semaine(aujourd_hui)
             for e in campus.registre.alertes_assiduite(du, du + timedelta(days=6), self.cles_de(utilisateur)):
                 alertes.append({'niveau': 'suspect', 'etudiant': e['etudiant'], 'nom': self.nom(e['etudiant']),

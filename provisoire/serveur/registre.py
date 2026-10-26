@@ -143,16 +143,26 @@ class Registre:
         with self.verrou:
             return {r['cours'] for r in self.base.execute('SELECT cours FROM propositions_ignorees WHERE date = ?', (jour.isoformat(),))}
 
-    def taux_presence(self, avant, jours=14):
-        """Part des étudiants présents (ou en retard) sur les séances closes des derniers jours."""
+    def presences_apprises(self, avant, jours=14):
+        """Présents et étudiants attendus des séances closes des derniers jours, par groupe et par
+        demi-journée de la semaine : {'groupes': {cle: [p, n]}, 'creneaux': {(jour, demi): [p, n]}, 'total': [p, n]}."""
         with self.verrou:
-            r = self.base.execute(
-                '''SELECT SUM(p.statut IN ('présent', 'retard')) AS presents,
+            lignes = self.base.execute(
+                '''SELECT p.groupe, s.date, s.fin <= ? AS matin,
+                          SUM(p.statut IN ('présent', 'retard')) AS presents,
                           SUM(p.statut IN ('présent', 'retard', 'absent', 'justifié', 'à vérifier')) AS decides
                    FROM presences p JOIN seances s ON s.id = p.seance
-                   WHERE s.etat = 'terminée' AND s.date BETWEEN ? AND ?''',
-                ((avant - timedelta(days=jours)).isoformat(), avant.isoformat())).fetchone()
-            return r['presents'] / r['decides'] if r['decides'] else None
+                   WHERE s.etat = 'terminée' AND s.date BETWEEN ? AND ?
+                   GROUP BY p.groupe, s.date, matin''',
+                (FIN_MATIN, (avant - timedelta(days=jours)).isoformat(), avant.isoformat())).fetchall()
+        appris = {'groupes': {}, 'creneaux': {}, 'total': [0, 0]}
+        for r in lignes:
+            creneau = (date.fromisoformat(r['date']).weekday(), 'matin' if r['matin'] else 'après-midi')
+            for compte in (appris['groupes'].setdefault(r['groupe'], [0, 0]),
+                           appris['creneaux'].setdefault(creneau, [0, 0]), appris['total']):
+                compte[0] += r['presents']
+                compte[1] += r['decides']
+        return appris
 
     # ---------- lecture ----------
 

@@ -78,6 +78,106 @@ function classePpm(c) {
   return c >= 1200 ? 'ppm-mauvais' : c >= 800 ? 'ppm-moyen' : 'ppm-bon';
 }
 
+// ---------- places des salles : frise de la journée ----------
+
+// Remplissage (étudiants / places) en 4 niveaux d'un même bleu, et le rouge quand il y a plus d'étudiants que de places
+const REMPLISSAGE = [
+  { classe: 'remplissage-trop', encre: 'encre-claire', texte: 'plus d\'étudiants que de places', min: 1.0001 },
+  { classe: 'remplissage-4', encre: 'encre-claire', texte: 'plus de 90 %', min: 0.9001 },
+  { classe: 'remplissage-3', encre: 'encre-claire', texte: '70 à 90 %', min: 0.7 },
+  { classe: 'remplissage-2', encre: 'encre-foncee', texte: '40 à 70 %', min: 0.4 },
+  { classe: 'remplissage-1', encre: 'encre-foncee', texte: 'moins de 40 %', min: 0 },
+];
+const ETATS = { trop_petite: 'salle trop petite', pleine: 'salle pleine', adaptee: 'salle adaptée', trop_grande: 'salle trop grande' };
+const SOURCES = { porte: 'comptés à la porte', badges: 'badgés', 'prévu': 'prévus par le jumeau' };
+
+const niveauRemplissage = r => REMPLISSAGE.find(n => r >= n.min);
+
+function frise(cap) {
+  const L = 760;
+  const marge = { g: 84, d: 8, h: 22 };
+  const ligne = 28;
+  const epaisseur = 22;
+  const [h0, h1] = [8, 19];
+  const H = marge.h + cap.salles.length * ligne + 2;
+  const x = h => marge.g + ((Math.min(Math.max(h, h0), h1) - h0) / (h1 - h0)) * (L - marge.g - marge.d);
+  const heures = [];
+  for (let h = h0; h <= h1; h++) {
+    heures.push(`<line x1="${x(h)}" x2="${x(h)}" y1="${marge.h - 4}" y2="${H}" class="grille-svg"/>
+      <text x="${x(h)}" y="${marge.h - 9}" class="axe-svg" text-anchor="middle">${h}h</text>`);
+  }
+  const lignes = cap.salles.map((s, i) => {
+    const y = marge.h + i * ligne + (ligne - epaisseur) / 2;
+    const blocs = s.cours.map(c => {
+      const x0 = x(c.debut) + 1;                       // 2 px de vide entre deux cours qui se suivent
+      const w = Math.max(2, x(c.fin) - 1 - x0);
+      const n = niveauRemplissage(c.etudiants / s.places);
+      const texte = `${c.etat === 'trop_petite' ? '⚠ ' : ''}${c.source === 'prévu' ? '≈' : ''}${c.etudiants}/${s.places}`;
+      const info = {
+        titre: `${c.matiere} · ${c.groupes.join(' + ')}`,
+        valeur: `${c.etudiants} étudiants pour ${s.places} places (${Math.round(c.remplissage * 100)} %)`,
+        detail: `${s.salle} · ${heure(c.debut)}–${heure(c.fin)} · ${SOURCES[c.source]} · ${ETATS[c.etat]}`
+          + (c.plus_petite ? ` · ${c.plus_petite.salle} (${c.plus_petite.places} places) était libre` : ''),
+      };
+      const etiquette = texte.length * 6.8 + 8 <= w
+        ? `<text x="${x0 + w / 2}" y="${y + epaisseur / 2 + 4}" class="texte-bloc ${n.encre}" text-anchor="middle">${texte}</text>` : '';
+      return `<g class="bloc" tabindex="0" role="img" aria-label="${echapper(`${info.titre}, ${info.valeur}, ${info.detail}`)}"
+          data-info="${echapper(JSON.stringify(info))}"><rect x="${x0}" y="${y}" width="${w}" height="${epaisseur}" rx="4" class="${n.classe}"/>${etiquette}</g>`;
+    }).join('');
+    return `<text x="${marge.g - 8}" y="${y + epaisseur / 2 + 4}" class="axe-svg" text-anchor="end">${echapper(s.salle)} · ${s.places}</text>${blocs}`;
+  }).join('');
+  const maintenant = cap.heure > h0 && cap.heure < h1
+    ? `<line x1="${x(cap.heure)}" x2="${x(cap.heure)}" y1="${marge.h - 4}" y2="${H}" class="maintenant-svg"/>` : '';
+  return `<svg class="frise-salles" viewBox="0 0 ${L} ${H}" role="group" aria-label="Remplissage des salles heure par heure">
+    ${heures.join('')}${lignes}${maintenant}</svg>`;
+}
+
+function tableauCapacite(cap) {
+  const lignes = cap.salles.flatMap(s => s.cours.map(c => `<tr>
+      <td class="nowrap"><b>${echapper(s.salle)}</b></td><td class="nowrap">${heure(c.debut)}–${heure(c.fin)}</td>
+      <td>${echapper(c.matiere)} <span class="sous">${echapper(c.groupes.join(' + '))}</span></td>
+      <td class="nombre">${c.etudiants} / ${s.places}</td><td class="nombre">${Math.round(c.remplissage * 100)} %</td>
+      <td class="sous">${SOURCES[c.source]}</td><td>${ETATS[c.etat]}${c.plus_petite ? ` <span class="sous">(${echapper(c.plus_petite.salle)} libre)</span>` : ''}</td>
+    </tr>`)).join('');
+  return `<details class="vue-tableau"><summary>Voir en tableau</summary><div class="tableau-conteneur"><table class="liste">
+    <thead><tr><th>Salle</th><th>Heure</th><th>Cours</th><th class="nombre">Étudiants / places</th><th class="nombre">Remplissage</th><th>Nombre</th><th>Salle</th></tr></thead>
+    <tbody>${lignes}</tbody></table></div></details>`;
+}
+
+function sectionCapacite(cap) {
+  const ch = cap.chiffres;
+  const a = cap.appris;
+  const tuiles = [
+    tuile(pourcent(ch.remplissage_moyen), 'remplissage moyen des salles', 'étudiants / places, pendant les cours du jour'),
+    tuile(pourcent(ch.occupation), 'occupation des salles', 'part des créneaux 8h–18h avec un cours'),
+    tuile(ch.trop_petite + ch.pleine, 'cours à l\'étroit', `${ch.trop_petite} avec plus d'étudiants que de places, ${ch.pleine} au-dessus de 90 %`,
+      ch.trop_petite ? 'alerte' : ''),
+    tuile(ch.trop_grande, `salle${ch.trop_grande > 1 ? 's' : ''} trop grande${ch.trop_grande > 1 ? 's' : ''}`, 'moins de 40 % des places occupées'),
+  ];
+  const grandes = cap.salles.flatMap(s => s.cours.filter(c => c.etat === 'trop_grande' && c.moment === 'à venir').map(c =>
+    `<li><b>${echapper(c.matiere)}</b> <span class="sous">${echapper(c.groupes.join(' + '))}, ${heure(c.debut)}</span> :
+      ${c.etudiants} étudiants pour ${s.places} places en ${echapper(s.salle)}${c.plus_petite
+        ? ` — ${echapper(c.plus_petite.salle)} (${c.plus_petite.places} places) est libre` : ' — pas de salle plus petite libre'}</li>`));
+  const effet = d => (Math.abs(d) < 0.01 ? 'comme d\'habitude' : `${d > 0 ? '+' : '−'}${Math.round(Math.abs(d) * 100)} % de présents`);
+  const moins = a.groupes.slice().sort((g, h) => g.taux - h.taux).slice(0, 3)
+    .map(g => `${echapper(g.nom)} (${pourcent(g.taux)})`).join(', ');
+  return `<section class="section">
+      <h2 class="titre-section">Places des salles <span class="sous">aujourd'hui · cours commencés : comptés ; à venir : prévus</span></h2>
+      <div class="grille tuiles">${tuiles.join('')}</div>
+      <div class="carte">
+        <div class="conteneur-courbe">${frise(cap)}<div id="bulle-capacite" class="bulle bulle-bloc" hidden></div></div>
+        <div class="legende">${REMPLISSAGE.slice().reverse().map(n => `<span><i class="${n.classe}"></i>${n.texte}</span>`).join('')}
+          <span>≈ : nombre prévu</span><span>⚠ : salle trop petite</span></div>
+        <p class="sous">Le jumeau a appris le taux de présence de chaque groupe sur les 14 derniers jours (moyenne ${pourcent(a.moyen)}).
+          Ce jour-là de la semaine : matin ${effet(a.demi_journees.matin)}, après-midi ${effet(a.demi_journees['après-midi'])}.
+          ${moins ? `Groupes du jour qui viennent le moins : ${moins}.` : ''}</p>
+        ${tableauCapacite(cap)}
+      </div>
+      ${grandes.length ? `<div class="carte"><b>Salles trop grandes à venir</b><ul class="liste-simple">${grandes.join('')}</ul>
+        <p class="sous">Pas de proposition automatique : changer de salle pour un petit groupe ne vaut le coup que si quelqu'un a besoin de la grande.</p></div>` : ''}
+    </section>`;
+}
+
 // ---------- page ----------
 
 export async function vueAnticipation(zone, ctx) {
@@ -127,6 +227,27 @@ export async function vueAnticipation(zone, ctx) {
       bulle.style.left = `${(xp / L) * r.width}px`;
     });
     zone.addEventListener('mouseleave', () => { const bulle = zone.querySelector('#bulle'); if (bulle) bulle.hidden = true; }, true);
+    // Frise des salles : le détail d'un cours au survol ou au clavier
+    const montrerBloc = bloc => {
+      const bulle = zone.querySelector('#bulle-capacite');
+      if (!bulle) return;
+      if (!bloc) { bulle.hidden = true; return; }
+      const info = JSON.parse(bloc.dataset.info);
+      const svg = bloc.ownerSVGElement;
+      const r = svg.getBoundingClientRect();
+      const b = bloc.getBoundingClientRect();
+      bulle.replaceChildren(...[['b', info.valeur], ['span', info.titre], ['span', info.detail]].map(([balise, texte]) => {
+        const e = document.createElement(balise);
+        e.textContent = texte;                                         // textes venus des données : jamais en HTML
+        return e;
+      }));
+      bulle.hidden = false;
+      bulle.style.left = `${Math.min(Math.max(b.left - r.left + b.width / 2, 120), r.width - 120)}px`;
+      bulle.style.top = `${b.bottom - r.top + 6}px`;
+    };
+    zone.addEventListener('pointerover', e => montrerBloc(e.target.closest('.bloc')));
+    zone.addEventListener('focusin', e => montrerBloc(e.target.closest('.bloc')));
+    zone.addEventListener('focusout', () => montrerBloc(null));
   }
 
   const tuiles = [
@@ -137,18 +258,26 @@ export async function vueAnticipation(zone, ctx) {
     tuile(d.propositions.length, `proposition${d.propositions.length > 1 ? 's' : ''} de salle`, `${d.changements.length} changement${d.changements.length > 1 ? 's' : ''} accepté${d.changements.length > 1 ? 's' : ''} aujourd'hui`),
   ];
 
+  const raisons = p => [
+    p.motifs.includes('air') ? `<span class="raison"><span aria-hidden="true">⚠</span> Air mauvais prévu</span>` : '',
+    p.motifs.includes('trop_petite') ? `<span class="raison"><span aria-hidden="true">⚠</span> Salle trop petite</span>` : '',
+  ].join('');
+  const salleDe = (titre, salle, places, etudiants, pic) => `<div><span class="sous">${titre}</span><b>${echapper(salle)}</b>
+      <span class="${etudiants > places ? 'ppm-mauvais' : ''}">${etudiants} étudiants / ${places} places</span>
+      ${pic != null ? `<span class="${classePpm(pic)}">${pic} ppm prévus</span>` : ''}</div>`;
   const propositions = d.propositions.length ? d.propositions.map(p => `<div class="carte proposition">
-      <div class="entete"><b>${echapper(p.matiere)}</b> <span class="sous">${echapper(p.groupes.join(' + '))} · ${echapper(p.enseignant)} · ${heure(p.debut)}–${heure(p.fin)} · ${p.personnes} personnes attendues</span></div>
-      <div class="deplacement">
-        <div><span class="sous">Salle prévue</span><b>${echapper(p.salle)}</b><span class="${classePpm(p.pic)}">${p.pic} ppm prévus</span></div>
+      <div class="entete"><b>${echapper(p.matiere)}</b> <span class="sous">${echapper(p.groupes.join(' + '))} · ${echapper(p.enseignant)} · ${heure(p.debut)}–${heure(p.fin)} · ${p.etudiants} étudiants attendus sur ${p.inscrits} inscrits</span></div>
+      <div class="raisons">${raisons(p)}</div>
+      ${p.proposee ? `<div class="deplacement">
+        ${salleDe('Salle prévue', p.salle, p.places, p.etudiants, p.pic)}
         <span class="fleche" aria-hidden="true">→</span>
-        <div><span class="sous">Salle proposée</span><b>${echapper(p.proposee)}</b><span class="${classePpm(p.pic_propose)}">${p.pic_propose} ppm prévus</span></div>
-      </div>
+        ${salleDe('Salle proposée', p.proposee, p.places_proposee, p.etudiants, p.pic_propose)}
+      </div>` : `<p class="message erreur">${p.etudiants} étudiants attendus pour ${p.places} places en ${echapper(p.salle)}, et aucune salle libre assez grande à cette heure : à régler à la main.</p>`}
       <div class="actions">
-        <button type="button" class="bouton principal-bouton" data-action="accepter" data-cours="${echapper(p.cours)}" data-salle="${echapper(p.proposee)}">Accepter le changement</button>
+        ${p.proposee ? `<button type="button" class="bouton principal-bouton" data-action="accepter" data-cours="${echapper(p.cours)}" data-salle="${echapper(p.proposee)}">Accepter le changement</button>` : ''}
         <button type="button" class="bouton" data-action="ignorer" data-cours="${echapper(p.cours)}">Ignorer</button>
       </div>
-    </div>`).join('') : '<p class="vide">Aucune proposition : l\'air des prochains cours devrait rester correct.</p>';
+    </div>`).join('') : '<p class="vide">Aucune proposition : l\'air et la place des prochains cours devraient aller.</p>';
   const changements = d.changements.length ? `<ul class="liste-simple">${d.changements.map(c =>
     `<li>${echapper(c.cours)} : ${echapper(c.salle_avant)} → <b>${echapper(c.salle_apres)}</b> <span class="sous">par ${echapper(c.auteur)}</span></li>`).join('')}</ul>` : '';
 
@@ -166,9 +295,10 @@ export async function vueAnticipation(zone, ctx) {
   afficher(zone, `
     <section class="section"><div class="grille tuiles">${tuiles.join('')}</div></section>
     <section class="section">
-      <h2 class="titre-section">Propositions de changement de salle <span class="sous">le jumeau simule chaque cours dans les salles libres</span></h2>
+      <h2 class="titre-section">Propositions de changement de salle <span class="sous">air mauvais prévu, ou plus d'étudiants que de places : le jumeau essaie chaque salle libre</span></h2>
       <div class="grille propositions">${propositions}</div>${changements}
     </section>
+    ${d.capacite ? sectionCapacite(d.capacite) : ''}
     <section class="section">
       <h2 class="titre-section">Ventilation de ${echapper(cmd.salle)} décidée par le jumeau</h2>
       <div class="carte">

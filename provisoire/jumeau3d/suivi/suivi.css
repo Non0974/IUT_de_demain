@@ -274,6 +274,30 @@ svg.courbe-co2 { width: 100%; height: auto; display: block; }
 .fleche { font-size: 22px; color: var(--texte2); }
 .liste-simple { margin: 10px 0 0; padding-left: 18px; color: var(--texte2); }
 
+/* ---------- places des salles ---------- */
+
+/* Remplissage : 4 niveaux d'un même bleu (vérifiés : clair -> foncé, écarts visibles), rouge au-delà des places */
+.remplissage-1 { fill: #86b6ef; background: #86b6ef; }
+.remplissage-2 { fill: #3987e5; background: #3987e5; }
+.remplissage-3 { fill: #1c5cab; background: #1c5cab; }
+.remplissage-4 { fill: #0d366b; background: #0d366b; }
+.remplissage-trop { fill: #d03b3b; background: #d03b3b; }
+svg.frise-salles { width: 100%; height: auto; display: block; }
+.texte-bloc { font-size: 11px; font-weight: 600; pointer-events: none; }
+.encre-claire { fill: #fff; }
+.encre-foncee { fill: var(--texte); }
+.bloc { cursor: default; outline: none; }
+.bloc:hover rect { filter: brightness(1.12); }
+.bloc:focus-visible rect { stroke: #f2b705; stroke-width: 3; }
+.bulle-bloc { display: flex; flex-direction: column; gap: 2px; white-space: normal; width: max-content; max-width: 240px; line-height: 1.35; }
+.bulle-bloc b { font-size: 13px; }
+.raisons { display: flex; flex-wrap: wrap; gap: 6px; }
+.raison { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  background: var(--absent-fond); color: var(--absent); }
+.deplacement > div span:not(.sous) { font-size: 12px; }
+details.vue-tableau { margin-top: 8px; }
+details.vue-tableau summary { cursor: pointer; color: var(--primaire); font-size: 13px; }
+
 /* ---------- assistant IA ---------- */
 
 .discussion { display: flex; flex-direction: column; gap: 12px; max-width: 900px; }

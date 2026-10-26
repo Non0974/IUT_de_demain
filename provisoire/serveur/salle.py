@@ -267,6 +267,16 @@ class EtatSalle:
                 alertes.append({'niveau': 'detecte', 'texte': f'Air mauvais : {round(c_aff)} ppm de CO₂. Il faut aérer.'})
             elif c_aff >= 800:
                 alertes.append({'niveau': 'suspect', 'texte': f'Air moyen : {round(c_aff)} ppm de CO₂.'})
+        # Plus de monde que de places pendant 5 min, en plein cours (pas au croisement de deux cours, ni à la
+        # sortie : le Wi-Fi est lissé, il suit les départs avec retard). Le Wi-Fi compte à 2 personnes près :
+        # on lui laisse cette marge. + 1 : l'enseignant.
+        h = heure_du_jour(t)
+        en_plein_cours = any(c['debut'] + 10 / 60 <= h <= c['fin'] for c in cours)
+        places = self.salle['places'] + 1 + (0 if self.porte else 2)
+        recents = [n for _, _, n in list(self.historique)[-5:]]
+        if en_plein_cours and len(recents) == 5 and min(recents + [self.nombre()]) > places:
+            alertes.append({'niveau': 'detecte' if self.porte else 'suspect',
+                            'texte': f'Plus de monde que de places : {self.nombre()} personnes pour {self.salle["places"]} places.'})
         if not self.porte and cours and self.n_wifi is not None:
             badges = sum(c['badges'] for c in cours) + len(cours)
             if self.n_wifi - badges >= 6:

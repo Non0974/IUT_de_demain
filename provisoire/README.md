@@ -28,11 +28,12 @@ SAE BUT 3 GEII, IUT de Cergy-Pontoise, site de Sarcelles. Louay Boubaya, Ariel G
   - Un enseignant peut corriger un statut (oubli de badge, absence justifiée) : la correction est gardée avec son nom, l'heure et le motif.
   - Export CSV pour le CFA, avec la présence par demi-journée.
   - Un enseignant ne voit que ses cours et ses classes (RGPD).
-  - Anticipation : CO₂ prévu, plan de ventilation, énergie économisée, propositions de salle.
+  - Anticipation : CO₂ prévu, plan de ventilation, énergie économisée, places des salles, propositions de salle.
   - Assistant IA : questions en français.
 - **Jumeau prédictif.** Le jumeau prévoit le CO₂ de chaque salle pour les 2 prochaines heures, avec l'emploi du temps, le taux de présence et le débit d'air qu'il a appris.
-  - Dans SAR 200, il ventile avant que la salle se remplisse et coupe quand personne n'arrive (commande prédictive). Sur une semaine simulée : 17 % d'énergie de ventilation en moins que la règle simple, et 171 minutes au-dessus de 1000 ppm au lieu de 239.
-  - Si l'air d'un cours va dépasser 1200 ppm, il propose une salle libre où l'air restera bon. Le directeur accepte ou ignore, dans la page Anticipation.
+  - Dans SAR 200, il ventile avant que la salle se remplisse et coupe quand personne n'arrive (commande prédictive). Sur une semaine simulée : 17 % d'énergie de ventilation en moins que la règle simple, et 172 minutes au-dessus de 1000 ppm au lieu de 214.
+  - **Places des salles.** Il apprend le taux de présence de chaque groupe et de chaque demi-journée (on vient moins le vendredi après-midi), et prévoit combien d'étudiants viendront à chaque cours : 1,4 étudiant d'écart en moyenne. Une frise montre le remplissage de chaque salle sur la journée, et une alerte part en direct quand une salle a plus de monde que de places.
+  - Si l'air d'un cours va dépasser 1200 ppm, ou s'il y aura plus d'étudiants que de places, il propose une salle libre qui convient. Le directeur accepte ou ignore, dans la page Anticipation.
 - **Assistant IA.** On pose une question en français : « Qui est absent en SAR 109 ? », « Quelle salle aura l'air mauvais dans l'heure ? ». Claude (Anthropic) lit les données et répond.
   - Il ne voit aucun nom : les étudiants deviennent ETU-001, ETU-002…, les enseignants « Enseignant A, B… », et les motifs d'absence ne partent pas. Le serveur remet les vrais noms à l'affichage.
   - Il a les droits de la personne connectée et ne modifie rien.
@@ -79,7 +80,9 @@ L'assistant IA demande en plus `pip install anthropic` et une clé API Claude (v
   - les tests sur ROBOD et la salle danoise.
 - **Simulé pour l'instant :**
   - le plan des étages (schématique) ;
-  - les autres cours, les présences, le Wi-Fi et le CO₂ des salles.
+  - les autres cours, les présences, le Wi-Fi et le CO₂ des salles ;
+  - le taux d'absence de chaque groupe (entre 3 et 20 %, plus 8 % le vendredi après-midi), pour que le jumeau ait quelque chose à apprendre ;
+  - un cours trop gros pour sa salle, exprès : la Physique du groupe simulé 12, 28 inscrits en SAR 101 (19 places).
 
 Les pages l'indiquent dans un bandeau.
 
@@ -89,6 +92,6 @@ Les pages l'indiquent dans un bandeau.
 python tests/test_scenarios.py     une semaine simulée : chaque panne et chaque fraude est trouvée
 python tests/test_automate.py      échange Modbus et sécurité de l'automate
 python tests/test_suivi.py         comptes, droits, registre des présences, corrections, export
-python tests/test_prevision.py     prévisions, ventilation anticipée contre règle simple, changement de salle
+python tests/test_prevision.py     prévisions, ventilation anticipée, présence apprise, places des salles, changement de salle
 python tests/test_assistant.py     assistant IA avec un faux client : aucun nom envoyé, droits, page web
 ```

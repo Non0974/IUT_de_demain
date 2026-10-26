@@ -32,6 +32,7 @@ sys.path.insert(0, str(ICI))
 import config                                   # noqa: E402
 from assistant import SUGGESTIONS, Assistant, ErreurIA, Indisponible, Occupe   # noqa: E402
 from automate import PontAutomate, niveau_automatique   # noqa: E402
+from capacite import capacite                    # noqa: E402
 from commande import HORIZON, BilanVentilation, CommandePredictive, bornes_vitesse   # noqa: E402
 from comptes import Comptes, comptes_de_demo    # noqa: E402
 from planning import Planning                   # noqa: E402
@@ -240,7 +241,7 @@ class Campus:
     # ---------- jumeau prédictif ----------
 
     def previsions(self, frais=False):
-        """Prévision de chaque salle, plan de ventilation, bilan d'énergie, propositions de salles."""
+        """Prévision de chaque salle, plan de ventilation, bilan d'énergie, capacité, propositions de salles."""
         with self.verrou:
             minute = int(self.t // 60)
             if not frais and self._previsions[0] == minute:
@@ -279,6 +280,7 @@ class Campus:
                     'plan': segments,
                     'bilan': self.bilan.resume() if self.bilan else None,
                 },
+                'capacite': capacite(self, t),
                 'propositions': propositions(self, t),
                 'changements': self.registre.changements_du_jour(jour),
             }

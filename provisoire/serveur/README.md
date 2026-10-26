@@ -4,7 +4,7 @@ Le serveur tourne sur un vieux PC ou un Raspberry Pi de l'IUT. **Python 3.10 ou 
 - reçoit les mesures des cartes ESP32 ;
 - calcule l'état de chaque salle : personnes, émargement, Wi-Fi, air, diagnostic ;
 - tient le registre des présences (séances, corrections, export) ;
-- prévoit le CO₂ de chaque salle pour les 2 prochaines heures, ventile en avance la salle de l'automate et propose des changements de salle ;
+- prévoit le CO₂ de chaque salle pour les 2 prochaines heures et le nombre d'étudiants de chaque cours, ventile en avance la salle de l'automate et propose des changements de salle ;
 - pilote l'automate en Modbus TCP ;
 - sert l'interface de suivi des classes (avec comptes) et le jumeau 3D ;
 - répond aux questions posées en français (assistant IA).
@@ -60,7 +60,8 @@ Le serveur les remet dans l'emploi du temps et dans l'interface.
 | [planning.py](planning.py) | Emploi du temps de chaque jour, avec les changements de salle acceptés |
 | [prevision.py](prevision.py) | Jumeau prédictif : personnes attendues et CO₂ de chaque salle pour les 2 prochaines heures, et précision mesurée |
 | [commande.py](commande.py) | Ventilation anticipée de la salle de l'automate (commande prédictive) et bilan d'énergie face à la règle simple |
-| [reaffectation.py](reaffectation.py) | Propositions de changement de salle quand l'air va devenir mauvais |
+| [capacite.py](capacite.py) | Places des salles : chaque cours de la journée face aux places de sa salle (compté ou prévu) |
+| [reaffectation.py](reaffectation.py) | Propositions de changement de salle : air qui va devenir mauvais, ou salle trop petite |
 | [assistant.py](assistant.py) | Assistant IA : outils en lecture seule, pseudonymes, appel à l'API Claude |
 | [config.py](config.py) | Adresse de l'automate, débits connus, clé des capteurs, sel des cartes, réglages de la ventilation et de l'assistant |
 
@@ -101,7 +102,7 @@ Toutes ces adresses demandent d'être connecté. Celles du jumeau 3D et des pré
 | `GET /api/flux` | Le même état toutes les secondes (Server-Sent Events) |
 | `GET /api/historique?salle=SAR 200` | CO₂ et personnes de la journée, une valeur par minute |
 | `POST /api/commande` | `{"auto": false, "niveau": "grande"}` : forcer la ventilation ; `{"strategie": "predictive"}` ou `"reactive"` : jumeau ou règle simple |
-| `GET /api/previsions` | Prévision de chaque salle, plan de ventilation, bilan d'énergie, propositions de salle |
+| `GET /api/previsions` | Prévision de chaque salle, plan de ventilation, bilan d'énergie, places des salles, propositions de salle |
 | `POST /api/proposition` | `{"action": "accepter", "cours", "salle"}` ou `{"action": "ignorer", "cours"}` |
 | `GET /api/assistant` | L'assistant est-il prêt, questions suggérées, conversation en cours |
 | `POST /api/assistant` | `{"question": "…"}` : réponse de l'assistant ; `{"nouvelle": true}` : nouvelle conversation |
@@ -109,14 +110,16 @@ Toutes ces adresses demandent d'être connecté. Celles du jumeau 3D et des pré
 
 ## Jumeau prédictif
 
-- **Prévision.** Pour chaque salle : les cours de l'emploi du temps, le nombre de personnes attendues (effectif × taux de présence appris sur 14 jours), et le débit d'air appris par la salle. Le jumeau simule le CO₂ des 2 heures suivantes. Toutes les 10 min, il note sa prévision à 30 et 60 min et la compare à la mesure.
+- **Prévision.** Pour chaque salle : les cours de l'emploi du temps, le nombre de personnes attendues, et le débit d'air appris par la salle. Le jumeau simule le CO₂ des 2 heures suivantes. Toutes les 10 min, il note sa prévision à 30 et 60 min et la compare à la mesure.
+- **Qui viendra.** Le taux de présence est appris sur les 14 derniers jours : celui de chaque groupe, et l'effet de chaque demi-journée de la semaine. Un groupe vu une seule fois garde un taux proche de la moyenne (une séance seule varie trop par hasard). Étudiants attendus = effectif × taux du groupe × effet de la demi-journée.
+- **Places des salles.** Chaque cours de la journée face aux places de sa salle : compté pour un cours commencé (capteurs de la porte, sinon badges, car le Wi-Fi se trompe de 2 ou 3 personnes), prévu pour un cours à venir. Salle trop petite (plus d'étudiants que de places), pleine (plus de 90 %), adaptée, ou trop grande (moins de 40 %, alors qu'une salle du même type plus petite existe). Alerte en direct si une salle a plus de monde que de places pendant 5 minutes en plein cours.
 - **Ventilation anticipée (SAR 200).** Chaque minute, le jumeau essaie les vitesses possibles pour les 20 minutes suivantes, simule 90 minutes et garde le plan le moins coûteux : énergie (chauffage de l'air neuf + ventilateur) plus une pénalité au-dessus de 800 et 1000 ppm. Il garde la petite vitesse 20 min après chaque cours et le soir, sinon le diagnostic ne peut plus mesurer la décroissance ni la dérive du capteur.
-- **Changement de salle.** Si l'air d'un cours doit dépasser 1200 ppm, le jumeau cherche une salle libre du même type, assez grande, dont il connaît la ventilation, où le pic reste sous 1200 ppm. Le directeur accepte ou ignore dans la page Anticipation. Un cours déplacé change dans le planning du jour.
+- **Changement de salle.** Si l'air d'un cours doit dépasser 1200 ppm, ou s'il y aura plus d'étudiants que de places, le jumeau cherche une salle libre du même type, assez grande, dont il connaît la ventilation, où le pic reste sous 1200 ppm. Sans salle libre assez grande, le problème est signalé quand même. Le directeur accepte ou ignore dans la page Anticipation. Un cours déplacé change dans le planning du jour.
 - **Limite.** En simulation, la prévision utilise la même physique que le bâtiment simulé : sa précision y est forcément bonne. Le vrai test se fera sur la salle réelle.
 
 ## Assistant IA (en option)
 
-On pose une question en français dans la page « Assistant IA » : « Qui est absent en SAR 109 ? », « Quelle salle aura l'air mauvais dans l'heure ? ». Le serveur envoie la question à Claude (Anthropic), qui lit les données avec 9 outils, puis répond.
+On pose une question en français dans la page « Assistant IA » : « Qui est absent en SAR 109 ? », « Quelle salle aura l'air mauvais dans l'heure ? ». Le serveur envoie la question à Claude (Anthropic), qui lit les données avec 10 outils, puis répond.
 
 Pour l'activer :
 ```
@@ -146,6 +149,6 @@ Voir [donnees_reelles](../donnees_reelles/README.md).
 python tests/test_scenarios.py     une semaine simulée, chaque panne et chaque fraude doit être trouvée
 python tests/test_automate.py      échange Modbus et sécurité de l'automate simulé
 python tests/test_suivi.py         comptes, droits, registre des présences, corrections, export
-python tests/test_prevision.py     prévisions, ventilation anticipée (jumeau contre règle simple), changement de salle
+python tests/test_prevision.py     prévisions, ventilation anticipée, présence apprise, places des salles, changement de salle
 python tests/test_assistant.py     assistant IA avec un faux client : aucun nom envoyé, droits, refus, page web
 ```

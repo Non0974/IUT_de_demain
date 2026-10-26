@@ -3,7 +3,8 @@
 On simule chaque salle minute par minute avec le même bilan que l'estimateur :
     V dC/dt = N(t) G - Q(t) (C - Cext)
   - N(t) : l'emploi du temps (qui arrive, quand, combien) et le taux de présence appris dans le
-    registre ; pour le cours en cours, le nombre de personnes mesuré maintenant ;
+    registre pour chaque groupe et chaque demi-journée de la semaine ; pour le cours en cours, le
+    nombre de personnes mesuré maintenant ;
   - Q(t) : le débit de la salle appris par l'estimateur (salle occupée / salle vide), ou connu
     pour la salle pilotée par l'automate (selon la vitesse prévue).
 La précision des prévisions est mesurée en continu (prévu il y a 30 et 60 min / mesuré).
@@ -13,11 +14,15 @@ from collections import deque
 from datetime import datetime, timedelta
 from math import exp
 
+from registre import FIN_MATIN
+
 ARRIVEE_AVANT = 8 / 60          # h : les premiers arrivent 8 min avant le cours
 ARRIVEE_APRES = 4 / 60          # h : les derniers 4 min après
 SORTIE = 3 / 60                 # h
 TAUX_PAR_DEFAUT = 0.88          # part des inscrits présents, tant que le registre est vide
 DEBIT_PAR_PLACE = 18            # m3/h par place, débit supposé d'une salle pas encore recalée
+APPRENTISSAGE = 60              # présences : tant qu'un groupe en a peu, son taux reste proche du taux moyen
+                                # (une seule séance de 25 étudiants varie de ±8 % par hasard)
 
 
 def heure_de(t):
@@ -41,21 +46,51 @@ class Prevision:
     def __init__(self, campus, config):
         self.campus = campus
         self.config = config
-        self._taux = (None, TAUX_PAR_DEFAUT)
+        self._appris = (None, None)
         self.verifications = deque()            # (salle, heure visée, CO2 prévu, horizon en min)
         self.erreurs = {30: deque(maxlen=300), 60: deque(maxlen=300)}
         self.derniere_verif = 0
 
     # ---------- qui sera là ----------
 
+    def appris(self, jour):
+        """Taux de présence des 14 derniers jours, recalculé une fois par jour : le taux moyen, celui de
+        chaque groupe, et l'effet de chaque demi-journée de la semaine (le vendredi après-midi…)."""
+        if self._appris[0] != jour:
+            a = self.campus.registre.presences_apprises(jour)
+            presents, total = a['total']
+            moyen = presents / total if total else TAUX_PAR_DEFAUT
+
+            def lisse(compte):
+                return (compte[0] + APPRENTISSAGE * moyen) / (compte[1] + APPRENTISSAGE)
+
+            self._appris = (jour, {
+                'moyen': moyen,
+                'groupes': {cle: lisse(c) for cle, c in a['groupes'].items()},
+                'presences': {cle: c[1] for cle, c in a['groupes'].items()},
+                'creneaux': {k: lisse(c) / moyen for k, c in a['creneaux'].items()},
+            })
+        return self._appris[1]
+
     def taux(self, jour):
-        """Taux de présence des 14 derniers jours (recalculé une fois par jour)."""
-        if self._taux[0] != jour:
-            self._taux = (jour, self.campus.registre.taux_presence(jour) or TAUX_PAR_DEFAUT)
-        return self._taux[1]
+        return self.appris(jour)['moyen']
+
+    def taux_groupe(self, cle, c, jour):
+        """Part des étudiants du groupe qui viendront à ce cours."""
+        a = self.appris(jour)
+        demi = 'matin' if c['fin'] <= FIN_MATIN else 'après-midi'
+        return min(1.0, a['groupes'].get(cle, a['moyen']) * a['creneaux'].get((jour.weekday(), demi), 1.0))
+
+    def etudiants_attendus(self, c, jour):
+        """Étudiants attendus : effectif de chaque groupe × son taux appris pour cette demi-journée."""
+        groupes = self.campus.edt['groupes']
+        if not c['cles']:
+            return round(c['effectif'] * self.taux(jour))
+        return round(sum((groupes[cle]['effectif'] if cle in groupes else c['effectif'] / len(c['cles']))
+                         * self.taux_groupe(cle, c, jour) for cle in c['cles']))
 
     def attendus(self, c, jour):
-        return round(c['effectif'] * self.taux(jour)) + 1            # + l'enseignant
+        return self.etudiants_attendus(c, jour) + 1                  # + l'enseignant
 
     def occupation(self, salle_id, t, minutes, cours_en_plus=(), sans_cours=()):
         """Nombre de personnes prévu, minute par minute, à partir de maintenant."""

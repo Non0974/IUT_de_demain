@@ -25,6 +25,14 @@ SEL = 'campustwin-demo'    # sel du hachage des cartes (le vrai est secret, dans
 # Débit de la ventilation de SAR 200 selon la commande de l'automate (m3/h, fuites comprises)
 DEBITS_SAR200 = {'arret': 25, 'petite': 375, 'grande': 725}
 DEBUT_SEMAINE = datetime(2026, 3, 9, 7, 0)   # lundi 9 mars 2026, 7 h
+ABSENCES = (0.03, 0.20)     # part d'absents d'un groupe, tirée une fois pour chaque groupe
+VENDREDI_APRES_MIDI = 0.08  # absents en plus le vendredi après-midi
+
+
+def part_absents(cle, date, debut):
+    """Probabilité qu'un étudiant du groupe manque ce cours (inventée, pour que le jumeau ait à apprendre)."""
+    p = random.Random(f'absences-{cle}').uniform(*ABSENCES)
+    return p + (VENDREDI_APRES_MIDI if date.weekday() == 4 and debut >= 12.5 else 0)
 
 
 def empreinte(uid):
@@ -121,11 +129,12 @@ class SimulateurBatiment:
             personnes = []
             for cle in c['cles']:
                 effectif = self.groupes[cle]['effectif'] if cle in self.groupes else c['effectif']
+                absents = part_absents(cle, date, c['debut'])
                 for i in range(effectif):
                     retard = alea.random() < 0.06
                     personnes.append({
                         'id': f'{cle}-{i + 1:02d}', 'groupe': cle, 'etudiant': True,
-                        'absent': alea.random() < 0.08,
+                        'absent': alea.random() < absents,
                         'arrivee': c['debut'] + (10 + 15 * alea.random() if retard else -8 + 12 * alea.random()) / 60,
                         'depart': c['fin'] + 3 * alea.random() / 60,
                         'badge': alea.random() > 0.03,
