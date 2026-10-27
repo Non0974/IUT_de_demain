@@ -6,7 +6,7 @@ Trois programmes pour la carte **Seeed XIAO ESP32S3**. Ils envoient leurs mesure
 | --- | --- | --- |
 | [noeud_salle](noeud_salle/noeud_salle.ino) | CO₂ de la salle et badge des étudiants | SCD-41, PN532, écran e-paper 2,9" |
 | [noeud_porte](noeud_porte/noeud_porte.ino) | Compter les entrées et sorties sans caméra | VL53L5CX, MLX90640, HLK-LD2450 |
-| [noeud_badge](noeud_badge/noeud_badge.ino) | Lecteur de badge seul, pour équiper d'autres salles (essai réel) | PN532, 2 LED, buzzer |
+| [noeud_badge](noeud_badge/noeud_badge.ino) | Lecteur de badge seul, pour l'essai réel dans la salle de la classe | PN532, 2 LED et buzzer (facultatifs) |
 
 **Les trois programmes compilent** pour la XIAO ESP32S3 (paquet esp32 3.3.3) :
 
@@ -43,6 +43,8 @@ Ils ne sont **pas encore testés sur le matériel**, et les seuils de détection
 - **Si le Wi-Fi tombe**, les messages attendent dans une file (60 messages) et partent avec leur âge. Le serveur recalcule l'heure.
 
 ## Lecteur de badge seul
+
+Pour l'essai réel, pas de matériel en plus : on charge ce programme sur la XIAO et le PN532 du nœud salle (écran débranché), on met la salle du cours dans `config.h`, et on pose le lecteur à l'entrée de la salle de la classe. Les LED et le buzzer viennent du stock de l'IUT ; sans eux, le lecteur marche aussi, mais sans signal pour l'étudiant.
 
 | Élément | Broches XIAO |
 | --- | --- |
