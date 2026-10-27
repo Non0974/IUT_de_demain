@@ -62,7 +62,7 @@ export async function vueSeance(zone, ctx) {
       <p>L'émargement commence 15 minutes avant le cours.</p></div>`);
     return;
   }
-  ctx.titre(`${s.matiere}, ${s.groupes.join(' + ')}`);
+  ctx.titre('Séance');
 
   if (!zone.dataset.ecoute) {
     zone.dataset.ecoute = '1';
