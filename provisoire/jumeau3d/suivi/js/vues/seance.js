@@ -101,6 +101,8 @@ export async function vueSeance(zone, ctx) {
       <h2 class="titre-section">Dans la salle maintenant</h2>
       <p><b>${maintenant.personnes}</b> personnes ${maintenant.source === 'porte' ? 'comptées à la porte' : 'estimées par le Wi-Fi (±2)'}</p>
       <p>CO₂ : ${ppm(maintenant.co2)}</p>
+      ${maintenant.ondes ? `<p>Ondes Wi-Fi : ${{ ok: maintenant.ondes.presence ? 'quelqu\'un bouge' : 'personne ne bouge',
+        apprentissage: 'apprentissage de la salle vide', emetteur: 'émetteur non reçu' }[maintenant.ondes.etat]}</p>` : ''}
       ${maintenant.alertes.map(a => `<div class="alerte ${a.niveau}">${echapper(a.texte)}</div>`).join('')}
     </div>` : '';
   // Le CO₂ témoin : combien de personnes ont vraiment respiré dans la salle, comparé aux badges

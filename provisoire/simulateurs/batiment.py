@@ -6,6 +6,8 @@ Elle envoie exactement les messages que enverront les vraies cartes ESP32 :
   presence : {"type": "presence", "salle", "presence": bool, "t"}    radar de la porte (SAR 200)
   badge    : {"type": "badge", "salle", "carte": empreinte, "t"}     lecteur NFC de chaque salle
   wifi     : {"type": "wifi", "bornes": {salle: appareils}, "t"}     export de la DSI, toutes les minutes
+  ondes    : {"type": "ondes", "salle", "paquets", "mouvement", "turbulence", "rssi", "amplitudes", "t"}
+             deux cartes ESP32-S3 qui mesurent les ondes Wi-Fi (SAR 200), toutes les 10 s
 Le temps "t" est simulé (secondes depuis 1970), il peut aller plus vite que le vrai.
 """
 
@@ -19,6 +21,7 @@ RACINE = Path(__file__).resolve().parent.parent
 DONNEES = RACINE / 'jumeau3d' / 'donnees'
 
 C_EXT = 420
+ONDES = 10                 # s entre deux mesures des ondes Wi-Fi (SAR 200)
 G_REEL = 0.0195            # m3/h de CO2 par personne (un peu différent du modèle, exprès)
 SEL = 'campustwin-demo'    # sel du hachage des cartes (le vrai est secret, dans la config du serveur)
 
@@ -117,6 +120,10 @@ class SimulateurBatiment:
         self.uid = {}               # id étudiant -> uid de sa carte
         self.prochain_co2 = {s: 0 for s in self.salles}
         self.prochain_wifi = 0
+        # Ondes Wi-Fi : tirage à part, pour ne pas changer le reste de la simulation
+        self.alea_ondes = random.Random(graine + 1000)
+        self.prochain_ondes = 0
+        self.amplitudes_vide = [round(12 + 10 * self.alea_ondes.random(), 1) for _ in range(52)]
         self.rer = None                 # perturbation du RER D du jour : (début, fin) en heures
         self.rer_annonce = False
 
@@ -236,6 +243,9 @@ class SimulateurBatiment:
                 s.niveau = self.niveau_commande(s.id)
                 self._porte(s, entrees[s.id], sorties[s.id])
             s.physique(dt_s / 3600, heure)
+            if s.equipee and self.t >= self.prochain_ondes:
+                self.prochain_ondes = self.t + ONDES
+                self.envoyer(self._ondes(s))
             if self.t >= self.prochain_co2[s.id]:
                 self.prochain_co2[s.id] = self.t + (30 if s.equipee else 60)
                 msg = {'type': 'co2', 'salle': s.id, 'co2': s.mesure_co2(), 't': self.t}
@@ -253,6 +263,16 @@ class SimulateurBatiment:
             self.prochain_wifi = self.t + 60
             bornes = {k: v + (1 if self.alea.random() < 0.15 else 0) for k, v in appareils.items()}
             self.envoyer({'type': 'wifi', 'bornes': bornes, 't': self.t})
+
+    def _ondes(self, s):
+        """Mesure des ondes Wi-Fi inventée : le mouvement monte avec le nombre de personnes, avec beaucoup
+        de variation (des étudiants assis bougent peu). Ce n'est pas un modèle validé."""
+        r = self.alea_ondes
+        n = s.n_reel
+        mouvement = 0.03 + abs(r.gauss(0, 0.006)) + (0.045 * n ** 0.5 * r.lognormvariate(0, 0.35) if n else 0)
+        return {'type': 'ondes', 'salle': s.id, 'paquets': 495 + r.randrange(10), 'mouvement': round(mouvement, 4),
+                'turbulence': round(4 + 0.03 * n + r.gauss(0, 0.1), 3), 'rssi': round(-48 - 0.05 * n + r.gauss(0, 1.5), 1),
+                'amplitudes': [round(a * (1 - 0.004 * n) + r.gauss(0, 0.3), 1) for a in self.amplitudes_vide], 't': self.t}
 
     def _badge(self, salle, uid, instant):
         self.envoyer({'type': 'badge', 'salle': salle, 'carte': empreinte(uid), 't': instant})

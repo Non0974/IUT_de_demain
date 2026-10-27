@@ -186,7 +186,7 @@ class Suivi:
                 etat = salle.etat(self.campus.t)
                 badges = s['presents'] + s['retards'] + s['a_verifier'] + 1
                 s['temoin'] = self.campus.temoin.evaluer(salle, s['debut'], s['fin'], self.campus.t, badges)
-            s['salle_maintenant'] = {k: etat[k] for k in ('personnes', 'source', 'co2', 'alertes')}
+            s['salle_maintenant'] = {k: etat[k] for k in ('personnes', 'source', 'co2', 'alertes', 'ondes')}
         return s
 
     def corriger(self, utilisateur, corps):

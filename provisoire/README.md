@@ -22,6 +22,8 @@ Le serveur prévoit aussi le CO₂ de chaque salle pour les deux heures suivante
 
 Les enseignants peuvent signaler un problème dans une salle : il manque une table, il n'y a plus de feutres, le vidéoprojecteur ne marche pas… Le serveur regarde le prochain cours dans la salle pour dire si c'est urgent, et quand la salle est libre pour intervenir. Une table manquante enlève 2 places tant que le ticket est ouvert. Le serveur ouvre aussi un ticket tout seul quand il détecte une panne de ventilation ou de capteur. Les services techniques ont leur compte et ne voient que les tickets.
 
+Notre idée la plus nouvelle est de compter les personnes avec les ondes Wi-Fi, sans aucun capteur. Deux cartes ESP32-S3 se parlent, et quand quelqu'un bouge entre elles, le signal change. Dans SAR 200, on compare ce que voient les ondes au comptage de la porte, pour savoir si les ondes peuvent compter les étudiants d'une vraie salle de cours. Le programme des cartes et le serveur sont prêts, l'essai reste à faire.
+
 On a aussi ajouté :
 - une vérification de l'émargement par le CO₂ : le CO₂ donne le nombre de personnes qui ont été dans la salle et on le compare aux badges. Sur de vraies salles (données ROBOD), un étudiant qui badge pour 6 absents est repéré dans 68 à 92 % des cours, avec 0 à 11 % de fausses alertes ;
 - les retards du RER D : quand la ligne est perturbée, le serveur prévoit combien d'étudiants arriveront en retard ;
@@ -39,7 +41,7 @@ On a aussi ajouté :
 | [serveur](serveur) | Serveur Python | marche en simulation, assistant testé avec un faux client seulement |
 | [simulateurs](simulateurs) | Bâtiment et automate simulés | marche |
 | [tests](tests) | Tests du serveur sur une semaine simulée | tous passent |
-| [firmware](firmware) | Code des cartes XIAO ESP32S3 | compile, pas encore testé sur le matériel |
+| [firmware](firmware) | Code des cartes XIAO ESP32S3 (nœud salle, nœud porte, badge, ondes Wi-Fi) | compile, pas encore testé sur le matériel |
 | [automate](automate) | Programme SCL du S7-1200 et branchements | écrit, pas encore compilé dans TIA Portal |
 | [outils](outils) | Import de l'emploi du temps CELCAT et du Wi-Fi de la DSI | testés sur des exemples |
 | [donnees_reelles](donnees_reelles) | Tests sur des données publiques (ROBOD, salle danoise OU44) | fait |
@@ -78,4 +80,5 @@ python tests/test_temoin.py        vérification de l'émargement par le CO₂
 python tests/test_transports.py    RER perturbé : retards prévus
 python tests/test_negociation.py   échange de salles
 python tests/test_tickets.py       tickets : urgence, places perdues, droits, panne détectée
+python tests/test_ondes.py         ondes Wi-Fi : salle vide apprise, présence, fichier d'apprentissage
 ```

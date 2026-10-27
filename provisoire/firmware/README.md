@@ -7,6 +7,7 @@ Trois programmes pour la carte Seeed XIAO ESP32S3. Ils envoient leurs mesures au
 | [noeud_salle](noeud_salle/noeud_salle.ino) | CO₂ de la salle et badge des étudiants | SCD-41, PN532, écran e-paper 2,9" |
 | [noeud_porte](noeud_porte/noeud_porte.ino) | Compter les entrées et sorties sans caméra | VL53L5CX, MLX90640, HLK-LD2450 |
 | [noeud_badge](noeud_badge/noeud_badge.ino) | Lecteur de badge seul, pour l'essai réel dans la salle de la classe | PN532, 2 LED et buzzer (facultatifs) |
+| [ondes_wifi](ondes_wifi/ondes_wifi.ino) | Détecter et compter les personnes avec les ondes Wi-Fi, entre deux cartes | aucun, juste deux XIAO ESP32S3 |
 
 Les trois programmes compilent pour la XIAO ESP32S3 (paquet esp32 3.3.3) :
 
@@ -15,6 +16,7 @@ Les trois programmes compilent pour la XIAO ESP32S3 (paquet esp32 3.3.3) :
 | nœud salle | 33 % | 16 % |
 | nœud porte | 33 % | 20 % |
 | lecteur de badge | 30 % | 14 % |
+| ondes Wi-Fi (récepteur / émetteur) | 29 % / 25 % | 13 % |
 
 Ils ne sont pas encore testés sur le matériel, et les seuils de détection sont à régler le jour de l'installation.
 
@@ -55,6 +57,14 @@ Pour l'essai réel, pas de matériel en plus : on charge ce programme sur la XIA
 - Le badge part tout de suite au serveur, qui répond si la carte est connue.
 - Vert + 1 bip : badge enregistré. Orange + 2 bips : carte inconnue, à enregistrer dans la page « Cartes » du site. Rouge qui clignote : serveur injoignable, le badge est gardé (40 au plus) et renvoyé toutes les 10 s.
 - Comme le nœud salle, il n'envoie qu'une empreinte de la carte, jamais son numéro.
+
+## Ondes Wi-Fi
+
+C'est notre idée la plus nouvelle : compter les personnes sans capteur, juste avec les ondes Wi-Fi. Deux cartes XIAO ESP32S3 se parlent. L'émetteur envoie 50 petits paquets par seconde (ESP-NOW). Le récepteur lit pour chaque paquet le CSI, c'est-à-dire comment le signal arrive sur chacune des 52 sous-porteuses du canal. Quand quelqu'un bouge entre les deux cartes, les ondes rebondissent autrement et le CSI change. Le principe vient de projets comme ESPectre et RuView, et de travaux de recherche (Carnegie Mellon a retrouvé la posture des gens avec le Wi-Fi).
+
+Le même programme sert aux deux cartes, on choisit le rôle avec `ROLE_EMETTEUR` dans `config.h`. On pose les deux cartes à deux coins opposés de la salle. Elles se connectent au même réseau (partage de connexion d'un téléphone ou petite box), ce qui les met sur le même canal. Le Wi-Fi de l'université n'est pas utilisé pour la mesure. Le récepteur envoie toutes les 10 s le mouvement mesuré et l'amplitude moyenne de chaque sous-porteuse (`type: "ondes"`).
+
+Ce qu'on veut tester : dans SAR 200, le serveur garde chaque mesure avec le nombre de personnes compté à la porte (`serveur/ondes.csv`), puis `python outils/ondes_wifi.py serveur/ondes.csv` dit si les ondes voient la présence et à combien près elles comptent. D'après ces projets, la présence devrait marcher. Compter sera plus dur, il faudra sans doute plus de deux cartes.
 
 ## Nœud porte
 

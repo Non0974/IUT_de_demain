@@ -4,6 +4,7 @@ from collections import deque
 from datetime import datetime
 
 from estimateur import EstimateurSalle
+from ondes import Ondes
 from planning import Planning
 
 TOLERANCE = 10 / 3600           # h : un badge et un passage à moins de 10 s vont ensemble
@@ -74,6 +75,7 @@ class EtatSalle:
         biais = config.BIAIS_CONNU.get(self.id, None if salle['equipee'] else 1.0)
         self.estimateur = EstimateurSalle(salle['surface'] * hauteur, debits, config.G_PERSONNE, config.C_EXT, biais=biais)
         self.wifi = ModeleWifi()
+        self.ondes = Ondes()                 # ondes Wi-Fi entre deux cartes ESP32-S3 (si la salle en a)
         self.n_porte = 0
         self.n_wifi = None
         self.appareils = None
@@ -143,6 +145,11 @@ class EtatSalle:
                 self.wifi.apprendre(appareils, vrais)
             elif not cours:
                 self.wifi.apprendre(appareils, 0)
+
+    def mesure_ondes(self, t, message):
+        """Ondes Wi-Fi : on apprend le niveau de la salle vide quand on sait qu'elle est vide."""
+        vide = self.n_porte == 0 if self.porte else (not self.cours_actifs(t) and self.nombre() == 0)
+        return self.ondes.mesurer(t, message, vide)
 
     def mesure_co2(self, t, co2, temp=None):
         self.t = t
@@ -301,5 +308,6 @@ class EtatSalle:
             'cours': cours,
             'alertes': alertes,
             'air': estim,
+            'ondes': self.ondes.etat(t),
             'wifi_modele': {'a': round(self.wifi.a, 3), 'b': round(self.wifi.b, 2), 'points': len(self.wifi.points)},
         }

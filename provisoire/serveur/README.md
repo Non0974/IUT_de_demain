@@ -66,6 +66,7 @@ La session dure 10 h. Après 5 mauvais mots de passe en une minute, l'adresse es
 | [reaffectation.py](reaffectation.py) | Changements de salle proposés (air mauvais, salle trop petite), échange de salles |
 | [temoin.py](temoin.py) | Vérification de l'émargement par le CO₂ |
 | [transports.py](transports.py) | Retards dus au RER : appris, prévus et expliqués ; lien avec l'API PRIM |
+| [ondes.py](ondes.py) | Ondes Wi-Fi (CSI) entre deux cartes : niveau de la salle vide, présence, fichier d'apprentissage |
 | [tickets.py](tickets.py) | Tickets des salles : urgence, échéance, moment pour intervenir, places perdues |
 | [ambiance.py](ambiance.py) | Chauffage et éclairage selon l'occupation |
 | [assistant.py](assistant.py) | Assistant IA : outils en lecture seule, pseudonymes, appel à l'API Claude |
@@ -82,6 +83,7 @@ La session dure 10 h. Après 5 mauvais mots de passe en une minute, l'adresse es
 | `presence` | `salle`, `presence` (vrai/faux) | nœud porte (radar) |
 | `badge` | `salle`, `carte` (empreinte, 16 caractères) | nœud salle |
 | `wifi` | `bornes` : `{salle: nombre d'appareils}` | export de la DSI, chaque minute |
+| `ondes` | `salle`, `paquets`, `mouvement`, `turbulence`, `rssi`, `amplitudes` (52) | deux cartes ESP32-S3 (ondes Wi-Fi), toutes les 10 s |
 
 Heure : `t` (secondes depuis 1970) si la carte a l'heure exacte, sinon `age_ms` (âge du message s'il a attendu dans la file de la carte).
 
@@ -155,6 +157,12 @@ Une table manquante enlève 2 places (on a supposé des tables de TD pour 2), un
 
 Le serveur ouvre aussi un ticket quand le diagnostic trouve une panne : ventilation, capteur mal placé, comptage faux, ou capteur qui dérive. La dérive n'est prise en compte que dans SAR 200, la seule salle où l'air est purgé le soir avant la mesure. Un ticket fermé n'est pas rouvert avant 12 heures. Les tickets urgents apparaissent dans les alertes du directeur.
 
+## Ondes Wi-Fi
+
+Deux cartes ESP32-S3 mesurent comment les ondes Wi-Fi changent quand quelqu'un bouge dans la salle ([firmware/ondes_wifi](../firmware/README.md#ondes-wifi)). Le serveur apprend le niveau de la salle vide (quand la porte compte 0 personne), puis dit si quelqu'un bouge : mouvement au-dessus de la moyenne de la salle vide plus 4 écarts-types. La fiche d'une séance l'affiche. Si l'émetteur n'est pas reçu, le serveur ne donne pas d'avis.
+
+Avec les vrais capteurs, chaque mesure est gardée avec le nombre de personnes compté à la porte dans `serveur/ondes.csv`. `python outils/ondes_wifi.py serveur/ondes.csv` apprend sur la première moitié et teste sur la deuxième : présence juste ou non, et erreur du comptage comparée à « répondre toujours la moyenne ». En simulation, la relation entre ondes et personnes est inventée, donc le test ne prouve que la chaîne des données. Le vrai résultat viendra de l'essai dans la salle.
+
 ## Cartes étudiantes
 
 Pour l'essai réel, on badge une carte sur un lecteur, elle apparaît dans la page Cartes (directeur, scolarité) et on choisit à qui elle est (TP1-01…, nom facultatif). Le lecteur s'allume en vert si la carte est connue, en orange sinon. Le serveur ne garde qu'une empreinte de la carte, et les noms restent dans `serveur/cartes.json` sur le PC.
@@ -198,6 +206,7 @@ python tests/test_temoin.py        vérification par le CO₂ : fausses alertes,
 python tests/test_transports.py    RER D perturbé : retards appris, prévus et expliqués
 python tests/test_negociation.py   aucune salle libre : une salle propose un échange
 python tests/test_tickets.py       tickets : urgence, places perdues, droits, panne détectée
+python tests/test_ondes.py         ondes Wi-Fi : salle vide apprise, présence, fichier d'apprentissage
 ```
 
 Les outils pour brancher les vraies données (CELCAT, Wi-Fi de la DSI) sont dans [outils](../outils/README.md).

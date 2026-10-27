@@ -6,6 +6,7 @@ __pycache__/
 serveur/*.db
 serveur/cartes.json
 serveur/enseignants.json
+serveur/ondes.csv
 
 # Réglages des cartes ESP32 (mot de passe Wi-Fi)
 firmware/*/config.h

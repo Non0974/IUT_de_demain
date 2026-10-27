@@ -31,3 +31,11 @@ Pour compter les personnes dans les salles sans capteurs. La DSI exporte depuis 
    ```
 
 Le serveur transforme les appareils en personnes (modèle testé à ±2 personnes sur les données ROBOD). Exemple de fichier : [export_dsi.exemple.csv](export_dsi.exemple.csv).
+
+## Ondes Wi-Fi : `ondes_wifi.py`
+
+Dit si les ondes Wi-Fi comptent les personnes. Le serveur garde chaque mesure des deux cartes avec le nombre de personnes compté à la porte, dans `serveur/ondes.csv`. Le script apprend sur la première moitié des mesures et teste sur la deuxième.
+
+```
+python outils/ondes_wifi.py serveur/ondes.csv --salle "SAR 200"
+```

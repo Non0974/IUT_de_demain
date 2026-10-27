@@ -13,6 +13,7 @@ En simulation, comptes de démonstration : directeur / demo, enseignant / demo e
 """
 
 import argparse
+import csv
 import functools
 import json
 import sys
@@ -44,12 +45,14 @@ from salle import EtatSalle, heure_du_jour, seance_id   # noqa: E402
 from stockage import Stockage                   # noqa: E402
 from suivi import TOUT_VOIR, Refus, Suivi, periode     # noqa: E402
 from temoin import Temoin                       # noqa: E402
+from ondes import ENTETE as ENTETE_ONDES, ligne_csv   # noqa: E402
 from tickets import OBJETS, SERVICES, STATUTS, analyser, nouveau, pannes_detectees, titre, trier   # noqa: E402
 from transports import PontPrim, Transports     # noqa: E402
 
 WEB = RACINE / 'jumeau3d'
 DONNEES = WEB / 'donnees'
 FICHIER_CARTES = ICI / 'cartes.json'            # empreinte de carte -> étudiant (fourni par la scolarité)
+FICHIER_ONDES = ICI / 'ondes.csv'              # mesures des ondes Wi-Fi + vrai nombre de personnes (apprentissage)
 FICHIER_ENSEIGNANTS = ICI / 'enseignants.json'  # "Enseignant A" -> vrai nom (seulement en local, pas sur GitHub)
 SYNCHRO = 30                                    # s entre deux copies de l'émargement dans le registre
 VERIF_PANNES = 300                              # s entre deux recherches de pannes (tickets du jumeau)
@@ -98,6 +101,7 @@ class Campus:
         self.batiment_salles = {s['id']: s for s in bat['salles']}
         self.perdues = self.registre.places_perdues()      # places perdues par salle (tickets pas résolus)
         self.derniere_verif_pannes = 0
+        self.fichier_ondes = FICHIER_ONDES if stockage else None   # pas en simulation
         self.salles = {s['id']: EtatSalle(s, bat['hauteur'], config, self.edt, self.annuaire, self.planning)
                        for s in bat['salles']}
         self.stockage = stockage
@@ -159,6 +163,10 @@ class Campus:
                         self.salles[salle].mesure_wifi(t, int(n))
                 return
             salle = self.salles[m['salle']]
+            if type_ == 'ondes':
+                salle.mesure_ondes(t, m)
+                self._garder_ondes(t, salle, m)
+                return
             if type_ == 'co2':
                 salle.mesure_co2(t, float(m['co2']), m.get('temp'))
             elif type_ == 'passage':
@@ -173,6 +181,18 @@ class Campus:
                 return {'connue': carte in self.annuaire}     # le lecteur s'allume en vert ou en orange
             else:
                 raise ValueError(f'Type de message inconnu : {type_}')
+
+    def _garder_ondes(self, t, salle, m):
+        """Chaque mesure des ondes avec le vrai nombre de personnes : de quoi apprendre à compter."""
+        if not self.fichier_ondes:
+            return
+        nouveau = not self.fichier_ondes.exists()
+        with open(self.fichier_ondes, 'a', newline='', encoding='utf-8') as f:
+            w = csv.writer(f, delimiter=';')
+            if nouveau:
+                w.writerow(ENTETE_ONDES)
+            w.writerow(ligne_csv(t, salle.id, m, salle.n_porte if salle.porte else None, salle.n_wifi,
+                                 bool(salle.cours_actifs(t))))
 
     def ajouter_cartes(self, cartes):
         with self.verrou:
