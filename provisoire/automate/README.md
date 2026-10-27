@@ -9,7 +9,7 @@ Le serveur CampusTwin lui envoie la consigne en Modbus TCP. L'automate garde la 
 
 Le programme est dans [CampusTwin.scl](CampusTwin.scl). La même logique est écrite en Python dans [simulateurs/automate.py](../simulateurs/automate.py), ce qui permet de tester le serveur sans l'automate.
 
-**À vérifier dans TIA Portal :** le fichier SCL n'a pas pu être compilé ici, faute de TIA Portal sur le PC.
+À vérifier dans TIA Portal : le fichier SCL n'a pas pu être compilé ici, faute de TIA Portal sur le PC.
 
 ## Matériel
 
@@ -17,7 +17,7 @@ CPU 1212C AC/DC/RLY (6ES7212-1BE40-0XB0) : 8 entrées 24 V, 6 sorties relais.
 
 | Variable | Adresse | Branchement |
 | --- | --- | --- |
-| `AU` | %I0.0 | Arrêt d'urgence, contact à **ouverture** (TRUE = tout va bien) |
+| `AU` | %I0.0 | Arrêt d'urgence, contact à ouverture (TRUE = tout va bien) |
 | `Auto` | %I0.1 | Commutateur Manu/Auto (TRUE = Auto) |
 | `Couvercle` | %I0.2 | Micro-interrupteur du couvercle (TRUE = fermé) |
 | `Petite` | %Q0.0 | Relais petite vitesse du ventilateur |
@@ -31,7 +31,7 @@ La CPU 1212C n'a que 6 sorties. Le voyant vert « Auto » a été retiré : la p
 
 Alimentation 24 V : Mean Well HDR-30-24.
 
-**Sécurité CO₂ :**
+Sécurité CO₂ :
 - l'électrovanne est aussi coupée en câblage par le contact d'arrêt d'urgence (en série avec son alimentation), pas seulement par le programme ;
 - bouteille de 500 g maximum ;
 - détendeur réglé au plus bas.
@@ -51,7 +51,7 @@ Pour changer de vitesse, le moteur est coupé 0,5 s : les deux relais ne sont ja
 
 ## Registres Modbus
 
-L'automate est **serveur** Modbus TCP (bloc MB_SERVER, port 502) ; le PC CampusTwin est client.
+L'automate est serveur Modbus TCP (bloc MB_SERVER, port 502) ; le PC CampusTwin est client.
 
 | Registre (indice / TIA) | Sens | Contenu |
 | --- | --- | --- |

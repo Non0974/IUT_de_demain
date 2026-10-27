@@ -1,6 +1,6 @@
 # Firmware des cartes ESP32
 
-Trois programmes pour la carte **Seeed XIAO ESP32S3**. Ils envoient leurs mesures au serveur en HTTP (`POST /api/mesure`, JSON), dans le même format que le simulateur ([simulateurs/batiment.py](../simulateurs/batiment.py)).
+Trois programmes pour la carte Seeed XIAO ESP32S3. Ils envoient leurs mesures au serveur en HTTP (`POST /api/mesure`, JSON), dans le même format que le simulateur ([simulateurs/batiment.py](../simulateurs/batiment.py)).
 
 | Programme | Rôle | Capteurs |
 | --- | --- | --- |
@@ -8,7 +8,7 @@ Trois programmes pour la carte **Seeed XIAO ESP32S3**. Ils envoient leurs mesure
 | [noeud_porte](noeud_porte/noeud_porte.ino) | Compter les entrées et sorties sans caméra | VL53L5CX, MLX90640, HLK-LD2450 |
 | [noeud_badge](noeud_badge/noeud_badge.ino) | Lecteur de badge seul, pour l'essai réel dans la salle de la classe | PN532, 2 LED et buzzer (facultatifs) |
 
-**Les trois programmes compilent** pour la XIAO ESP32S3 (paquet esp32 3.3.3) :
+Les trois programmes compilent pour la XIAO ESP32S3 (paquet esp32 3.3.3) :
 
 | Programme | Mémoire programme | RAM |
 | --- | --- | --- |
@@ -16,14 +16,14 @@ Trois programmes pour la carte **Seeed XIAO ESP32S3**. Ils envoient leurs mesure
 | nœud porte | 33 % | 20 % |
 | lecteur de badge | 30 % | 14 % |
 
-Ils ne sont **pas encore testés sur le matériel**, et les seuils de détection sont à régler le jour de l'installation.
+Ils ne sont pas encore testés sur le matériel, et les seuils de détection sont à régler le jour de l'installation.
 
 ## Installer
 
-1. Arduino IDE 2, puis le paquet de cartes **esp32** d'Espressif (déjà installé sur le PC de Louay), carte **XIAO_ESP32S3**.
+1. Arduino IDE 2, puis le paquet de cartes esp32 d'Espressif (déjà installé sur le PC de Louay), carte XIAO_ESP32S3.
 2. Bibliothèques (gestionnaire de bibliothèques) :
-   - nœud salle : **Adafruit PN532** 1.3.4, **GxEPD2** 1.6.9 (seulement si l'écran est branché) ;
-   - nœud porte : **SparkFun VL53L5CX Arduino Library** 1.0.3, **Adafruit MLX90640** 1.1.2.
+   - nœud salle : Adafruit PN532 1.3.4, GxEPD2 1.6.9 (seulement si l'écran est branché) ;
+   - nœud porte : SparkFun VL53L5CX Arduino Library 1.0.3, Adafruit MLX90640 1.1.2.
 
    La bibliothèque MLX90640 installe aussi des dizaines de bibliothèques Adafruit pour ses exemples, dont on n'a pas besoin. Pour l'éviter en ligne de commande : `arduino-cli lib install --no-deps`.
 3. Dans chaque dossier, copier `config.exemple.h` en `config.h` et le remplir : Wi-Fi, adresse du serveur, salle. `config.h` n'est pas envoyé sur GitHub.
@@ -38,9 +38,9 @@ Ils ne sont **pas encore testés sur le matériel**, et les seuils de détection
 | Écran e-paper (SPI) | D8 = SCK, D10 = MOSI, D1 = CS, D2 = DC, D3 = RST, D0 = BUSY |
 
 - Le CO₂ est envoyé toutes les 30 s. L'analyse des données réelles a montré qu'il en faut au moins une par minute.
-- **L'auto-calibration du SCD-41 est coupée.** Sinon, le capteur se recale tout seul sur 400 ppm et cache sa dérive (vu dans ROBOD). C'est le serveur qui vérifie la dérive chaque soir.
-- **Carte étudiante :** on lit le numéro (UID) de la carte et on n'envoie que son empreinte : SHA-256 du sel + numéro, 16 caractères. Le numéro lui-même ne quitte jamais la carte. Le sel doit être le même dans `config.h` et dans `serveur/config.py`.
-- **Si le Wi-Fi tombe**, les messages attendent dans une file (60 messages) et partent avec leur âge. Le serveur recalcule l'heure.
+- L'auto-calibration du SCD-41 est coupée. Sinon, le capteur se recale tout seul sur 400 ppm et cache sa dérive (vu dans ROBOD). C'est le serveur qui vérifie la dérive chaque soir.
+- Carte étudiante : on lit le numéro (UID) de la carte et on n'envoie que son empreinte : SHA-256 du sel + numéro, 16 caractères. Le numéro lui-même ne quitte jamais la carte. Le sel doit être le même dans `config.h` et dans `serveur/config.py`.
+- Si le Wi-Fi tombe, les messages attendent dans une file (60 messages) et partent avec leur âge. Le serveur recalcule l'heure.
 
 ## Lecteur de badge seul
 
@@ -53,7 +53,7 @@ Pour l'essai réel, pas de matériel en plus : on charge ce programme sur la XIA
 | Buzzer actif 3,3 V | D3 |
 
 - Le badge part tout de suite au serveur, qui répond si la carte est connue.
-- **Vert + 1 bip** : badge enregistré. **Orange + 2 bips** : carte inconnue, à enregistrer dans la page « Cartes » du site. **Rouge qui clignote** : serveur injoignable, le badge est gardé (40 au plus) et renvoyé toutes les 10 s.
+- Vert + 1 bip : badge enregistré. Orange + 2 bips : carte inconnue, à enregistrer dans la page « Cartes » du site. Rouge qui clignote : serveur injoignable, le badge est gardé (40 au plus) et renvoyé toutes les 10 s.
 - Comme le nœud salle, il n'envoie qu'une empreinte de la carte, jamais son numéro.
 
 ## Nœud porte
@@ -67,9 +67,9 @@ Pour l'essai réel, pas de matériel en plus : on charge ce programme sur la XIA
 Comment ça marche :
 1. Le ToF et la caméra thermique voient la zone de la porte coupée en deux : côté couloir et côté salle. Une personne qui passe allume d'abord un côté puis l'autre, ce qui donne le sens. Le nombre de silhouettes donne le nombre de personnes, par exemple deux de front.
 2. Le radar donne son avis sur le sens, d'après la vitesse des cibles près de la porte, et dit s'il reste quelqu'un dans la salle.
-3. **Fusion :** vote à la majorité dans une fenêtre de 1,5 s. Si les capteurs ne sont pas d'accord, on ne compte rien.
-4. **Au démarrage** (personne sous la porte pendant 10 s), le ToF apprend la distance du sol et la caméra apprend la température du fond.
-5. **Présence :** si le radar ne voit plus personne pendant 2 min, le serveur remet le compteur à zéro. Ça rattrape les sorties ratées.
+3. Fusion : vote à la majorité dans une fenêtre de 1,5 s. Si les capteurs ne sont pas d'accord, on ne compte rien.
+4. Au démarrage (personne sous la porte pendant 10 s), le ToF apprend la distance du sol et la caméra apprend la température du fond.
+5. Présence : si le radar ne voit plus personne pendant 2 min, le serveur remet le compteur à zéro. Ça rattrape les sorties ratées.
 
 Réglages dans `config.h` :
 - `SEUIL_TOF_MM`, `SEUIL_THERMIQUE_C` : sensibilité des capteurs ;

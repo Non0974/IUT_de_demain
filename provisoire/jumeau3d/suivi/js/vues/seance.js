@@ -42,7 +42,7 @@ function ligne(p, peutCorriger) {
       data-avant="${echapper(p.statut)}" data-statut="${statut}">${libelle}</button>`).join('');
   return `<tr>
     <td><a href="#/etudiant/${encodeURIComponent(p.etudiant)}">${nomEtudiant(p.etudiant, p.nom)}</a></td>
-    <td>${puce(p.statut)}${p.corrige ? ' <span class="sous" title="statut corrigé à la main">✎ corrigé</span>' : ''}</td>
+    <td>${puce(p.statut)}${p.corrige ? ' <span class="sous">(corrigé)</span>' : ''}</td>
     <td>${heureBadge(p.badge)}</td>
     ${peutCorriger ? `<td class="pas-impression"><div class="actions">${boutons}</div></td>` : ''}
     <td class="col-impression signature"></td>
@@ -59,7 +59,7 @@ export async function vueSeance(zone, ctx) {
     ctx.titre('Séance');
     afficher(zone, `<a class="retour" href="#/seances">← Séances</a>
       <div class="carte"><h2>Cette séance n'a pas encore commencé</h2>
-      <p>L'émargement s'ouvre 15 minutes avant le début du cours, dès les premiers badges.</p></div>`);
+      <p>L'émargement commence 15 minutes avant le cours.</p></div>`);
     return;
   }
   ctx.titre(`${s.matiere} — ${s.groupes.join(' + ')}`);
@@ -101,31 +101,29 @@ export async function vueSeance(zone, ctx) {
       <h2 class="titre-section">Dans la salle maintenant</h2>
       <p><b>${maintenant.personnes}</b> personnes ${maintenant.source === 'porte' ? 'comptées à la porte' : 'estimées par le Wi-Fi (±2)'}</p>
       <p>CO₂ : ${ppm(maintenant.co2)}</p>
-      ${maintenant.alertes.map(a => `<div class="alerte ${a.niveau}"><span class="i">!</span><div>${echapper(a.texte)}</div></div>`).join('')}
+      ${maintenant.alertes.map(a => `<div class="alerte ${a.niveau}">${echapper(a.texte)}</div>`).join('')}
     </div>` : '';
   // Le CO₂ témoin : combien de personnes ont vraiment respiré dans la salle, comparé aux badges
   const t = s.temoin;
   const doute = t && ['badges_en_trop', 'personnes_sans_badge'].includes(t.verdict);
   const temoin = t ? `<div class="carte">
-      <h2 class="titre-section">Témoin CO₂ <span class="sous">combien de personnes ont respiré dans la salle</span></h2>
-      ${t.personnes != null ? `<p><b>${t.personnes}</b> personnes selon le CO₂ (entre ${t.min} et ${t.max}),
-        pour <b>${t.badges}</b> badges, enseignant compris.</p>` : ''}
-      ${doute ? `<div class="alerte suspect"><span class="i">!</span><div>${echapper(t.texte)}</div></div>`
-        : `<p class="sous">${t.verdict === 'coherent' ? '✓ ' : ''}${echapper(t.texte)}</p>`}
+      <h2 class="titre-section">Vérification par le CO₂</h2>
+      ${t.personnes != null ? `<p>Selon le CO₂ : ${t.personnes} personnes (entre ${t.min} et ${t.max}).
+        Badges : ${t.badges}, enseignant compris.</p>` : ''}
+      ${doute ? `<div class="alerte suspect">${echapper(t.texte)}</div>` : `<p class="sous">${echapper(t.texte)}</p>`}
     </div>` : '';
   const anomalies = s.anomalies.length ? `<div class="carte">
-      <h2 class="titre-section">Badges et passages qui ne collent pas</h2>
-      ${s.anomalies.map(a => `<div class="alerte ${a.type === 'carte prêtée' ? 'detecte' : 'suspect'}"><span class="i">!</span>
-        <div><div><b>${a.nombre} × ${echapper(a.type)}</b></div><div class="quoi">${echapper(a.detail || explication(a.type))}</div></div></div>`).join('')}
+      <h2 class="titre-section">Anomalies de badge</h2>
+      ${s.anomalies.map(a => `<div class="alerte ${a.type === 'carte prêtée' ? 'detecte' : 'suspect'}">
+        <div><b>${echapper(a.type)} : ${a.nombre}</b></div><div class="quoi">${echapper(a.detail || explication(a.type))}</div></div>`).join('')}
     </div>` : '';
   // Matériel manquant ou en panne dans la salle : tickets ouverts, et un lien pour en signaler un
   const lienTicket = `#/tickets?salle=${encodeURIComponent(s.salle)}`;
-  const tickets = `<div class="tickets-salle pas-impression">${s.tickets.length
-    ? `<span class="statut s-retard"><span class="i" aria-hidden="true">⚑</span>${s.tickets.length} ticket${s.tickets.length > 1 ? 's' : ''} en ${echapper(s.salle)}</span>
-       ${s.tickets.map(x => `<a href="#/tickets">${echapper(x.titre)}</a>`).join(' · ')} ·` : ''}
-      <a href="${lienTicket}">Signaler un problème dans cette salle</a> <span class="sous">(table, feutres, vidéoprojecteur…)</span></div>`;
+  const tickets = `<p class="tickets-salle pas-impression">${s.tickets.length
+    ? `Tickets ouverts en ${echapper(s.salle)} : ${s.tickets.map(x => `<a href="#/tickets">${echapper(x.titre)}</a>`).join(', ')}. ` : ''}
+      <a href="${lienTicket}">Signaler un problème dans la salle</a></p>`;
   const corrections = s.corrections.length ? `<section class="section pas-impression">
-      <h2 class="titre-section">Modifications <span class="sous">qui a changé quoi</span></h2>
+      <h2 class="titre-section">Modifications</h2>
       <div class="tableau-conteneur"><table class="liste"><thead><tr><th>Quand</th><th>Étudiant</th><th>Avant</th><th>Après</th><th>Motif</th><th>Par</th></tr></thead><tbody>
       ${s.corrections.map(c => `<tr><td>${heureBadge(c.t)}</td><td>${echapper(c.etudiant)}</td><td>${puce(c.avant)}</td><td>${puce(c.apres)}</td>
         <td>${echapper(c.motif || '—')}</td><td>${echapper(c.auteur)}</td></tr>`).join('')}
@@ -150,17 +148,17 @@ export async function vueSeance(zone, ctx) {
     <p id="message" class="message" role="status"></p>
     ${tickets}
     <section class="section"><div class="grille tuiles">${tuiles.join('')}</div>${barre(s)}${legendeBarre()}
-      ${s.transport ? `<div class="alerte suspect"><span class="i" aria-hidden="true">🚆</span><div>${echapper(s.transport.texte)}</div></div>` : ''}</section>
+      ${s.transport ? `<div class="alerte suspect">${echapper(s.transport.texte)}</div>` : ''}</section>
     ${salle || anomalies || temoin ? `<section class="section deux-colonnes">${salle}${temoin}${anomalies}</section>` : ''}
     <section class="section">
-      <h2 class="titre-section">Émargement <span class="sous">${s.etat === 'en cours' ? 'en direct, mis à jour toutes les 5 s' : 'séance close'}</span></h2>
+      <h2 class="titre-section">Émargement${s.etat === 'en cours' ? '' : ' (séance close)'}</h2>
       <div class="tableau-conteneur"><table class="liste">
         <thead><tr><th>Étudiant</th><th>Statut</th><th>Badge</th>${peutCorriger ? '<th class="pas-impression">Modifier</th>' : ''}<th class="col-impression signature">Signature</th></tr></thead>
         <tbody>${s.presences.map(p => ligne(p, peutCorriger)).join('')}</tbody>
       </table></div>
     </section>
     ${corrections}
-    <p class="seulement-impression sous">Feuille produite par CampusTwin à partir des badges de la carte étudiante, vérifiés par le comptage de la porte.</p>`);
+    <p class="seulement-impression sous">Feuille faite par CampusTwin à partir des badges.</p>`);
 }
 vueSeance.rafraichir = 5000;
 

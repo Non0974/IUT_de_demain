@@ -135,9 +135,9 @@ def creneau_libre(campus, salle, t):
     fin = suivant['debut'] if suivant else None
     jusqua = f" jusqu'à {heure_texte(fin)}." if fin else " jusqu'au soir."
     if debut > h:
-        texte = f'Cours en ce moment ou qui commence : salle libre à partir de {heure_texte(debut)}' + jusqua
+        texte = f'Salle libre de {heure_texte(debut)}' + (f' à {heure_texte(fin)}.' if fin else " jusqu'au soir.")
     elif monde:
-        texte = 'Du monde dans la salle en ce moment, hors cours' + (f' ; prochain cours à {heure_texte(fin)}.' if fin else '.')
+        texte = "Il y a du monde dans la salle en ce moment (hors cours)."
     else:
         texte = "Salle libre maintenant" + jusqua
     return {'debut': debut, 'fin': fin, 'maintenant': debut <= h and not monde, 'texte': texte}
@@ -165,7 +165,7 @@ def analyser(campus, ticket, t, perdues_salle):
         return a
     objet = OBJETS[ticket['objet']]
     if objet.get('pas_presse'):
-        a['raison'] = "Le jumeau corrige ou contourne en attendant : à vérifier quand la salle est libre."
+        a['raison'] = "Le serveur corrige la mesure en attendant."
         return a
     en_cours, jour, suivant = cours_a_venir(campus, salle, t)
     # Places : le premier cours d'aujourd'hui (en cours ou à venir) qui n'a plus assez de places
@@ -181,7 +181,7 @@ def analyser(campus, ticket, t, perdues_salle):
         x, n = trop
         maintenant = x['debut'] <= h
         a['urgence'] = 'urgent'
-        a['raison'] = (f'{"Cours en ce moment" if maintenant else heure_texte(x["debut"])} : {x["matiere"]}, {n} étudiants '
+        a['raison'] = (f'{"Cours en ce moment : " if maintenant else ""}{x["matiere"]}, {n} étudiants '
                        f'{"" if maintenant else "attendus "}pour {restantes} places restantes ({places} − {perdues_salle}).')
         a['echeance'] = {'date': aujourd_hui.isoformat(), 'heure': x['debut'], 'maintenant': maintenant,
                          'texte': 'tout de suite' if maintenant else heure_texte(x['debut'])}
@@ -199,14 +199,14 @@ def analyser(campus, ticket, t, perdues_salle):
                      'texte': quand.removeprefix('à ').removeprefix('le ')}
     if objet.get('cours') and jour == aujourd_hui and suivant['debut'] - h <= URGENT_AVANT:
         a['urgence'] = 'urgent'
-        a['raison'] = f'Cours {quand} : {suivant["matiere"]}, {n} étudiants attendus.'
+        a['raison'] = f'{suivant["matiere"]}, {n} étudiants attendus.'
     elif (jour - aujourd_hui).days <= 1:
         a['urgence'] = 'avant le prochain cours'
-        a['raison'] = f'Prochain cours {quand} : {suivant["matiere"]}, {n} étudiants attendus.'
+        a['raison'] = f'Prochain cours : {suivant["matiere"]}, {n} étudiants attendus.'
         if ticket['places_perdues'] > 0:
             a['raison'] += f' {restantes} places restantes : ça suffit.' if n <= restantes else f' {restantes} places restantes : pas assez.'
     else:
-        a['raison'] = f'Prochain cours {quand} : {suivant["matiere"]}.'
+        a['raison'] = f'Prochain cours : {suivant["matiere"]}.'
     return a
 
 

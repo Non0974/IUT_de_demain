@@ -52,7 +52,7 @@ export async function vueCartes(zone, ctx) {
       <label>Nom <span class="sous">(facultatif)</span> <input name="nom" maxlength="60" autocomplete="off"></label>
       <button type="submit" class="bouton principal-bouton">Enregistrer</button>
     </form>`).join('')
-    : '<p class="vide">Aucune carte en attente. Badgez une carte sur un lecteur : elle apparaît ici en quelques secondes.</p>';
+    : '<p class="vide">Aucune carte en attente. Badgez une carte sur un lecteur pour la voir ici.</p>';
 
   const lignes = liste.cartes.map(c => `<tr>
       <td class="nowrap"><b>${echapper(c.id)}</b></td><td>${echapper(c.nom || '—')}</td>
@@ -63,16 +63,16 @@ export async function vueCartes(zone, ctx) {
   afficher(zone, `
     <p id="message-cartes" class="message${avis ? ` ${avis.classe}` : ''}" role="status">${avis ? echapper(avis.texte) : ''}</p>
     <section class="section">
-      <h2 class="titre-section">Cartes à enregistrer <span class="sous">badgées sur un lecteur, pas encore attribuées</span></h2>
+      <h2 class="titre-section">Cartes à enregistrer</h2>
       <div class="liste-cartes">${inconnues}</div>
     </section>
     <section class="section">
-      <h2 class="titre-section">Cartes enregistrées <span class="sous">${liste.cartes.length} carte${liste.cartes.length > 1 ? 's' : ''}</span></h2>
+      <h2 class="titre-section">Cartes enregistrées (${liste.cartes.length})</h2>
       ${liste.cartes.length ? `<div class="tableau-conteneur"><table class="liste">
         <thead><tr><th>Étudiant</th><th>Nom</th><th>Groupe</th><th>Carte</th><th></th></tr></thead>
         <tbody>${lignes}</tbody></table></div>` : '<p class="vide">Aucune carte enregistrée pour la classe.</p>'}
-      <p class="sous">Une nouvelle carte remplace l'ancienne (carte perdue ou changée). Le serveur ne garde qu'une empreinte de la carte,
-        jamais son numéro, et les noms restent sur ce PC (fichier serveur/cartes.json, pas sur GitHub).</p>
+      <p class="sous">Une nouvelle carte remplace l'ancienne. Le serveur garde une empreinte de la carte, pas son numéro.
+        Les noms restent sur ce PC (serveur/cartes.json).</p>
     </section>`);
 }
 vueCartes.rafraichir = 3000;

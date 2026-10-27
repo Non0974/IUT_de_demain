@@ -37,17 +37,17 @@ export async function vueClasse(zone, ctx) {
     <div class="barre-outils">
       ${navigationPeriode(`#/classe/${encodeURIComponent(cle)}`, periode)}
       <span class="espace"></span>
-      <a class="bouton" href="/api/export?classe=${encodeURIComponent(cle)}&du=${periode.du}&au=${periode.au}">Exporter (CSV, avec les demi-journées pour le CFA)</a>
+      <a class="bouton" href="/api/export?classe=${encodeURIComponent(cle)}&du=${periode.du}&au=${periode.au}">Exporter en CSV</a>
     </div>
     <section class="section"><div class="grille tuiles">
-      ${tuile(pourcent(taux), 'taux de présence', 'sur la période')}
+      ${tuile(pourcent(taux), 'taux de présence')}
       ${tuile(c.etudiants.length, 'étudiants')}
       ${tuile(tous.absents, 'absences non justifiées', '', tous.absents ? 'alerte' : '')}
       ${tuile(tous.retards, 'retards')}
       ${tuile(tous.justifies, 'absences justifiées')}
     </div></section>
     ${c.seances.length ? `<section class="section">
-      <h2 class="titre-section">Présence par séance <span class="sous">cliquer sur une case pour ouvrir la séance</span></h2>
+      <h2 class="titre-section">Présence par séance</h2>
       <div class="tableau-conteneur"><table class="liste grille-classe">
         <thead><tr><th scope="col">Étudiant</th>${entetes}<th scope="col">Présence</th><th scope="col" class="nombre">Abs.</th><th scope="col" class="nombre">Ret.</th><th scope="col" class="nombre">Just.</th></tr></thead>
         <tbody>${lignes}</tbody>

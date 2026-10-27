@@ -58,17 +58,17 @@ export function pourcent(x) {
 // ---------- statuts ----------
 
 export const STATUTS = {
-  'présent': { libelle: 'Présent', court: 'P', icone: '✓', classe: 'present' },
-  retard: { libelle: 'En retard', court: 'R', icone: '◷', classe: 'retard' },
-  absent: { libelle: 'Absent', court: 'A', icone: '✕', classe: 'absent' },
-  'justifié': { libelle: 'Justifié', court: 'J', icone: 'J', classe: 'justifie' },
-  'à vérifier': { libelle: 'À vérifier', court: '?', icone: '?', classe: 'verifier' },
-  attendu: { libelle: 'Attendu', court: '·', icone: '…', classe: 'attendu' },
+  'présent': { libelle: 'Présent', court: 'P', classe: 'present' },
+  retard: { libelle: 'En retard', court: 'R', classe: 'retard' },
+  absent: { libelle: 'Absent', court: 'A', classe: 'absent' },
+  'justifié': { libelle: 'Justifié', court: 'J', classe: 'justifie' },
+  'à vérifier': { libelle: 'À vérifier', court: '?', classe: 'verifier' },
+  attendu: { libelle: 'Attendu', court: '·', classe: 'attendu' },
 };
 
 export function puce(statut) {
-  const s = STATUTS[statut] || { libelle: statut, icone: '', classe: 'attendu' };
-  return `<span class="statut s-${s.classe}"><span class="i" aria-hidden="true">${s.icone}</span>${s.libelle}</span>`;
+  const s = STATUTS[statut] || { libelle: statut, classe: 'attendu' };
+  return `<span class="statut s-${s.classe}">${s.libelle}</span>`;
 }
 
 export function caseStatut(statut, corrige, titre, lien) {
@@ -102,7 +102,7 @@ export function etatSeance(etat) {
 }
 
 export function etiquetteSource(reel) {
-  return reel ? '<span class="etiquette-reel">EDT réel</span>' : '<span class="etiquette-simule">simulé</span>';
+  return reel ? '<span class="etiquette-reel">(EDT réel)</span>' : '<span class="etiquette-simule">(simulé)</span>';
 }
 
 export function ppm(co2) {

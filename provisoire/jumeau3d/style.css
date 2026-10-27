@@ -69,7 +69,7 @@ main {
   overflow-y: auto;
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid var(--bord);
-  border-radius: 8px;
+  border-radius: 3px;
   padding: 12px 14px;
   font-size: 13px;
 }
@@ -92,7 +92,7 @@ main {
   position: relative;
   height: 12px;
   background: #e6eaf0;
-  border-radius: 6px;
+  border-radius: 3px;
   overflow: hidden;
 }
 #barre-air { height: 100%; width: 0; transition: width 0.3s; }
@@ -108,7 +108,7 @@ main {
 .carte {
   border: 1px solid var(--bord);
   border-left-width: 5px;
-  border-radius: 6px;
+  border-radius: 3px;
   padding: 7px 9px;
   margin-bottom: 8px;
   background: var(--carte);
@@ -144,7 +144,7 @@ button, select {
   font-size: 13px;
   padding: 5px 10px;
   border: 1px solid var(--bord);
-  border-radius: 6px;
+  border-radius: 3px;
   background: #fff;
   cursor: pointer;
 }
@@ -167,11 +167,11 @@ button:hover { border-color: var(--bleu); }
 .legende { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--gris); margin-bottom: 6px; }
 .legende .case { margin-left: 6px; }
 .legende .case:first-child { margin-left: 0; }
-.alerte-em { font-size: 12px; padding: 5px 7px; border-radius: 5px; margin-bottom: 5px; border-left: 4px solid var(--rouge); background: #fdf1f0; }
+.alerte-em { font-size: 12px; padding: 5px 7px; border-radius: 3px; margin-bottom: 5px; border-left: 4px solid var(--rouge); background: #fdf1f0; }
 .alerte-em.suspect { border-left-color: var(--orange); background: #fff8f0; }
 #telecharger { margin-top: 6px; width: 100%; }
 
-#courbe { width: 100%; height: 110px; border: 1px solid var(--bord); border-radius: 6px; background: #fbfcfd; }
+#courbe { width: 100%; height: 110px; border: 1px solid var(--bord); border-radius: 3px; background: #fbfcfd; }
 
 @media (max-width: 900px) {
   .panneau { position: static; width: auto; max-height: none; margin: 8px; }

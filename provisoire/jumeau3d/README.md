@@ -1,17 +1,19 @@
-# CampusTwin — jumeau 3D de l'IUT et de la salle
+# CampusTwin — site et jumeau 3D
 
-L'interface de suivi des classes est dans [suivi](suivi) (servie par le serveur à l'adresse `/suivi/`) : tableau de bord, séances, classes, fiches des étudiants, Anticipation (prévisions, ventilation, places des salles, changements de salle), Tickets (matériel manquant ou en panne) et Assistant IA. Ce dossier contient aussi le jumeau 3D, en deux pages :
-- **`iut.html` : tout l'IUT de Sarcelles**, pour le directeur des études. On voit quelle salle est occupée, par quel cours et quel groupe, avec quel enseignant, combien de personnes, qui a badgé et la qualité de l'air.
-- **`index.html` : la salle SAR 200 en détail** (la salle équipée de capteurs à la porte), avec le diagnostic de l'air et l'émargement vérifié.
+Le site de suivi des classes est dans [suivi](suivi) (adresse `/suivi/` du serveur) : tableau de bord, séances, classes, fiches des étudiants, Anticipation, Tickets et Assistant IA.
+
+Ce dossier contient aussi le jumeau 3D, en deux pages :
+- `iut.html` : tout l'IUT de Sarcelles, pour le directeur des études. On voit quelle salle est occupée, par quel cours, avec quel enseignant, combien de personnes, qui a badgé et l'air.
+- `index.html` : la salle SAR 200 en détail (la salle avec les capteurs à la porte), avec le diagnostic de l'air et l'émargement.
 
 ## Vue de tout l'IUT (`iut.html`)
 
 - Les 23 salles et leurs places viennent des emplois du temps CELCAT (2025-2026 et 2026-2027) : 2 amphithéâtres (80 et 120 places) et 2 salles au rez-de-chaussée, 9 salles au 1er étage, 10 au 2e. L'étage est déduit du numéro.
-- Les cours de la classe BUT3 ESE FA S5 (TD1 = TP1 + TP2) de la semaine du 16 novembre 2026 sont **réels** (étiquette « EDT réel »), lus dans CELCAT. Les autres cours sont simulés pour remplir les salles.
-- **Le plan est schématique** : on n'a pas le vrai plan. Pour le corriger, on modifie l'ordre et le côté des salles dans `js/iut/batiment.js` (le plan d'évacuation du couloir suffit).
+- Les cours de la classe BUT3 ESE FA S5 (TD1 = TP1 + TP2) de la semaine du 16 novembre 2026 sont réels (marqués « EDT réel »), lus dans CELCAT. Les autres cours sont simulés pour remplir les salles.
+- Le plan est schématique, on n'a pas le vrai plan. Pour le corriger, on change l'ordre et le côté des salles dans `js/iut/batiment.js` (le plan d'évacuation du couloir suffit).
 - Le nombre de personnes vient des capteurs de la porte en SAR 200, et du Wi-Fi ailleurs (±2 personnes, comme mesuré sur les données ROBOD, voir `../donnees_reelles`).
 - L'émargement se fait par badge dans chaque salle. Le directeur voit les présents, les retards et les absents de chaque cours, pas les déplacements d'un étudiant dans le bâtiment (RGPD).
-- Les effectifs (9 par demi-groupe, à confirmer), la ventilation des salles et le CO₂ sont inventés pour la démo : un bandeau le rappelle en haut de la page.
+- Les effectifs (9 par demi-groupe, à confirmer), la ventilation des salles et le CO₂ sont inventés pour la démo. Un bandeau le rappelle en haut de la page.
 
 | Fichier | Rôle |
 | --- | --- |
@@ -26,29 +28,29 @@ L'interface de suivi des classes est dans [suivi](suivi) (servie par le serveur 
 
 ## Salle SAR 200 en détail (`index.html`)
 
-Salle de cours en 3D dans le navigateur. Elle affiche les étudiants, le CO₂, la ventilation et le diagnostic des quatre causes : ventilation en panne, fenêtre ouverte, capteur de CO₂ qui dérive, comptage faux.
+Salle de cours en 3D dans le navigateur. On voit les étudiants, le CO₂, la ventilation et le diagnostic : ventilation en panne, fenêtre ouverte, capteur de CO₂ qui dérive, comptage faux.
 
-Elle fait aussi l'émargement : chaque étudiant badge sa carte (NFC) à la porte, et chaque badge est comparé aux passages vus par les capteurs de la porte. Une entrée sans badge ou une carte badgée pour un absent est repérée.
+L'émargement se fait aussi : chaque étudiant badge sa carte (NFC) à la porte, et le badge est comparé aux passages vus par les capteurs. Une entrée sans badge ou une carte badgée pour un absent est repérée.
 
-Pour l'instant, les capteurs sont **simulés** (`js/simulation.js`). Quand le matériel arrivera, on remplacera la simulation par les vraies mesures.
+Pour l'instant les capteurs sont simulés (`js/simulation.js`). Quand le matériel arrivera, on branchera les vraies mesures.
 
 ## Lancer
 
 Le plus simple : double-cliquer sur `lancer.bat` à la racine du projet. Il lance le serveur en simulation et ouvre la page.
 
 Les pages marchent de deux façons :
-- **servies par le serveur CampusTwin** (`python serveur/serveur.py`) : elles affichent les données du serveur, capteurs réels ou bâtiment simulé par le serveur. Le temps est celui du serveur ;
-- **servies par un simple serveur web** (`python -m http.server 8001` dans ce dossier) : elles simulent elles-mêmes le bâtiment dans le navigateur, avec les boutons de jour et de vitesse.
+- avec le serveur CampusTwin (`python serveur/serveur.py`) : elles affichent les données du serveur (capteurs réels ou bâtiment simulé) ;
+- avec un simple serveur web (`python -m http.server 8001` dans ce dossier) : elles simulent le bâtiment dans le navigateur, avec les boutons de jour et de vitesse.
 
 En ouvrant directement `index.html` (double-clic), le navigateur bloque les modules JavaScript : il faut passer par l'un des deux serveurs. La bibliothèque 3D (Three.js 0.160) est chargée depuis internet.
 
 ## Utilisation
 
 - Faire tourner la salle à la souris (clic gauche), zoomer avec la molette.
-- **Provoquer une panne** : les boutons du bas déclenchent chaque panne. Le panneau « Diagnostic » montre comment elle est repérée.
+- Les boutons du bas provoquent chaque panne. Le panneau « Diagnostic » montre comment elle est repérée.
 - La vitesse règle le temps simulé : × 300 = 5 min par seconde.
 - La dérive du capteur de CO₂ est vérifiée la nuit (19 h 30 – 20 h 30). Il faut donc laisser tourner jusqu'au soir.
-- **Tester l'émargement** : « Badger aussi la carte d'un absent » et « Entrer sans badger » provoquent une fraude à chaque cours tant que le bouton est rouge. Le panneau « Émargement » montre qui est présent, ce qui est à vérifier, et le lecteur de badge clignote en rouge dans la 3D.
+- Pour tester l'émargement, « Badger aussi la carte d'un absent » et « Entrer sans badger » provoquent une fraude à chaque cours tant que le bouton est rouge. Le panneau « Émargement » montre qui est présent et ce qui est à vérifier.
 - Le bouton « Télécharger la feuille du jour » donne un CSV (ouvrable dans Excel) avec la présence par cours et par demi-journée.
 
 ## Émargement et RGPD

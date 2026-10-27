@@ -37,12 +37,12 @@ export async function vueClasses(zone, ctx) {
       <thead><tr><th>Classe</th><th class="nombre">Étudiants</th><th class="nombre">Séances</th><th>Taux de présence</th>
         <th class="nombre">Absences</th><th class="nombre">Retards</th><th class="nombre">Justifiées</th><th class="nombre">À vérifier</th></tr></thead>
       <tbody>${classes.map(c => `<tr class="cliquable" tabindex="0" data-lien="#/classe/${encodeURIComponent(c.cle)}?du=${periode.du}&au=${periode.au}">
-        <td><b>${echapper(c.nom)}</b> ${c.reel ? '<span class="etiquette-reel">réelle</span>' : '<span class="etiquette-simule">simulée</span>'}</td>
+        <td><b>${echapper(c.nom)}</b> ${c.reel ? '' : '<span class="etiquette-simule">(simulée)</span>'}</td>
         <td class="nombre">${c.etudiants}</td><td class="nombre">${c.seances}</td><td>${barreTaux(c.taux)}</td>
         <td class="nombre">${c.absents}</td><td class="nombre">${c.retards}</td><td class="nombre">${c.justifies}</td><td class="nombre">${c.a_verifier}</td>
       </tr>`).join('')}</tbody>
     </table></div>
-    ${cachees ? `<p class="sous">${cachees} groupes simulés cachés (ils remplissent les salles dans la démo).</p>` : ''}`
+    ${cachees ? `<p class="sous">${cachees} groupes simulés cachés.</p>` : ''}`
     : '<p class="vide">Aucune séance sur cette période.</p>');
 }
 vueClasses.rafraichir = 15000;

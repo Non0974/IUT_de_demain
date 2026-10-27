@@ -1,22 +1,22 @@
 // Tickets : il manque une table, des feutres, le vidéoprojecteur ne marche pas...
-// Un enseignant signale en quelques clics ; le jumeau ajoute l'échéance (prochain cours dans la salle),
-// l'urgence, le bon moment pour intervenir et les places perdues. Le service technique prend en charge.
+// Un enseignant signale le problème ; le serveur ajoute l'échéance (prochain cours dans la salle),
+// l'urgence, le moment où la salle est libre et les places perdues. Le service technique s'en occupe.
 
 import { api } from '../api.js';
-import { afficher, echapper, heure, tuile } from '../ui.js';
+import { afficher, echapper, tuile } from '../ui.js';
 
 const URGENCES = {
-  urgent: { libelle: 'Urgent', icone: '!', classe: 'absent' },
-  'avant le prochain cours': { libelle: 'Avant le prochain cours', icone: '◷', classe: 'retard' },
-  'pas pressé': { libelle: 'Pas pressé', icone: '·', classe: 'attendu' },
+  urgent: { libelle: 'Urgent', classe: 'absent' },
+  'avant le prochain cours': { libelle: 'Avant le prochain cours', classe: 'retard' },
+  'pas pressé': { libelle: 'Pas pressé', classe: 'attendu' },
 };
 const ETAGES = ['Rez-de-chaussée', '1er étage', '2e étage', '3e étage'];
 let message = null;                  // dernier résultat, gardé quelques secondes malgré le rafraîchissement
 
-function puceUrgence(x) {
-  if (x.statut === 'résolu') return '<span class="statut s-present"><span class="i" aria-hidden="true">✓</span>Résolu</span>';
+function etiquetteUrgence(x) {
+  if (x.statut === 'résolu') return '<span class="statut s-present">Résolu</span>';
   const u = URGENCES[x.urgence] || URGENCES['pas pressé'];
-  return `<span class="statut s-${u.classe}"><span class="i" aria-hidden="true">${u.icone}</span>${u.libelle}</span>`;
+  return `<span class="statut s-${u.classe}">${u.libelle}</span>`;
 }
 
 function quand(t, aujourdhui) {
@@ -30,20 +30,16 @@ function formulaire(d, salleChoisie) {
   const parEtage = {};
   d.salles.forEach(s => { (parEtage[s.etage] ||= []).push(s); });
   const salles = Object.keys(parEtage).sort().map(e => `<optgroup label="${ETAGES[e] || `Étage ${e}`}">${parEtage[e].map(s =>
-    `<option value="${echapper(s.id)}"${s.id === salleChoisie ? ' selected' : ''}>${echapper(s.id)} — ${echapper(s.libelle)}, ${s.places} places</option>`).join('')}</optgroup>`).join('');
-  const objets = Object.entries(d.objets).map(([cle, o], i) => `<label class="choix-objet">
-      <input type="radio" name="objet" value="${cle}" ${i === 0 ? 'checked' : ''} data-quantite="${o.quantite ? 1 : 0}">
-      <span>${echapper(o.nom)}</span></label>`).join('');
+    `<option value="${echapper(s.id)}"${s.id === salleChoisie ? ' selected' : ''}>${echapper(s.id)} (${s.places} places)</option>`).join('')}</optgroup>`).join('');
+  const objets = Object.entries(d.objets).map(([cle, o]) =>
+    `<option value="${cle}" data-quantite="${o.quantite ? 1 : 0}">${echapper(o.nom)}</option>`).join('');
   return `<form class="carte formulaire-ticket" id="signaler">
-      <div><h2 class="titre-section">Signaler un problème</h2>
-        <p class="sous">Le jumeau ajoute l'échéance et prévient le bon service.</p></div>
+      <h2 class="titre-section">Signaler un problème</h2>
       <label>Salle <select name="salle" required><option value="">Choisir…</option>${salles}</select></label>
-      <fieldset class="objets"><legend>Quoi ?</legend>${objets}</fieldset>
-      <div class="ligne-formulaire">
-        <label id="champ-quantite">Combien ? <input type="number" name="quantite" min="1" max="30" value="1"></label>
-        <label class="large">Précision <span class="sous">(facultatif)</span>
-          <input name="detail" maxlength="300" autocomplete="off" placeholder="Ex. : les feutres bleus ne marchent plus"></label>
-      </div>
+      <label>Problème <select name="objet">${objets}</select></label>
+      <label id="champ-quantite">Nombre <input type="number" name="quantite" min="1" max="30" value="1"></label>
+      <label>Précision (facultatif)
+        <input name="detail" maxlength="300" autocomplete="off" placeholder="Ex. : les feutres bleus ne marchent plus"></label>
       <button type="submit" class="bouton principal-bouton">Envoyer</button>
     </form>`;
 }
@@ -57,24 +53,21 @@ function carteTicket(x, d, aujourdhui) {
   } else if (x.mien && x.statut !== 'résolu') {
     actions.push(`<button type="button" class="bouton petit" data-ticket="${x.id}" data-statut="résolu">C'est réglé</button>`);
   }
-  const perdues = x.places_perdues && x.statut !== 'résolu'
-    ? `<p class="sous">−${x.places_perdues} place${x.places_perdues > 1 ? 's' : ''} : la salle compte ${x.places_restantes} places au lieu de ${x.places}
-       tant que le ticket est ouvert (capacité et propositions de changement de salle).</p>` : '';
-  const suivi = x.suivi.map(s => `<li><span class="sous">${quand(s.t, aujourdhui)}</span> ${echapper(s.auteur)}
-      ${s.statut && s.statut !== 'ouvert' ? `: <b>${echapper(s.statut)}</b>` : s.statut === 'ouvert' && s !== x.suivi[0] ? ' : <b>rouvert</b>' : ''}
-      ${s.texte && s !== x.suivi[0] ? ` — ${echapper(s.texte)}` : ''}</li>`).join('');
-  const auteur = x.source === 'jumeau' ? 'Ouvert par le jumeau' : `Signalé par ${echapper(x.auteur)}`;
-  return `<article class="carte ticket${x.urgence === 'urgent' && x.statut !== 'résolu' ? ' ticket-urgent' : ''}">
-      <div class="entete"><span class="salle">${echapper(x.salle)}</span>${puceUrgence(x)}</div>
-      <div class="titre-ticket">${echapper(x.titre)}${x.statut === 'en cours' ? ' <span class="etat-seance etat-a-venir">pris en charge</span>' : ''}</div>
+  const suivi = x.suivi.slice(1).map(s => `<li>${quand(s.t, aujourdhui)}, ${echapper(s.auteur)}
+      ${s.statut ? `: ${s.statut === 'ouvert' ? 'rouvert' : echapper(s.statut)}` : ''}${s.texte ? ` : ${echapper(s.texte)}` : ''}</li>`).join('');
+  const auteur = x.source === 'jumeau' ? 'Ouvert par CampusTwin' : `Signalé par ${echapper(x.auteur)}`;
+  const aFaire = x.statut === 'résolu' ? '' : `<p>${x.echeance
+    ? `À faire ${x.echeance.maintenant ? 'tout de suite' : `avant ${echapper(x.echeance.texte)}`}. ` : ''}${echapper(x.raison)}</p>
+      ${x.creneau ? `<p class="sous">${echapper(x.creneau.texte)}</p>` : ''}
+      ${x.places_perdues ? `<p class="sous">${x.places_perdues} place${x.places_perdues > 1 ? 's' : ''} en moins : ${x.places_restantes} au lieu de ${x.places}.</p>` : ''}`;
+  return `<article class="carte ticket">
+      <div class="entete"><b>${echapper(x.salle)} : ${echapper(x.titre)}</b>${etiquetteUrgence(x)}</div>
       ${x.detail && x.objet !== 'autre' ? `<p class="detail">${echapper(x.detail)}</p>` : ''}
-      ${x.statut !== 'résolu' ? `<p>${x.echeance ? `<b>À faire ${x.echeance.maintenant ? 'tout de suite' : `avant ${echapper(x.echeance.texte)}`}.</b> ` : ''}${echapper(x.raison)}</p>
-        ${x.creneau ? `<p class="creneau${x.creneau.maintenant ? ' libre' : ''}"><span aria-hidden="true">◷</span> ${echapper(x.creneau.texte)}</p>` : ''}` : ''}
-      ${perdues}
-      <div class="sous">${auteur} ${quand(x.cree, aujourdhui)} · ${echapper(x.service_nom)}</div>
-      ${x.suivi.length > 1 ? `<details class="suivi-ticket"><summary>Suivi (${x.suivi.length - 1})</summary><ul>${suivi}</ul></details>` : ''}
+      ${aFaire}
+      <p class="sous">${auteur} ${quand(x.cree, aujourdhui)}, service ${echapper(x.service_nom.toLowerCase())}.${x.statut === 'en cours' ? ' Pris en charge.' : ''}</p>
+      ${suivi ? `<details class="suivi-ticket"><summary>Suivi (${x.suivi.length - 1})</summary><ul>${suivi}</ul></details>` : ''}
       <form class="commentaire" data-commenter="${x.id}">
-        <input name="texte" maxlength="300" autocomplete="off" placeholder="Ajouter un mot…" aria-label="Commentaire sur le ticket ${x.id}">
+        <input name="texte" maxlength="300" autocomplete="off" placeholder="Commentaire" aria-label="Commentaire sur le ticket ${x.id}">
         <button type="submit" class="bouton petit">Ajouter</button>
       </form>
       ${actions.length ? `<div class="actions">${actions.join('')}</div>` : ''}
@@ -83,18 +76,20 @@ function carteTicket(x, d, aujourdhui) {
 
 export async function vueTickets(zone, ctx) {
   // Pas de rafraîchissement pendant une saisie : on perdrait ce qui est en cours d'écriture
-  if (zone.contains(document.activeElement) && document.activeElement.matches('input:not([type=radio]), select, textarea')) return;
+  if (zone.contains(document.activeElement) && document.activeElement.matches('input, select, textarea')) return;
   ctx.titre('Tickets');
   const d = await api('/api/tickets');
   const aujourdhui = ctx.info()?.date;
   const resolus = ctx.query.get('vue') === 'resolus';
   const service = ctx.query.get('service') || '';
+  const majQuantite = () => {
+    const choix = zone.querySelector('#signaler select[name=objet]');
+    zone.querySelector('#champ-quantite').hidden = choix.selectedOptions[0]?.dataset.quantite !== '1';
+  };
 
   if (!zone.dataset.ecoute) {
     zone.dataset.ecoute = '1';
-    zone.addEventListener('change', e => {
-      if (e.target.name === 'objet') zone.querySelector('#champ-quantite').hidden = e.target.dataset.quantite !== '1';
-    });
+    zone.addEventListener('change', e => { if (e.target.name === 'objet') majQuantite(); });
     zone.addEventListener('submit', async e => {
       e.preventDefault();
       const f = e.target;
@@ -103,11 +98,9 @@ export async function vueTickets(zone, ctx) {
           const objet = f.elements.objet.value;
           const r = await api('/api/tickets', { salle: f.elements.salle.value, objet, detail: f.elements.detail.value,
             quantite: d.objets[objet]?.quantite ? Number(f.elements.quantite.value) : null });
-          message = { classe: 'ok', t: Date.now(), texte: r.deja
-            ? 'Déjà signalé dans cette salle : votre signalement est ajouté au ticket existant.'
-            : 'Ticket envoyé. Le service concerné le voit tout de suite.' };
+          message = { classe: 'ok', t: Date.now(), texte: r.deja ? 'Déjà signalé : ajouté au ticket existant.' : 'Ticket envoyé.' };
           f.reset();
-          zone.querySelector('#champ-quantite').hidden = !d.objets[f.elements.objet.value]?.quantite;
+          majQuantite();
         } else if (f.dataset.commenter) {
           if (!f.elements.texte.value.trim()) return;
           await api('/api/tickets/changer', { id: Number(f.dataset.commenter), texte: f.elements.texte.value });
@@ -136,11 +129,12 @@ export async function vueTickets(zone, ctx) {
   const finis = d.tickets.filter(x => x.statut === 'résolu');
   const visibles = (resolus ? finis : aFaire).filter(x => !service || x.service === service);
   const perdues = aFaire.reduce((n, x) => n + x.places_perdues, 0);
+  const urgents = aFaire.filter(x => x.urgence === 'urgent').length;
   const tuiles = [
-    tuile(aFaire.length, 'à faire', `${aFaire.filter(x => x.statut === 'en cours').length} pris en charge`),
-    tuile(aFaire.filter(x => x.urgence === 'urgent').length, 'urgents', 'gênent un cours qui arrive', aFaire.some(x => x.urgence === 'urgent') ? 'alerte' : ''),
-    tuile(perdues, `place${perdues > 1 ? 's' : ''} perdue${perdues > 1 ? 's' : ''}`, 'tables, chaises, postes manquants'),
-    tuile(finis.length, `résolu${finis.length > 1 ? 's' : ''}`, 'ces 7 derniers jours', finis.length ? 'bon' : ''),
+    tuile(aFaire.length, 'tickets ouverts', `dont ${aFaire.filter(x => x.statut === 'en cours').length} pris en charge`),
+    tuile(urgents, `urgent${urgents > 1 ? 's' : ''}`, '', urgents ? 'alerte' : ''),
+    tuile(perdues, `place${perdues > 1 ? 's' : ''} en moins`),
+    tuile(finis.length, `résolu${finis.length > 1 ? 's' : ''} cette semaine`),
   ];
   const lien = (vue, svc) => `#/tickets?${new URLSearchParams({ ...(vue ? { vue } : {}), ...(svc ? { service: svc } : {}) })}`;
   const services = `<select id="filtre-service" aria-label="Service">
@@ -155,12 +149,11 @@ export async function vueTickets(zone, ctx) {
       <div class="deux-colonnes colonnes-tickets">
         <section class="section" id="liste-tickets"></section>
         <section class="section">${formulaire(d, ctx.query.get('salle') || '')}
-          <p class="note">Tables et chaises manquantes : la salle perd leurs places (une table = 2 places) tant que le ticket
-            est ouvert. Le jumeau ouvre aussi lui-même un ticket quand il détecte une panne (ventilation, capteur).</p>
+          <p class="note">Une table manquante compte pour 2 places, une chaise ou un poste pour 1.
+            CampusTwin ouvre aussi un ticket quand il détecte une panne de ventilation ou de capteur.</p>
         </section>
       </div>`;
-    const coche = zone.querySelector('input[name=objet]:checked');
-    zone.querySelector('#champ-quantite').hidden = coche?.dataset.quantite !== '1';
+    majQuantite();
   }
   const zoneMessage = zone.querySelector('#message-tickets');
   zoneMessage.className = `message${avis ? ` ${avis.classe}` : ''}`;
@@ -169,12 +162,12 @@ export async function vueTickets(zone, ctx) {
   const liste = zone.querySelector('#liste-tickets');
   afficher(liste, `
     <div class="barre-outils">
-      <a class="bouton${resolus ? '' : ' principal-bouton'}" href="${lien('', service)}">À faire (${aFaire.length})</a>
+      <a class="bouton${resolus ? '' : ' principal-bouton'}" href="${lien('', service)}">Ouverts (${aFaire.length})</a>
       <a class="bouton${resolus ? ' principal-bouton' : ''}" href="${lien('resolus', service)}">Résolus (${finis.length})</a>
       <span class="espace"></span>${services}
     </div>
     ${visibles.length ? `<div class="liste-tickets">${visibles.map(x => carteTicket(x, d, aujourdhui)).join('')}</div>`
-      : `<p class="vide">${resolus ? 'Aucun ticket résolu ces 7 derniers jours.' : 'Rien à faire : aucun ticket ouvert.'}</p>`}`);
+      : `<p class="vide">${resolus ? 'Aucun ticket résolu cette semaine.' : 'Aucun ticket ouvert.'}</p>`}`);
   const filtre = liste.querySelector('#filtre-service');
   filtre.onchange = () => { location.hash = lien(resolus ? 'resolus' : '', filtre.value); };
 }

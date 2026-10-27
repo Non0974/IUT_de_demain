@@ -36,7 +36,7 @@ Modèle le plus simple possible : personnes = a × appareils + b, réglé sur la
 ![Wi-Fi](figures/wifi_robod_salle1.png)
 
 - Le Wi-Fi suit bien le remplissage, mais il bruite (les téléphones se connectent et se déconnectent).
-- Le coefficient change d'une salle à l'autre (0,6 à 1,4 personne par appareil). Utiliser tel quel le modèle d'une salle dans une autre donne 3,3 personnes d'erreur. **Pour tout l'IUT, chaque salle doit être recalée.** C'est le rôle de la salle équipée de capteurs à la porte.
+- Le coefficient change d'une salle à l'autre (0,6 à 1,4 personne par appareil). Utiliser tel quel le modèle d'une salle dans une autre donne 3,3 personnes d'erreur. Pour tout l'IUT, chaque salle doit être recalée. C'est le rôle de la salle équipée de capteurs à la porte.
 
 ### Une vraie IA fait-elle mieux ? ([test_wifi_ia.py](test_wifi_ia.py))
 
@@ -51,16 +51,16 @@ On a essayé un modèle d'apprentissage (gradient boosting) qui voit le Wi-Fi de
 | Bibliothèque | 2,2 (70 %) | 1,8 (75 %) | 1,8 (74 %) |
 
 - L'IA gagne un peu dans les bureaux et la bibliothèque, pas dans les salles de cours. Le gain est faible : on ne peut pas dire que l'IA « compte » mieux que la droite.
-- Le résultat utile pour tout l'IUT : **un modèle appris sur d'autres salles marche déjà dans une nouvelle salle**, sans réglage (sauf la salle 2, où même le CO₂ ne suit pas les personnes).
-- Recaler une salle sur 1 à 3 jours peut faire **pire** que ne rien faire (salle de cours 1 : 4,7 personnes d'erreur au lieu de 2,2), car les premiers jours ne ressemblent pas aux suivants. Le serveur part donc du modèle commun et ne s'en éloigne que peu à peu, avec des semaines de badges ([serveur/salle.py](../serveur/salle.py), `ModeleWifi`).
+- Le résultat utile pour tout l'IUT : un modèle appris sur d'autres salles marche déjà dans une nouvelle salle, sans réglage (sauf la salle 2, où même le CO₂ ne suit pas les personnes).
+- Recaler une salle sur 1 à 3 jours peut faire pire que ne rien faire (salle de cours 1 : 4,7 personnes d'erreur au lieu de 2,2), car les premiers jours ne ressemblent pas aux suivants. Le serveur part donc du modèle commun et ne s'en éloigne que peu à peu, avec des semaines de badges ([serveur/salle.py](../serveur/salle.py), `ModeleWifi`).
 
 ## Résultat 2 : le CO₂ marche, mais moins bien qu'en simulation
 
 ![Journée](figures/co2_journee_salle_danoise.png)
 
 À chaque fois que la salle danoise se vide, on calcule le débit d'air comme dans le jumeau :
-- **avec le comptage**, sur les 30 min avant les départs ;
-- **sans le comptage**, par la décroissance du CO₂ dans les 16 min qui suivent.
+- avec le comptage, sur les 30 min avant les départs ;
+- sans le comptage, par la décroissance du CO₂ dans les 16 min qui suivent.
 
 ![Départs](figures/co2_departs_salle_danoise.png)
 
@@ -71,7 +71,7 @@ On a essayé un modèle d'apprentissage (gradient boosting) qui voit le Wi-Fi de
 
 Dans ROBOD, le test CO₂ ne marche pas : les salles sont très ventilées et presque vides (7 personnes en moyenne), donc le CO₂ ne monte que de 30 à 100 ppm. Dans une salle, le CO₂ ne suit même pas le nombre de personnes (capteur mal placé).
 
-## Résultat 3 : le CO₂, témoin de l'émargement ([test_temoin_co2.py](test_temoin_co2.py))
+## Résultat 3 : vérifier l'émargement avec le CO₂ ([test_temoin_co2.py](test_temoin_co2.py))
 
 Le CO₂ dit combien de personnes ont respiré dans la salle. Si 20 cartes ont badgé mais que le CO₂ correspond à 13 personnes, il y a des cartes en trop. On teste l'idée sur les 5 salles de ROBOD, où l'on connaît le vrai nombre de personnes :
 - personnes = a × (montée du CO₂) + b × (CO₂ − extérieur) + c × (CO₂ − extérieur) × ventilation ;
@@ -86,15 +86,15 @@ Le CO₂ dit combien de personnes ont respiré dans la salle. Si 20 cartes ont b
 | Bibliothèque | 4,1 pers. | 6 % | 30 % | 51 % | 77 % |
 | Salle de cours 1 | 6,4 pers. | 0 % | 7 % | 7 % | 7 % |
 
-- **Le témoin repère une fraude de groupe** (un étudiant qui badge pour 6 à 8 absents) dans la plupart des salles, avec peu de fausses alertes.
+- On repère une fraude de groupe (un étudiant qui badge pour 6 à 8 absents) dans la plupart des salles, avec peu de fausses alertes.
 - Il ne voit pas 1 ou 2 cartes : c'est le rôle du comptage à la porte.
 - Dans une salle très ventilée (salle de cours 1 : le CO₂ ne dépasse pas 761 ppm), il ne voit rien. Le serveur le dit (« signal trop faible ») au lieu de donner un avis.
 - Apprendre au fil de l'eau et tenir compte de la ventilation améliore un peu le résultat (avec la seule première semaine : 76 % au lieu de 92 % pour 6 cartes en salle de cours 2).
 
 ## Ce que ça change pour le projet
 
-1. **Mesurer le CO₂ souvent.** Le SCD-41 mesure toutes les 5 s. On enregistre au moins une valeur par minute, sinon la décroissance est inutilisable.
-2. **Une phase de recalage par salle (2 semaines).** On apprend le biais entre les deux méthodes (ici 1,55) et le coefficient du Wi-Fi. Les seuils du diagnostic sont fixés à partir de la dispersion réelle, pas à la main.
-3. **Décider sur plusieurs départs, pas un seul.** Un départ seul varie trop (après recalage, de 0,6 à 1,2). En prenant la médiane de plusieurs départs, un comptage faux de 50 % devrait se voir. Avec seulement 7 bons départs ici, c'est encore à confirmer sur notre propre salle.
-4. **Ajouter une 5ᵉ cause : capteur mal placé.** Le CO₂ ne réagit pas aux personnes comptées.
-5. **La méthode sert surtout là où l'air est mauvais.** Quand une salle est très ventilée, le CO₂ bouge trop peu pour mesurer le débit, mais on sait que l'air est bon. On le dit tel quel.
+1. Mesurer le CO₂ souvent. Le SCD-41 mesure toutes les 5 s. On enregistre au moins une valeur par minute, sinon la décroissance est inutilisable.
+2. Une phase de recalage par salle (2 semaines). On apprend le biais entre les deux méthodes (ici 1,55) et le coefficient du Wi-Fi. Les seuils du diagnostic sont fixés à partir de la dispersion réelle, pas à la main.
+3. Décider sur plusieurs départs, pas un seul. Un départ seul varie trop (après recalage, de 0,6 à 1,2). En prenant la médiane de plusieurs départs, un comptage faux de 50 % devrait se voir. Avec seulement 7 bons départs ici, c'est encore à confirmer sur notre propre salle.
+4. Ajouter une 5ᵉ cause : capteur mal placé. Le CO₂ ne réagit pas aux personnes comptées.
+5. La méthode sert surtout là où l'air est mauvais. Quand une salle est très ventilée, le CO₂ bouge trop peu pour mesurer le débit, mais on sait que l'air est bon. On le dit tel quel.

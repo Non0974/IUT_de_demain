@@ -7,8 +7,8 @@ let filtre = '';
 
 function ligne(s) {
   const lien = s.etat === 'à venir' ? '' : `#/seance/${encodeURIComponent(s.id)}`;
-  const anomalies = s.anomalies ? `<span class="statut s-verifier" title="badges et passages qui ne collent pas">${s.anomalies}</span>` : '';
-  const corrections = s.corrections ? `<span class="sous" title="statuts corrigés à la main">✎ ${s.corrections}</span>` : '';
+  const anomalies = s.anomalies ? `<span class="statut s-verifier">${s.anomalies}</span>` : '';
+  const corrections = s.corrections ? `<span class="sous">${s.corrections} corrigé${s.corrections > 1 ? 's' : ''}</span>` : '';
   return `<tr class="${lien ? 'cliquable' : ''}" ${lien ? `data-lien="${lien}" tabindex="0"` : ''}
     data-texte="${echapper(`${s.salle} ${s.matiere} ${s.enseignant} ${s.groupes.join(' ')}`.toLowerCase())}">
     <td class="nowrap">${heure(s.debut)}–${heure(s.fin)}</td>
@@ -54,7 +54,7 @@ export async function vueSeances(zone, ctx) {
   }
   const finies = d.seances.filter(s => s.etat === 'terminée').length;
   const enCours = d.seances.filter(s => s.etat === 'en cours').length;
-  zone.querySelector('#resume-jour').textContent = `${d.seances.length} séances · ${enCours} en cours · ${finies} terminées`;
+  zone.querySelector('#resume-jour').textContent = `${d.seances.length} séances, ${enCours} en cours, ${finies} terminées`;
   afficher(zone.querySelector('#liste-seances'), d.seances.length ? `
     <div class="tableau-conteneur"><table class="liste">
       <thead><tr><th>Horaire</th><th>Salle</th><th>Cours</th><th>Classe</th><th>Enseignant</th><th>Émargement</th><th>Anomalies</th><th>État</th></tr></thead>

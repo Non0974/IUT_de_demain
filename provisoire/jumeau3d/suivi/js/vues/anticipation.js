@@ -89,7 +89,7 @@ const REMPLISSAGE = [
   { classe: 'remplissage-1', encre: 'encre-foncee', texte: 'moins de 40 %', min: 0 },
 ];
 const ETATS = { trop_petite: 'salle trop petite', pleine: 'salle pleine', adaptee: 'salle adaptée', trop_grande: 'salle trop grande' };
-const SOURCES = { porte: 'comptés à la porte', badges: 'badgés', 'prévu': 'prévus par le jumeau' };
+const SOURCES = { porte: 'comptés à la porte', badges: 'badgés', 'prévu': 'prévus' };
 
 const niveauRemplissage = r => REMPLISSAGE.find(n => r >= n.min);
 
@@ -112,19 +112,19 @@ function frise(cap) {
       const x0 = x(c.debut) + 1;                       // 2 px de vide entre deux cours qui se suivent
       const w = Math.max(2, x(c.fin) - 1 - x0);
       const n = niveauRemplissage(c.etudiants / s.places);
-      const texte = `${c.etat === 'trop_petite' ? '⚠ ' : ''}${c.source === 'prévu' ? '≈' : ''}${c.etudiants}/${s.places}`;
+      const texte = `${c.source === 'prévu' ? '~' : ''}${c.etudiants}/${s.places}`;
       const info = {
-        titre: `${c.matiere} · ${c.groupes.join(' + ')}`,
+        titre: `${c.matiere}, ${c.groupes.join(' + ')}`,
         valeur: `${c.etudiants} étudiants pour ${s.places} places (${Math.round(c.remplissage * 100)} %)`,
-        detail: `${s.salle} · ${heure(c.debut)}–${heure(c.fin)} · ${SOURCES[c.source]} · ${ETATS[c.etat]}`
-          + (c.plus_petite ? ` · ${c.plus_petite.salle} (${c.plus_petite.places} places) était libre` : ''),
+        detail: `${s.salle}, ${heure(c.debut)}–${heure(c.fin)}, ${SOURCES[c.source]}, ${ETATS[c.etat]}`
+          + (c.plus_petite ? `. ${c.plus_petite.salle} (${c.plus_petite.places} places) était libre` : ''),
       };
       const etiquette = texte.length * 6.8 + 8 <= w
         ? `<text x="${x0 + w / 2}" y="${y + epaisseur / 2 + 4}" class="texte-bloc ${n.encre}" text-anchor="middle">${texte}</text>` : '';
       return `<g class="bloc" tabindex="0" role="img" aria-label="${echapper(`${info.titre}, ${info.valeur}, ${info.detail}`)}"
-          data-info="${echapper(JSON.stringify(info))}"><rect x="${x0}" y="${y}" width="${w}" height="${epaisseur}" rx="4" class="${n.classe}"/>${etiquette}</g>`;
+          data-info="${echapper(JSON.stringify(info))}"><rect x="${x0}" y="${y}" width="${w}" height="${epaisseur}" class="${n.classe}"/>${etiquette}</g>`;
     }).join('');
-    return `<text x="${marge.g - 8}" y="${y + epaisseur / 2 + 4}" class="axe-svg" text-anchor="end">${echapper(s.salle)} · ${s.places}</text>${blocs}`;
+    return `<text x="${marge.g - 8}" y="${y + epaisseur / 2 + 4}" class="axe-svg" text-anchor="end">${echapper(s.salle)} (${s.places})</text>${blocs}`;
   }).join('');
   const maintenant = cap.heure > h0 && cap.heure < h1
     ? `<line x1="${x(cap.heure)}" x2="${x(cap.heure)}" y1="${marge.h - 4}" y2="${H}" class="maintenant-svg"/>` : '';
@@ -150,24 +150,20 @@ const CHAUFFAGES = { confort: 'Confort', reduit: 'Réduit', hors_gel: 'Hors-gel'
 
 function sectionAmbiance(a) {
   const b = a.bilan;
-  const auto = a.automate.connecte
-    ? `l'automate applique : chauffage ${(CHAUFFAGES[a.automate.chauffage] || '?').toLowerCase()}, lumière ${a.automate.eclairage ? 'allumée' : 'éteinte'}`
-    : 'automate non connecté : consigne non appliquée';
+  const auto = a.automate.connecte ? 'automate connecté' : 'automate non connecté';
   const economie = e => (e && e.economie != null ? `−${pourcent(e.economie)}` : '—');
   const tuiles = [
-    tuile(CHAUFFAGES[a.chauffage], `chauffage de ${echapper(a.salle)} maintenant`, `lumière ${a.eclairage ? 'allumée' : 'éteinte'} · ${auto}`),
-    tuile(economie(b && b.salle), `énergie de ${echapper(a.salle)} aujourd'hui`,
-      b ? `${b.salle.jumeau} kWh au lieu de ${b.salle.fixe} (horaire fixe) · confort ${b.heures_confort.jumeau} h au lieu de ${b.heures_confort.fixe} h` : '', 'bon'),
-    tuile(economie(b && b.batiment), 'si les 23 salles étaient pilotées ainsi',
-      b ? `${b.batiment.jumeau} kWh au lieu de ${b.batiment.fixe} aujourd'hui (estimation)` : '', 'bon'),
+    tuile(CHAUFFAGES[a.chauffage], `chauffage ${echapper(a.salle)}`, `lumière ${a.eclairage ? 'allumée' : 'éteinte'}, ${auto}`),
+    tuile(economie(b && b.salle), `énergie ${echapper(a.salle)} aujourd'hui`,
+      b ? `${b.salle.jumeau} kWh au lieu de ${b.salle.fixe} kWh` : '', 'bon'),
+    tuile(economie(b && b.batiment), 'estimation pour les 23 salles',
+      b ? `${b.batiment.jumeau} kWh au lieu de ${b.batiment.fixe} kWh` : '', 'bon'),
   ];
   return `<section class="section">
-      <h2 class="titre-section">Chauffage et éclairage selon l'occupation <span class="sous">le jumeau décide, l'automate applique</span></h2>
+      <h2 class="titre-section">Chauffage et éclairage</h2>
       <div class="grille tuiles">${tuiles.join('')}</div>
-      <p class="sous">Chauffage en confort pendant un cours et 45 min avant, ou dès qu'il y a quelqu'un ; réduit le reste de la journée ;
-        hors-gel la nuit et le week-end. Lumière allumée seulement quand il y a quelqu'un. Comparé à l'horaire fixe d'avant
-        (confort de 7 h à 19 h, lumière de 8 h à 18 h). Puissances estimées : chauffage 50 W/m², éclairage 8 W/m².
-        L'automate garde la sécurité : arrêt d'urgence (lumière allumée, chauffage coupé), serveur muet (chauffage réduit).</p>
+      <p class="sous">Confort pendant les cours et 45 min avant, réduit le reste de la journée, hors-gel la nuit.
+        Lumière seulement quand il y a quelqu'un. Comparé à l'horaire fixe (confort de 7 h à 19 h).</p>
     </section>`;
 }
 
@@ -175,33 +171,31 @@ function sectionCapacite(cap) {
   const ch = cap.chiffres;
   const a = cap.appris;
   const tuiles = [
-    tuile(pourcent(ch.remplissage_moyen), 'remplissage moyen des salles', 'étudiants / places, pendant les cours du jour'),
-    tuile(pourcent(ch.occupation), 'occupation des salles', 'part des créneaux 8h–18h avec un cours'),
-    tuile(ch.trop_petite + ch.pleine, 'cours à l\'étroit', `${ch.trop_petite} avec plus d'étudiants que de places, ${ch.pleine} au-dessus de 90 %`,
+    tuile(pourcent(ch.remplissage_moyen), 'remplissage moyen', 'étudiants / places'),
+    tuile(pourcent(ch.occupation), 'occupation des salles', 'créneaux 8h–18h'),
+    tuile(ch.trop_petite, `salle${ch.trop_petite > 1 ? 's' : ''} trop petite${ch.trop_petite > 1 ? 's' : ''}`, `${ch.pleine} pleine${ch.pleine > 1 ? 's' : ''} (plus de 90 %)`,
       ch.trop_petite ? 'alerte' : ''),
-    tuile(ch.trop_grande, `salle${ch.trop_grande > 1 ? 's' : ''} trop grande${ch.trop_grande > 1 ? 's' : ''}`, 'moins de 40 % des places occupées'),
+    tuile(ch.trop_grande, `salle${ch.trop_grande > 1 ? 's' : ''} trop grande${ch.trop_grande > 1 ? 's' : ''}`, 'moins de 40 %'),
   ];
   const grandes = cap.salles.flatMap(s => s.cours.filter(c => c.etat === 'trop_grande' && c.moment === 'à venir').map(c =>
-    `<li><b>${echapper(c.matiere)}</b> <span class="sous">${echapper(c.groupes.join(' + '))}, ${heure(c.debut)}</span> :
+    `<li>${echapper(c.matiere)} (${echapper(c.groupes.join(' + '))}, ${heure(c.debut)}) :
       ${c.etudiants} étudiants pour ${s.places} places en ${echapper(s.salle)}${c.plus_petite
-        ? ` — ${echapper(c.plus_petite.salle)} (${c.plus_petite.places} places) est libre` : ' — pas de salle plus petite libre'}</li>`));
-  const effet = d => (Math.abs(d) < 0.01 ? 'comme d\'habitude' : `${d > 0 ? '+' : '−'}${Math.round(Math.abs(d) * 100)} % de présents`);
+        ? `, ${echapper(c.plus_petite.salle)} (${c.plus_petite.places} places) est libre` : ''}</li>`));
+  const effet = d => (Math.abs(d) < 0.01 ? 'normal' : `${d > 0 ? '+' : '−'}${Math.round(Math.abs(d) * 100)} %`);
   const moins = a.groupes.slice().sort((g, h) => g.taux - h.taux).slice(0, 3)
     .map(g => `${echapper(g.nom)} (${pourcent(g.taux)})`).join(', ');
   return `<section class="section">
-      <h2 class="titre-section">Places des salles <span class="sous">aujourd'hui · cours commencés : comptés ; à venir : prévus</span></h2>
+      <h2 class="titre-section">Places des salles aujourd'hui</h2>
       <div class="grille tuiles">${tuiles.join('')}</div>
       <div class="carte">
         <div class="conteneur-courbe">${frise(cap)}<div id="bulle-capacite" class="bulle bulle-bloc" hidden></div></div>
         <div class="legende">${REMPLISSAGE.slice().reverse().map(n => `<span><i class="${n.classe}"></i>${n.texte}</span>`).join('')}
-          <span>≈ : nombre prévu</span><span>⚠ : salle trop petite</span></div>
-        <p class="sous">Le jumeau a appris le taux de présence de chaque groupe sur les 14 derniers jours (moyenne ${pourcent(a.moyen)}).
-          Ce jour-là de la semaine : matin ${effet(a.demi_journees.matin)}, après-midi ${effet(a.demi_journees['après-midi'])}.
-          ${moins ? `Groupes du jour qui viennent le moins : ${moins}.` : ''}</p>
+          <span>~ : nombre prévu</span></div>
+        <p class="sous">Présence moyenne sur 14 jours : ${pourcent(a.moyen)} (ce jour : matin ${effet(a.demi_journees.matin)},
+          après-midi ${effet(a.demi_journees['après-midi'])}).${moins ? ` Groupes qui viennent le moins : ${moins}.` : ''}</p>
         ${tableauCapacite(cap)}
       </div>
-      ${grandes.length ? `<div class="carte"><b>Salles trop grandes à venir</b><ul class="liste-simple">${grandes.join('')}</ul>
-        <p class="sous">Pas de proposition automatique : changer de salle pour un petit groupe ne vaut le coup que si quelqu'un a besoin de la grande.</p></div>` : ''}
+      ${grandes.length ? `<div class="carte"><b>Salles trop grandes à venir</b><ul class="liste-simple">${grandes.join('')}</ul></div>` : ''}
     </section>`;
 }
 
@@ -279,33 +273,33 @@ export async function vueAnticipation(zone, ctx) {
   }
 
   const tuiles = [
-    tuile(b && b.economie != null ? `−${pourcent(b.economie)}` : '—', 'énergie de ventilation', b ? `${b.energie_kwh.jumeau} kWh au lieu de ${b.energie_kwh.regle} (règle simple), aujourd'hui` : '', 'bon'),
-    tuile(b ? `${b.minutes_au_dessus_1000.jumeau} min` : '—', 'au-dessus de 1000 ppm', b ? `contre ${b.minutes_au_dessus_1000.regle} min avec la règle simple` : ''),
-    tuile(d.precision['30 min'].erreur_moyenne != null ? `± ${d.precision['30 min'].erreur_moyenne} ppm` : '—', 'erreur des prévisions à 30 min',
-      d.precision['60 min'].erreur_moyenne != null ? `± ${d.precision['60 min'].erreur_moyenne} ppm à 1 h (${d.precision['60 min'].n} vérifications)` : 'en cours de mesure'),
-    tuile(d.propositions.length, `proposition${d.propositions.length > 1 ? 's' : ''} de salle`, `${d.changements.length} changement${d.changements.length > 1 ? 's' : ''} accepté${d.changements.length > 1 ? 's' : ''} aujourd'hui`),
+    tuile(b && b.economie != null ? `−${pourcent(b.economie)}` : '—', 'énergie de ventilation', b ? `${b.energie_kwh.jumeau} kWh au lieu de ${b.energie_kwh.regle} kWh` : '', 'bon'),
+    tuile(b ? `${b.minutes_au_dessus_1000.jumeau} min` : '—', 'au-dessus de 1000 ppm', b ? `${b.minutes_au_dessus_1000.regle} min avec la règle simple` : ''),
+    tuile(d.precision['30 min'].erreur_moyenne != null ? `± ${d.precision['30 min'].erreur_moyenne} ppm` : '—', 'erreur de prévision à 30 min',
+      d.precision['60 min'].erreur_moyenne != null ? `± ${d.precision['60 min'].erreur_moyenne} ppm à 1 h` : ''),
+    tuile(d.propositions.length, `proposition${d.propositions.length > 1 ? 's' : ''} de salle`, `${d.changements.length} acceptée${d.changements.length > 1 ? 's' : ''}`),
   ];
 
   const raisons = p => [
-    p.motifs.includes('air') ? `<span class="raison"><span aria-hidden="true">⚠</span> Air mauvais prévu</span>` : '',
-    p.motifs.includes('trop_petite') ? `<span class="raison"><span aria-hidden="true">⚠</span> Salle trop petite</span>` : '',
-  ].join('');
+    p.motifs.includes('air') ? '<span class="raison">Air mauvais prévu</span>' : '',
+    p.motifs.includes('trop_petite') ? '<span class="raison">Salle trop petite</span>' : '',
+  ].filter(Boolean).join(', ');
   const salleDe = (titre, salle, places, etudiants, pic) => `<div><span class="sous">${titre}</span><b>${echapper(salle)}</b>
       <span class="${etudiants > places ? 'ppm-mauvais' : ''}">${etudiants} étudiants / ${places} places</span>
       ${pic != null ? `<span class="${classePpm(pic)}">${pic} ppm prévus</span>` : ''}</div>`;
   const propositions = d.propositions.length ? d.propositions.map(p => `<div class="carte proposition">
-      <div class="entete"><b>${echapper(p.matiere)}</b> <span class="sous">${echapper(p.groupes.join(' + '))} · ${echapper(p.enseignant)} · ${heure(p.debut)}–${heure(p.fin)} · ${p.etudiants} étudiants attendus sur ${p.inscrits} inscrits</span></div>
+      <div class="entete"><b>${echapper(p.matiere)}, ${heure(p.debut)}–${heure(p.fin)}</b> <span class="sous">${echapper(p.groupes.join(' + '))}, ${echapper(p.enseignant)}, ${p.etudiants} étudiants attendus sur ${p.inscrits}</span></div>
       <div class="raisons">${raisons(p)}</div>
       ${p.proposee ? `<div class="deplacement">
         ${salleDe('Salle prévue', p.salle, p.places, p.etudiants, p.pic)}
         <span class="fleche" aria-hidden="true">→</span>
         ${salleDe('Salle proposée', p.proposee, p.places_proposee, p.etudiants, p.pic_propose)}
-      </div>` : `<p class="message erreur">${p.etudiants} étudiants attendus pour ${p.places} places en ${echapper(p.salle)}, aucune salle libre assez grande et aucun échange possible à cette heure : à régler à la main.</p>`}
-      ${p.echange ? `<p class="echange"><b>Échange de salles :</b> ${echapper(p.echange.matiere)} (${echapper(p.echange.groupes.join(' + '))},
-        ${heure(p.echange.debut)}–${heure(p.echange.fin)}, ${p.echange.etudiants} étudiants) passe de ${echapper(p.echange.salle)}
-        à ${echapper(p.echange.vers)}. Son air : <span class="${classePpm(p.echange.pic_apres)}">${p.echange.pic_apres} ppm prévus</span>
+      </div>` : `<p class="message erreur">${p.etudiants} étudiants pour ${p.places} places en ${echapper(p.salle)}. Pas de salle libre ni d'échange possible.</p>`}
+      ${p.echange ? `<p class="echange">Échange : ${echapper(p.echange.matiere)} (${echapper(p.echange.groupes.join(' + '))},
+        ${heure(p.echange.debut)}–${heure(p.echange.fin)}, ${p.echange.etudiants} étudiants) va de ${echapper(p.echange.salle)}
+        à ${echapper(p.echange.vers)}, avec <span class="${classePpm(p.echange.pic_apres)}">${p.echange.pic_apres} ppm prévus</span>
         ${p.echange.pic_avant != null ? `au lieu de ${p.echange.pic_avant}` : ''}.</p>` : ''}
-      <details class="negociation"><summary>Négociation : ${p.negociation.length} salle${p.negociation.length > 1 ? 's' : ''} interrogée${p.negociation.length > 1 ? 's' : ''}</summary>
+      <details class="negociation"><summary>Réponse des autres salles (${p.negociation.length})</summary>
         <ul>${p.negociation.map(r => `<li><b>${echapper(r.salle)}</b> : ${echapper(r.reponse)}${r.detail ? ` <span class="sous">(${echapper(r.detail)})</span>` : ''}</li>`).join('')}</ul>
       </details>
       <div class="actions">
@@ -313,37 +307,37 @@ export async function vueAnticipation(zone, ctx) {
           ${p.echange ? `data-echange-cours="${echapper(p.echange.cours)}" data-echange-salle="${echapper(p.echange.vers)}"` : ''}>${p.echange ? 'Accepter l\'échange' : 'Accepter le changement'}</button>` : ''}
         <button type="button" class="bouton" data-action="ignorer" data-cours="${echapper(p.cours)}">Ignorer</button>
       </div>
-    </div>`).join('') : '<p class="vide">Aucune proposition : l\'air et la place des prochains cours devraient aller.</p>';
+    </div>`).join('') : '<p class="vide">Aucune proposition.</p>';
   const changements = d.changements.length ? `<ul class="liste-simple">${d.changements.map(c =>
-    `<li>${echapper(c.cours)} : ${echapper(c.salle_avant)} → <b>${echapper(c.salle_apres)}</b> <span class="sous">par ${echapper(c.auteur)}</span></li>`).join('')}</ul>` : '';
+    `<li>${echapper(c.cours)} : ${echapper(c.salle_avant)} → ${echapper(c.salle_apres)} (par ${echapper(c.auteur)})</li>`).join('')}</ul>` : '';
 
   const plan = cmd.plan.length ? cmd.plan : [];
   const prochain = plan.find(s => s.niveau !== cmd.niveau);
   const salles = d.salles.slice().sort((a, c) => (c.pic?.co2 || 0) - (a.pic?.co2 || 0)).map(s => `<tr>
       <td class="nowrap"><b>${echapper(s.salle)}</b></td>
       <td class="nombre"><span class="${classePpm(s.maintenant)}">${s.maintenant}</span></td>
-      <td>${s.pic ? `<span class="${classePpm(s.pic.co2)}">${s.pic.co2} ppm</span> <span class="sous">vers ${heure(s.pic.heure)}</span>` : '—'}</td>
-      <td>${s.au_dessus_1200 != null ? `<span class="ppm-mauvais">dès ${heure(s.au_dessus_1200)}</span>` : '<span class="sous">non</span>'}</td>
+      <td>${s.pic ? `<span class="${classePpm(s.pic.co2)}">${s.pic.co2} ppm</span> vers ${heure(s.pic.heure)}` : '—'}</td>
+      <td>${s.au_dessus_1200 != null ? `<span class="ppm-mauvais">dès ${heure(s.au_dessus_1200)}</span>` : 'non'}</td>
       <td>${petiteCourbe(s.serie)}</td>
-      <td class="sous">${{ appris: 'débit mesuré', automate: 'piloté par le jumeau', 'a priori': 'débit supposé' }[s.source_debit]}</td>
+      <td class="sous">${{ appris: 'mesuré', automate: 'automate', 'a priori': 'supposé' }[s.source_debit]}</td>
     </tr>`).join('');
 
   afficher(zone, `
     <section class="section"><div class="grille tuiles">${tuiles.join('')}</div></section>
     <section class="section">
-      <h2 class="titre-section">Propositions de changement de salle <span class="sous">air mauvais prévu, ou plus d'étudiants que de places : le jumeau essaie chaque salle libre</span></h2>
+      <h2 class="titre-section">Changements de salle proposés</h2>
       <div class="grille propositions">${propositions}</div>${changements}
     </section>
     ${d.capacite ? sectionCapacite(d.capacite) : ''}
     ${d.ambiance ? sectionAmbiance(d.ambiance) : ''}
     <section class="section">
-      <h2 class="titre-section">Ventilation de ${echapper(cmd.salle)} décidée par le jumeau</h2>
+      <h2 class="titre-section">Ventilation de ${echapper(cmd.salle)}</h2>
       <div class="carte">
         <div class="barre-outils">
-          <span>Maintenant : <b>${VITESSES[cmd.niveau] || '—'}</b>${prochain ? ` · ${VITESSES[prochain.niveau].toLowerCase()} à ${heure(prochain.debut)}` : ''}</span>
+          <span>Maintenant : <b>${VITESSES[cmd.niveau] || '—'}</b>${prochain ? `, puis ${VITESSES[prochain.niveau].toLowerCase()} à ${heure(prochain.debut)}` : ''}</span>
           <span class="espace"></span>
-          <span class="sous">Stratégie :</span>
-          <button type="button" class="bouton petit ${cmd.strategie === 'predictive' ? 'principal-bouton' : ''}" data-action="strategie" data-valeur="predictive">Jumeau prédictif</button>
+          <span>Commande :</span>
+          <button type="button" class="bouton petit ${cmd.strategie === 'predictive' ? 'principal-bouton' : ''}" data-action="strategie" data-valeur="predictive">Prédictive</button>
           <button type="button" class="bouton petit ${cmd.strategie === 'reactive' ? 'principal-bouton' : ''}" data-action="strategie" data-valeur="reactive">Règle simple</button>
         </div>
         <div class="conteneur-courbe">${grandeCourbe(passe.map(p => ({ heure: p.heure, co2: p.C })), auto ? auto.serie : [], plan, d.heure)}
@@ -352,16 +346,16 @@ export async function vueAnticipation(zone, ctx) {
           <span><i class="trait-plein"></i>CO₂ mesuré</span><span><i class="trait-pointille"></i>CO₂ prévu</span>
           <span><i class="vitesse-arret"></i>Arrêt</span><span><i class="vitesse-petite"></i>Petite vitesse</span><span><i class="vitesse-grande"></i>Grande vitesse</span>
         </div>
-        <p class="sous">Chaque minute, le jumeau essaie les vitesses possibles, simule les 90 minutes suivantes avec les cours prévus et garde la moins coûteuse (énergie + air). Il ventile avant l'arrivée des étudiants et garde la ventilation après chaque cours, le temps de mesurer la décroissance du CO₂.</p>
+        <p class="sous">Chaque minute, on simule les 90 minutes suivantes pour chaque vitesse et on garde la moins coûteuse (énergie + air).</p>
       </div>
     </section>
     <section class="section">
-      <h2 class="titre-section">Prévision de chaque salle <span class="sous">2 prochaines heures · taux de présence appris : ${pourcent(d.taux_presence)}</span></h2>
+      <h2 class="titre-section">CO₂ prévu dans chaque salle (2 heures)</h2>
       <div class="tableau-conteneur"><table class="liste">
         <thead><tr><th>Salle</th><th class="nombre">CO₂ maintenant</th><th>Pic prévu</th><th>Au-dessus de 1200 ppm</th><th>2 prochaines heures</th><th>Débit</th></tr></thead>
         <tbody>${salles}</tbody>
       </table></div>
-      <p class="sous">Les prévisions en simulation sont très bonnes parce que le simulateur et le jumeau partagent la même physique : en vrai, l'erreur sera plus grande, et c'est elle que la tuile « erreur des prévisions » mesure.</p>
+      <p class="sous">En simulation, la prévision est presque parfaite (même modèle des deux côtés). En vrai, l'erreur sera plus grande.</p>
     </section>`);
 }
 vueAnticipation.rafraichir = 10000;

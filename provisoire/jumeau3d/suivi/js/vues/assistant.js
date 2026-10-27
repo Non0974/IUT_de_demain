@@ -36,21 +36,19 @@ function bulleQuestion(e) {
 }
 
 function bulleReponse(e) {
-  const consulte = e.outils.length ? `Consulté : ${e.outils.map(echapper).join(', ')}` : 'Sans lire les données';
+  const consulte = e.outils.length ? `Données lues : ${e.outils.map(echapper).join(', ')}` : 'Aucune donnée lue';
   return `<div class="msg msg-reponse">${rendre(e.texte, e.noms)}
     <span class="pied-msg">${consulte} · ${String(e.duree).replace('.', ',')} s</span></div>`;
 }
 
-const VIDE = `<p class="vide-assistant">Posez une question sur l'IUT : présences, salles, qualité de l'air, prévisions.
-  L'assistant lit les mêmes données que vous, avec vos droits.</p>`;
+const VIDE = `<p class="vide-assistant">Posez une question sur les présences, les salles ou l'air.</p>`;
 
 export async function vueAssistant(zone, ctx) {
   ctx.titre('Assistant IA');
   const etat = await api('/api/assistant');
   const actif = etat.disponible ? '' : 'disabled';
   const bandeau = !etat.disponible
-    ? `<div class="message erreur"><strong>Assistant hors ligne.</strong> ${echapper(etat.raison)}<br>
-       Le reste de CampusTwin marche sans lui.</div>`
+    ? `<div class="message erreur">Assistant hors ligne : ${echapper(etat.raison)}</div>`
     : etat.raison ? `<div class="message attention">${echapper(etat.raison)}</div>` : '';
   zone.innerHTML = `${bandeau}
     <section class="carte discussion" aria-label="Conversation avec l'assistant">
@@ -66,10 +64,8 @@ export async function vueAssistant(zone, ctx) {
         </div>
       </form>
     </section>
-    <p class="note-confidentialite">L'IA ne voit aucun nom : avant l'envoi, les étudiants deviennent ETU-001, ETU-002…
-      et les enseignants « Enseignant A, B… », et les motifs d'absence ne partent pas. Le serveur remet les vrais noms ici.
-      Elle lit les données avec vos droits et ne modifie rien : corriger une présence ou déplacer un cours reste
-      votre clic. Modèle : ${echapper(etat.modele)} (Anthropic).</p>`;
+    <p class="note-confidentialite">Les noms ne sont pas envoyés à l'IA (ETU-001, Enseignant A…), ni les motifs d'absence.
+      Elle ne modifie rien. Modèle : ${echapper(etat.modele)}.</p>`;
   zone.dataset.html = '';
 
   const fil = zone.querySelector('#fil');
@@ -95,7 +91,7 @@ export async function vueAssistant(zone, ctx) {
     suggestions.hidden = true;
     fil.querySelector('.vide-assistant')?.remove();
     fil.insertAdjacentHTML('beforeend', `${bulleQuestion({ question })}
-      <div class="msg msg-reponse attente">L'assistant consulte les données<span class="points" aria-hidden="true"></span></div>`);
+      <div class="msg msg-reponse attente">Recherche<span class="points" aria-hidden="true"></span></div>`);
     descendre();
     const attente = fil.lastElementChild;
     try {

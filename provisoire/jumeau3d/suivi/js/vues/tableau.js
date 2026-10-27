@@ -11,7 +11,7 @@ function carteSeance(s) {
     <div class="sous">${echapper(s.groupes.join(' + '))} · ${echapper(s.enseignant)} · ${heure(s.debut)}–${heure(s.fin)}</div>
     ${barre(s)}
     <div class="chiffres"><span><b>${inscritsTexte(s)}</b> présents</span><span>${s.absents} absent${s.absents > 1 ? 's' : ''} · ${s.attendus} attendu${s.attendus > 1 ? 's' : ''}${s.a_verifier ? ` · ${s.a_verifier} à vérifier` : ''}</span></div>
-    <div class="air">Dans la salle : <b>${s.personnes}</b> personnes (${source}) · CO₂ ${ppm(s.co2)}</div>
+    <div class="air">${s.personnes} personnes (${source}), CO₂ ${ppm(s.co2)}</div>
   </a>`;
 }
 
@@ -19,8 +19,7 @@ function alerte(a) {
   const lien = a.seance ? `#/seance/${encodeURIComponent(a.seance)}` : a.etudiant ? `#/etudiant/${encodeURIComponent(a.etudiant)}`
     : a.ticket ? '#/tickets' : '#/';
   const quoi = a.salle ? `Salle ${echapper(a.salle)}` : a.etudiant ? `Étudiant ${echapper(a.nom || a.etudiant)}` : '';
-  return `<a class="alerte ${a.niveau}" href="${lien}"><span class="i" aria-hidden="true">!</span>
-    <div><div>${echapper(a.texte)}</div><div class="quoi">${quoi}</div></div></a>`;
+  return `<a class="alerte ${a.niveau}" href="${lien}"><div>${echapper(a.texte)}</div><div class="quoi">${quoi}</div></a>`;
 }
 
 export async function vueTableau(zone, ctx) {
@@ -29,11 +28,11 @@ export async function vueTableau(zone, ctx) {
   ctx.titre(enseignant ? 'Mes cours aujourd\'hui' : 'Tableau de bord');
   const c = d.chiffres;
   const tuiles = [
-    tuile(c.seances_en_cours, 'séances en cours', `${c.seances_terminees} terminée${c.seances_terminees > 1 ? 's' : ''} sur ${c.seances_du_jour} aujourd'hui`),
-    tuile(c.presents_maintenant, 'étudiants présents', c.attendus_maintenant ? `${c.attendus_maintenant} encore attendus` : 'dans les séances en cours', 'bon'),
-    tuile(c.absents_maintenant, `absent${c.absents_maintenant > 1 ? 's' : ''}`, 'dans les séances en cours', c.absents_maintenant ? 'alerte' : ''),
-    tuile(pourcent(c.taux_jour), 'taux de présence', 'aujourd\'hui, séances commencées'),
-    tuile(c.alertes, `alerte${c.alertes > 1 ? 's' : ''}`, 'air, émargement, assiduité, tickets', c.alertes ? 'alerte' : ''),
+    tuile(c.seances_en_cours, 'séances en cours', `${c.seances_terminees} terminées sur ${c.seances_du_jour}`),
+    tuile(c.presents_maintenant, 'présents', c.attendus_maintenant ? `${c.attendus_maintenant} pas encore arrivés` : '', 'bon'),
+    tuile(c.absents_maintenant, `absent${c.absents_maintenant > 1 ? 's' : ''}`, '', c.absents_maintenant ? 'alerte' : ''),
+    tuile(pourcent(c.taux_jour), 'présence du jour'),
+    tuile(c.alertes, `alerte${c.alertes > 1 ? 's' : ''}`, '', c.alertes ? 'alerte' : ''),
   ];
   const enCours = d.en_cours.length
     ? `<div class="grille cartes">${d.en_cours.map(carteSeance).join('')}</div>${legendeBarre()}`
@@ -49,7 +48,7 @@ export async function vueTableau(zone, ctx) {
   afficher(zone, `
     <section class="section"><div class="grille tuiles">${tuiles.join('')}</div></section>
     <section class="section">
-      <h2 class="titre-section">En ce moment <span class="sous">mis à jour toutes les 5 s</span></h2>
+      <h2 class="titre-section">En ce moment</h2>
       ${enCours}
     </section>
     <div class="deux-colonnes">
