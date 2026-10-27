@@ -46,25 +46,27 @@ h1, h2, h3 { font-weight: 500; line-height: 1.2; }
 /* ---------- barre de navigation ---------- */
 
 .menu {
-  background: var(--menu);
+  background: #fff; border-bottom: 1px solid var(--bord);
   display: flex; flex-wrap: wrap; align-items: center; gap: 0 16px; padding: 0.5rem 1rem;
 }
-.marque strong { color: #fff; font-size: 1.25rem; font-weight: 400; }
+.marque { display: flex; align-items: center; gap: 12px; }
+.logo-cyu { height: 40px; width: auto; display: block; }
+.marque strong { color: var(--texte); font-size: 1.25rem; font-weight: 400; padding-left: 12px; border-left: 1px solid var(--bord); }
 .marque span { display: none; }
 .menu nav { display: flex; flex-wrap: wrap; flex: 1; }
-.menu nav a { display: block; color: var(--menu-texte); padding: 0.5rem; }
-.menu nav a:hover { color: rgba(255, 255, 255, 0.75); text-decoration: none; }
-.menu nav a.actif { color: #fff; }
+.menu nav a { display: block; color: rgba(0, 0, 0, 0.55); padding: 0.5rem; }
+.menu nav a:hover { color: rgba(0, 0, 0, 0.75); text-decoration: none; }
+.menu nav a.actif { color: rgba(0, 0, 0, 0.9); }
 .separateur { display: none; }
 .pied-menu { display: flex; align-items: center; gap: 10px; }
-.utilisateur { color: rgba(255, 255, 255, 0.75); font-size: 0.9rem; }
+.utilisateur { color: var(--texte2); font-size: 0.9rem; }
 .utilisateur .sous { display: none; }
 .pastille-simulation {
   background: #ffc107; color: #212529; font-size: 75%; font-weight: 700;
   padding: 0.25em 0.4em; border-radius: var(--rayon);
 }
-.menu .bouton.discret { color: #f8f9fa; border-color: #f8f9fa; background: transparent; }
-.menu .bouton.discret:hover { background: #f8f9fa; color: #212529; }
+.menu .bouton.discret { color: #6c757d; border-color: #6c757d; }
+.menu .bouton.discret:hover { background: #6c757d; color: #fff; text-decoration: none; }
 
 /* ---------- page ---------- */
 
@@ -321,7 +323,9 @@ details.vue-tableau { margin-top: 8px; }
 
 body.page-connexion { display: grid; place-items: center; min-height: 100vh; padding: 20px; background: #f8f9fa; }
 .carte-connexion { background: #fff; border: 1px solid rgba(0, 0, 0, 0.125); border-radius: var(--rayon); padding: 1.5rem; width: min(380px, 100%); }
-.carte-connexion .marque strong { color: var(--texte); font-size: 1.5rem; }
+.logo-connexion { display: block; width: 200px; height: auto; margin: 0 auto 1rem; }
+.carte-connexion .marque { display: block; text-align: center; }
+.carte-connexion .marque strong { color: var(--texte); font-size: 1.5rem; border: none; padding: 0; }
 .carte-connexion .marque span { display: block; color: var(--texte2); font-size: 0.9rem; }
 .carte-connexion form { display: flex; flex-direction: column; gap: 6px; margin: 1rem 0; }
 .carte-connexion input { margin-bottom: 8px; }
