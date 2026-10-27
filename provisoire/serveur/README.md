@@ -62,6 +62,7 @@ Le serveur les remet dans l'emploi du temps et dans l'interface.
 | [commande.py](commande.py) | Ventilation anticipée de la salle de l'automate (commande prédictive) et bilan d'énergie face à la règle simple |
 | [capacite.py](capacite.py) | Places des salles : chaque cours de la journée face aux places de sa salle (compté ou prévu) |
 | [reaffectation.py](reaffectation.py) | Propositions de changement de salle : air qui va devenir mauvais, ou salle trop petite |
+| [ambiance.py](ambiance.py) | Chauffage et éclairage selon l'occupation, et énergie face à l'horaire fixe |
 | [assistant.py](assistant.py) | Assistant IA : outils en lecture seule, pseudonymes, appel à l'API Claude |
 | [config.py](config.py) | Adresse de l'automate, débits connus, clé des capteurs, sel des cartes, réglages de la ventilation et de l'assistant |
 
@@ -104,6 +105,10 @@ Toutes ces adresses demandent d'être connecté. Celles du jumeau 3D et des pré
 | `POST /api/commande` | `{"auto": false, "niveau": "grande"}` : forcer la ventilation ; `{"strategie": "predictive"}` ou `"reactive"` : jumeau ou règle simple |
 | `GET /api/previsions` | Prévision de chaque salle, plan de ventilation, bilan d'énergie, places des salles, propositions de salle |
 | `POST /api/proposition` | `{"action": "accepter", "cours", "salle"}` ou `{"action": "ignorer", "cours"}` |
+| `GET /api/cartes/inconnues` | Cartes badgées pas encore attribuées, et à qui on peut les donner |
+| `GET /api/cartes/liste` | Cartes enregistrées de la classe et des enseignants |
+| `POST /api/cartes/associer` | `{"empreinte", "etudiant": "TP2-04", "nom"}` : donner une carte (elle remplace l'ancienne) |
+| `POST /api/cartes/retirer` | `{"empreinte"}` : retirer une carte (perdue) |
 | `GET /api/assistant` | L'assistant est-il prêt, questions suggérées, conversation en cours |
 | `POST /api/assistant` | `{"question": "…"}` : réponse de l'assistant ; `{"nouvelle": true}` : nouvelle conversation |
 | `POST /api/simulation/panne` | `{"panne": "fenetre"}` : provoquer une panne (mode simulation seulement) |
@@ -116,6 +121,17 @@ Toutes ces adresses demandent d'être connecté. Celles du jumeau 3D et des pré
 - **Ventilation anticipée (SAR 200).** Chaque minute, le jumeau essaie les vitesses possibles pour les 20 minutes suivantes, simule 90 minutes et garde le plan le moins coûteux : énergie (chauffage de l'air neuf + ventilateur) plus une pénalité au-dessus de 800 et 1000 ppm. Il garde la petite vitesse 20 min après chaque cours et le soir, sinon le diagnostic ne peut plus mesurer la décroissance ni la dérive du capteur.
 - **Changement de salle.** Si l'air d'un cours doit dépasser 1200 ppm, ou s'il y aura plus d'étudiants que de places, le jumeau cherche une salle libre du même type, assez grande, dont il connaît la ventilation, où le pic reste sous 1200 ppm. Sans salle libre assez grande, le problème est signalé quand même. Le directeur accepte ou ignore dans la page Anticipation. Un cours déplacé change dans le planning du jour.
 - **Limite.** En simulation, la prévision utilise la même physique que le bâtiment simulé : sa précision y est forcément bonne. Le vrai test se fera sur la salle réelle.
+
+## Cartes étudiantes
+
+Pour l'essai réel : on badge une carte sur un lecteur, elle apparaît dans la page « Cartes » du site (directeur, scolarité), et on choisit à qui elle est (TP1-01… et un nom, facultatif). Le lecteur répond aussitôt vert (carte connue) ou orange (carte inconnue). Le serveur ne garde qu'une empreinte de la carte ; les noms restent dans `serveur/cartes.json`, sur le PC.
+
+## Chauffage et éclairage selon l'occupation
+
+- **Chauffage :** confort pendant un cours et 45 min avant, ou dès qu'il y a quelqu'un ; réduit le reste de la journée (7 h – 20 h) ; hors-gel la nuit et le week-end.
+- **Éclairage :** allumé seulement quand il y a quelqu'un, ou à l'arrivée d'un cours.
+- La salle de l'automate (SAR 200) est vraiment pilotée : registres 3 et 4 de l'automate. Pour les autres salles, le jumeau calcule ce que ce pilotage économiserait.
+- **Résultat sur un lundi simulé (7 h – 20 h 30)** : SAR 200 consomme 36,6 kWh au lieu de 56,5 avec l'horaire fixe (confort 2,8 h au lieu de 12 h) ; les 23 salles, 790 kWh au lieu de 1115 (−29 %). Puissances estimées (chauffage 50 W/m², éclairage 8 W/m²) : à remplacer par les vraies.
 
 ## Assistant IA (en option)
 
@@ -151,4 +167,9 @@ python tests/test_automate.py      échange Modbus et sécurité de l'automate s
 python tests/test_suivi.py         comptes, droits, registre des présences, corrections, export
 python tests/test_prevision.py     prévisions, ventilation anticipée, présence apprise, places des salles, changement de salle
 python tests/test_assistant.py     assistant IA avec un faux client : aucun nom envoyé, droits, refus, page web
+python tests/test_ambiance.py      chauffage et éclairage selon l'occupation, énergie face à l'horaire fixe
+python tests/test_wifi_dsi.py      import du Wi-Fi de la DSI
+python tests/test_celcat.py        import d'un export CELCAT
 ```
+
+Les outils pour brancher les vraies données (CELCAT, Wi-Fi de la DSI) sont dans [outils](../outils/README.md).

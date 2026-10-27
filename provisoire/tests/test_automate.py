@@ -38,20 +38,28 @@ def main():
     pont.regler('grande', personnes=15)
     verifs.append(('connexion et consigne grande vitesse', attendre(pont, lambda e: e.get('connecte') and e.get('vitesse') == 'grande')))
     verifs.append(('électrovanne active avec 15 personnes', attendre(pont, lambda e: e.get('electrovanne'), 12)))
+    pont.regler(eclairage=False, chauffage='confort')
+    verifs.append(('salle vide, cours bientôt : lumière éteinte, chauffage confort (radiateur en marche)',
+                   attendre(pont, lambda e: e.get('eclairage') is False and e.get('chauffage') == 'confort' and e.get('radiateur'))))
 
     automate.arret_urgence = True
-    verifs.append(('arrêt d\'urgence : ventilateur et vanne coupés', attendre(pont, lambda e: e.get('arret_urgence') and e.get('vitesse') == 'arret' and not e.get('electrovanne'))))
+    verifs.append(("arrêt d'urgence : ventilateur, vanne et chauffage coupés, lumière allumée",
+                   attendre(pont, lambda e: e.get('arret_urgence') and e.get('vitesse') == 'arret' and not e.get('electrovanne')
+                            and e.get('eclairage') and e.get('chauffage') == 'hors_gel' and not e.get('radiateur'))))
     automate.arret_urgence = False
 
     automate.auto = False
-    verifs.append(('mode manuel : petite vitesse', attendre(pont, lambda e: not e.get('auto') and e.get('vitesse') == 'petite')))
+    verifs.append(('mode manuel : petite vitesse, lumière et chauffage confort',
+                   attendre(pont, lambda e: not e.get('auto') and e.get('vitesse') == 'petite' and e.get('eclairage')
+                            and e.get('chauffage') == 'confort')))
     automate.auto = True
     verifs.append(('retour en auto : consigne du serveur', attendre(pont, lambda e: e.get('auto') and e.get('vitesse') == 'grande')))
 
     pont.arret = True                       # le serveur se tait
     time.sleep(6.5)
     automate.cycle()
-    verifs.append(('serveur muet 5 s : secours en petite vitesse', automate.hr[11] == 1 and bool(automate.hr[10] & 16)))
+    verifs.append(('serveur muet 5 s : secours en petite vitesse, lumière allumée, chauffage réduit',
+                   automate.hr[11] == 1 and bool(automate.hr[10] & 16) and bool(automate.hr[10] & 32) and automate.hr[13] == 1))
 
     for texte, ok in verifs:
         print(('OK    ' if ok else 'ÉCHEC ') + texte)

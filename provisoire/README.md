@@ -20,6 +20,7 @@ SAE BUT 3 GEII, IUT de Cergy-Pontoise, site de Sarcelles. Louay Boubaya, Ariel G
   - comptage faux ;
   - capteur mal placé.
 - **Émargement vérifié.** Chaque étudiant badge sa carte (NFC) en entrant, et chaque badge est comparé aux passages comptés. On repère une entrée sans badge ou une carte prêtée. Seule une empreinte de la carte est gardée (RGPD).
+  - Prêt pour un essai réel : un lecteur de badge seul (XIAO + PN532, vert ou orange selon la carte), et une page « Cartes » pour donner chaque carte à un étudiant.
 - **Interface de suivi des classes**, avec des comptes : directeur des études, scolarité, enseignant.
   - Tableau de bord en direct : séances en cours, présents, absents, alertes.
   - Séances du jour, et feuille d'émargement de chaque séance, imprimable.
@@ -31,12 +32,13 @@ SAE BUT 3 GEII, IUT de Cergy-Pontoise, site de Sarcelles. Louay Boubaya, Ariel G
   - Anticipation : CO₂ prévu, plan de ventilation, énergie économisée, places des salles, propositions de salle.
   - Assistant IA : questions en français.
 - **Jumeau prédictif.** Le jumeau prévoit le CO₂ de chaque salle pour les 2 prochaines heures, avec l'emploi du temps, le taux de présence et le débit d'air qu'il a appris.
-  - Dans SAR 200, il ventile avant que la salle se remplisse et coupe quand personne n'arrive (commande prédictive). Sur une semaine simulée : 17 % d'énergie de ventilation en moins que la règle simple, et 134 minutes au-dessus de 1000 ppm au lieu de 257.
+  - Dans SAR 200, il ventile avant que la salle se remplisse et coupe quand personne n'arrive (commande prédictive). Sur une semaine simulée : 16 % d'énergie de ventilation en moins que la règle simple, et 136 minutes au-dessus de 1000 ppm au lieu de 259.
   - **Places des salles.** Il apprend le taux de présence de chaque groupe et de chaque demi-journée (on vient moins le vendredi après-midi), et prévoit combien d'étudiants viendront à chaque cours : 1,4 étudiant d'écart en moyenne. Une frise montre le remplissage de chaque salle sur la journée, et une alerte part en direct quand une salle a plus de monde que de places.
   - Si l'air d'un cours va dépasser 1200 ppm, ou s'il y aura plus d'étudiants que de places, il propose une salle libre qui convient. Le directeur accepte ou ignore, dans la page Anticipation.
 - **Assistant IA.** On pose une question en français : « Qui est absent en SAR 109 ? », « Quelle salle aura l'air mauvais dans l'heure ? ». Claude (Anthropic) lit les données et répond.
   - Il ne voit aucun nom : les étudiants deviennent ETU-001, ETU-002…, les enseignants « Enseignant A, B… », et les motifs d'absence ne partent pas. Le serveur remet les vrais noms à l'affichage.
   - Il a les droits de la personne connectée et ne modifie rien.
+- **Chauffage et éclairage selon l'occupation.** L'automate allume la lumière seulement quand il y a quelqu'un et chauffe en confort pendant les cours (et 45 min avant). Sur un lundi simulé, les 23 salles consommeraient 29 % de moins qu'avec l'horaire fixe (estimation).
 - **Vue 3D du directeur des études.** Le plan 3D de l'IUT montre, pour chaque salle :
   - le cours, le groupe et l'enseignant ;
   - les présents, retards et absents ;
@@ -52,8 +54,9 @@ SAE BUT 3 GEII, IUT de Cergy-Pontoise, site de Sarcelles. Louay Boubaya, Ariel G
 | [serveur](serveur) | Serveur Python sans installation : capteurs, diagnostic, registre des présences, comptes, prévisions, ventilation anticipée, lien avec l'automate, assistant IA | marche, testé en simulation (assistant : testé avec un faux client, pas encore avec la vraie API) |
 | [simulateurs](simulateurs) | Bâtiment simulé (mêmes messages que les vraies cartes) et automate simulé (Modbus TCP) | marche |
 | [tests](tests) | Pannes et fraudes sur une semaine simulée, automate, suivi des classes, prévisions, assistant IA | tous les tests passent |
-| [firmware](firmware) | Code des cartes XIAO ESP32S3 : nœud salle (CO₂, badge, écran) et nœud porte (fusion des 3 capteurs) | compile, pas encore testé sur le matériel |
+| [firmware](firmware) | Code des cartes XIAO ESP32S3 : nœud salle (CO₂, badge, écran), nœud porte (fusion des 3 capteurs), lecteur de badge seul | compile, pas encore testé sur le matériel |
 | [automate](automate) | Programme SCL du S7-1200 et branchements | écrit, pas encore compilé dans TIA Portal |
+| [outils](outils) | Import de l'emploi du temps CELCAT et du Wi-Fi de la DSI | testés sur des exemples ; Wi-Fi en attente des données de la DSI |
 | [donnees_reelles](donnees_reelles) | Tests sur des données publiques réelles (ROBOD, salle danoise OU44) et IA du Wi-Fi | fait |
 | [docs](docs) | Synthèse du projet et proposition de matériel | |
 
@@ -95,4 +98,7 @@ python tests/test_automate.py      échange Modbus et sécurité de l'automate
 python tests/test_suivi.py         comptes, droits, registre des présences, corrections, export
 python tests/test_prevision.py     prévisions, ventilation anticipée, présence apprise, places des salles, changement de salle
 python tests/test_assistant.py     assistant IA avec un faux client : aucun nom envoyé, droits, page web
+python tests/test_ambiance.py      chauffage et éclairage selon l'occupation
+python tests/test_wifi_dsi.py      import du Wi-Fi de la DSI
+python tests/test_celcat.py        import d'un export CELCAT
 ```

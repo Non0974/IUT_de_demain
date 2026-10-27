@@ -114,8 +114,26 @@ def main():
     code, csv, _ = appel(f'/api/export?classe=TP1&{periode}', cookie=dir_)
     verifs.append(('export CSV de la classe', code == 200 and 'Taux de présence' in csv and 'TP1-01' in csv))
 
+    # Cartes : un badge inconnu apparaît, on l'attribue, le lecteur le reconnaît ensuite
+    carte = '0123456789abcdef'
+    code, r, _ = appel('/api/mesure', {'type': 'badge', 'salle': 'SAR 102', 'carte': carte})
+    verifs.append(('lecteur : carte inconnue signalée', code == 200 and r.get('connue') is False))
+    code, inc, _ = appel('/api/cartes/inconnues', cookie=dir_)
+    verifs.append(('carte en attente, places de la classe proposées', code == 200 and any(c['empreinte'] == carte for c in inc['cartes'])
+                   and [len(g['etudiants']) for g in inc['groupes']] == [9, 9]))
+    code, _, _ = appel('/api/cartes/associer', {'empreinte': carte, 'etudiant': 'TP2-04', 'nom': 'Étudiant Test'}, cookie=dir_)
+    code2, r, _ = appel('/api/mesure', {'type': 'badge', 'salle': 'SAR 102', 'carte': carte})
+    code3, liste, _ = appel('/api/cartes/liste', cookie=dir_)
+    tp204 = [c for c in liste['cartes'] if c['id'] == 'TP2-04']
+    verifs.append(('carte enregistrée, puis reconnue par le lecteur (elle remplace l\'ancienne)', code == 200 and r.get('connue') is True
+                   and len(tp204) == 1 and tp204[0]['empreinte'] == carte and tp204[0]['nom'] == 'Étudiant Test'))
+    code, _, _ = appel('/api/cartes/associer', {'empreinte': carte, 'etudiant': 'TP9-99'}, cookie=dir_)
+    verifs.append(('carte pour un étudiant qui n\'existe pas : refusée', code == 400))
+
     # Enseignant : seulement ses séances et ses classes
     code, ens = connexion('enseignant', 'demo')
+    code, _, _ = appel('/api/cartes/inconnues', cookie=ens)
+    verifs.append(('enseignant : page des cartes refusée', code == 403))
     code, s, _ = appel(f'/api/seances?date={vendredi}', cookie=ens)
     verifs.append(('enseignant : seulement ses séances', code == 200 and s['seances'] and all(x['enseignant'] == enseignant for x in s['seances'])))
     autre = next(x for x in seances if x['enseignant'] != enseignant)

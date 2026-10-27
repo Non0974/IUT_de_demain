@@ -12,6 +12,7 @@ import { vueClasse } from './vues/classe.js';
 import { vueEtudiant } from './vues/etudiant.js';
 import { vueAnticipation } from './vues/anticipation.js';
 import { vueAssistant } from './vues/assistant.js';
+import { vueCartes } from './vues/cartes.js';
 
 const ROUTES = [
   [/^\/?$/, 'tableau', vueTableau],
@@ -22,6 +23,7 @@ const ROUTES = [
   [/^\/etudiant\/(.+)$/, 'classes', vueEtudiant],
   [/^\/anticipation$/, 'anticipation', vueAnticipation],
   [/^\/assistant$/, 'assistant', vueAssistant],
+  [/^\/cartes$/, 'cartes', vueCartes],
 ];
 
 const ROLES = { directeur: 'Directeur des études', scolarite: 'Scolarité', enseignant: 'Enseignant' };

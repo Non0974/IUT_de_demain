@@ -11,6 +11,8 @@ import time
 
 REGISTRES = 32
 PERIODE_VANNE = 10.0     # s : l'électrovanne s'ouvre une fraction de cette période
+PERIODE_RADIATEUR = 60.0  # s : en réduit, le radiateur de la maquette chauffe 40 % de cette période
+PART_REDUIT = 0.4
 DELAI_VIE = 5.0          # s sans nouveau compteur de vie du serveur = communication perdue
 
 
@@ -44,9 +46,20 @@ class AutomateSimule:
                 vanne = (maintenant - self.debut) % PERIODE_VANNE < PERIODE_VANNE * personnes / 30
             else:
                 vitesse, vanne = 1, False            # mode manuel : petite vitesse
-            mot = (self.auto << 0) | (self.arret_urgence << 1) | ((vitesse > 0) << 2) | (vanne << 3) | (comm_perdue << 4)
+            # Éclairage et chauffage : l'automate garde la main sur la sécurité
+            if self.arret_urgence:
+                eclairage, chauffage = True, 0       # lumière allumée pour évacuer, chauffage coupé
+            elif comm_perdue:
+                eclairage, chauffage = True, 1       # serveur muet : lumière et chauffage réduit
+            elif self.auto:
+                eclairage, chauffage = bool(self.hr[3]), min(self.hr[4], 2)
+            else:
+                eclairage, chauffage = True, 2       # mode manuel : quelqu'un est là
+            radiateur = chauffage == 2 or (chauffage == 1 and (maintenant - self.debut) % PERIODE_RADIATEUR < PERIODE_RADIATEUR * PART_REDUIT)
+            mot = (self.auto << 0) | (self.arret_urgence << 1) | ((vitesse > 0) << 2) | (vanne << 3) | (comm_perdue << 4) \
+                | (eclairage << 5) | (radiateur << 6)
             self.vie = (self.vie + 1) % 65536
-            self.hr[10:13] = [mot, vitesse, self.vie]
+            self.hr[10:14] = [mot, vitesse, self.vie, chauffage]
 
     def boucle(self):
         while True:

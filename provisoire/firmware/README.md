@@ -1,18 +1,20 @@
 # Firmware des cartes ESP32
 
-Deux programmes pour la carte **Seeed XIAO ESP32S3**. Ils envoient leurs mesures au serveur en HTTP (`POST /api/mesure`, JSON), dans le même format que le simulateur ([simulateurs/batiment.py](../simulateurs/batiment.py)).
+Trois programmes pour la carte **Seeed XIAO ESP32S3**. Ils envoient leurs mesures au serveur en HTTP (`POST /api/mesure`, JSON), dans le même format que le simulateur ([simulateurs/batiment.py](../simulateurs/batiment.py)).
 
 | Programme | Rôle | Capteurs |
 | --- | --- | --- |
 | [noeud_salle](noeud_salle/noeud_salle.ino) | CO₂ de la salle et badge des étudiants | SCD-41, PN532, écran e-paper 2,9" |
 | [noeud_porte](noeud_porte/noeud_porte.ino) | Compter les entrées et sorties sans caméra | VL53L5CX, MLX90640, HLK-LD2450 |
+| [noeud_badge](noeud_badge/noeud_badge.ino) | Lecteur de badge seul, pour équiper d'autres salles (essai réel) | PN532, 2 LED, buzzer |
 
-**Les deux programmes compilent** pour la XIAO ESP32S3 (paquet esp32 3.3.3) :
+**Les trois programmes compilent** pour la XIAO ESP32S3 (paquet esp32 3.3.3) :
 
 | Programme | Mémoire programme | RAM |
 | --- | --- | --- |
 | nœud salle | 33 % | 16 % |
 | nœud porte | 33 % | 20 % |
+| lecteur de badge | 30 % | 14 % |
 
 Ils ne sont **pas encore testés sur le matériel**, et les seuils de détection sont à régler le jour de l'installation.
 
@@ -39,6 +41,18 @@ Ils ne sont **pas encore testés sur le matériel**, et les seuils de détection
 - **L'auto-calibration du SCD-41 est coupée.** Sinon, le capteur se recale tout seul sur 400 ppm et cache sa dérive (vu dans ROBOD). C'est le serveur qui vérifie la dérive chaque soir.
 - **Carte étudiante :** on lit le numéro (UID) de la carte et on n'envoie que son empreinte : SHA-256 du sel + numéro, 16 caractères. Le numéro lui-même ne quitte jamais la carte. Le sel doit être le même dans `config.h` et dans `serveur/config.py`.
 - **Si le Wi-Fi tombe**, les messages attendent dans une file (60 messages) et partent avec leur âge. Le serveur recalcule l'heure.
+
+## Lecteur de badge seul
+
+| Élément | Broches XIAO |
+| --- | --- |
+| PN532 (I2C) | D4 = SDA, D5 = SCL, D6 = IRQ, D7 = RESET, 3,3 V (interrupteurs du PN532 en mode I2C) |
+| LED verte, LED rouge | D1, D2, chacune avec une résistance de 220 Ω |
+| Buzzer actif 3,3 V | D3 |
+
+- Le badge part tout de suite au serveur, qui répond si la carte est connue.
+- **Vert + 1 bip** : badge enregistré. **Orange + 2 bips** : carte inconnue, à enregistrer dans la page « Cartes » du site. **Rouge qui clignote** : serveur injoignable, le badge est gardé (40 au plus) et renvoyé toutes les 10 s.
+- Comme le nœud salle, il n'envoie qu'une empreinte de la carte, jamais son numéro.
 
 ## Nœud porte
 

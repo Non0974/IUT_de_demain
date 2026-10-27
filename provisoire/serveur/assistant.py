@@ -458,6 +458,9 @@ class Outils:
             'changements_acceptes_aujourd_hui': [{'cours': c['cours'], 'de': c['salle_avant'], 'vers': c['salle_apres']}
                                                  for c in p['changements']],
             'erreur_moyenne_des_previsions_ppm': p['precision'],
+            'chauffage_eclairage_selon_occupation': {
+                'salle': p['ambiance']['salle'], 'chauffage': p['ambiance']['chauffage'],
+                'eclairage_allume': p['ambiance']['eclairage'], 'energie_du_jour_kwh': p['ambiance']['bilan']},
         }
 
     def capacite_salles(self, e):

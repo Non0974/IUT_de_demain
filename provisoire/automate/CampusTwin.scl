@@ -9,13 +9,19 @@
 //   %Q0.0 Petite        relais petite vitesse du ventilateur
 //   %Q0.1 Grande        relais grande vitesse du ventilateur
 //   %Q0.2 Vanne         électrovanne CO2 (24 V, normalement fermée, aussi coupée en câblage par l'AU)
-//   %Q0.3 VoyantAuto    voyant vert
+//   %Q0.3 Chauffage     relais du radiateur de la maquette (lampe chauffante)
 //   %Q0.4 VoyantDefaut  voyant rouge
+//   %Q0.5 Eclairage     relais de l'éclairage de la maquette (ruban LED 24 V)
+//   (le voyant vert « Auto » a été retiré : la position du commutateur Manu/Auto suffit, et sa sortie
+//    sert au chauffage ; la CPU 1212C n'a que 6 sorties)
 //
 // Registres Modbus (MB_SERVER, holding registers, 40001 = indice 0) :
 //   0 vie du serveur (change à chaque échange)   1 consigne 0/1/2   2 personnes simulées 0..30
-//   10 état (bit 0 auto, bit 1 AU, bit 2 ventilateur, bit 3 vanne, bit 4 communication perdue)
+//   3 éclairage demandé 0/1                      4 chauffage demandé 0 hors-gel / 1 réduit / 2 confort
+//   10 état (bit 0 auto, bit 1 AU, bit 2 ventilateur, bit 3 vanne, bit 4 communication perdue,
+//            bit 5 éclairage, bit 6 radiateur)
 //   11 vitesse appliquée 0/1/2                   12 vie de l'automate
+//   13 chauffage appliqué 0/1/2
 
 DATA_BLOCK "DB_Echange"
 { S7_Optimized_Access := 'FALSE' }   // MB_SERVER a besoin d'adresses absolues
@@ -52,8 +58,8 @@ VERSION : 0.1
       Petite : Bool;
       Grande : Bool;
       Vanne : Bool;
-      VoyantAuto : Bool;
       VoyantDefaut : Bool;
+      CommPerdue : Bool;         // pour FB_Ambiance
    END_VAR
 
    VAR_IN_OUT
@@ -72,7 +78,6 @@ VERSION : 0.1
    END_VAR
 
    VAR_TEMP
-      CommPerdue : Bool;
       Consigne : Int;
       Personnes : Int;
       Vitesse : Int;
@@ -124,7 +129,6 @@ BEGIN
    IF #Clignotant.Q THEN
       #Clign := NOT #Clign;
    END_IF;
-   #VoyantAuto := #Auto AND #PasAU;
    #VoyantDefaut := NOT #PasAU OR (#CommPerdue AND #Clign);
 
    // --- état renvoyé au serveur ---
@@ -138,6 +142,68 @@ BEGIN
    #Registres[11] := INT_TO_WORD(#Vitesse);
    #VieAutomate := UINT_TO_WORD(WORD_TO_UINT(#VieAutomate) + 1);
    #Registres[12] := #VieAutomate;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "FB_Ambiance"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+// Éclairage et chauffage demandés par le jumeau (selon l'occupation), avec la sécurité de l'automate :
+//   arrêt d'urgence : lumière allumée (évacuation), chauffage coupé
+//   serveur muet    : lumière allumée, chauffage réduit
+//   mode manuel     : lumière allumée, chauffage confort (quelqu'un est là)
+// Le radiateur de la maquette est tout ou rien : en réduit, il chauffe 40 % du temps (24 s sur 60 s).
+   VAR_INPUT
+      PasAU : Bool;
+      Auto : Bool;
+      CommPerdue : Bool;
+   END_VAR
+
+   VAR_OUTPUT
+      Eclairage : Bool;
+      Chauffage : Bool;
+   END_VAR
+
+   VAR_IN_OUT
+      Registres : Array[0..31] of Word;
+   END_VAR
+
+   VAR
+      CycleRadiateur : TON_TIME;
+   END_VAR
+
+   VAR_TEMP
+      Mode : Int;                // 0 hors-gel, 1 réduit, 2 confort
+   END_VAR
+
+BEGIN
+   IF NOT #PasAU THEN
+      #Eclairage := TRUE;
+      #Mode := 0;
+   ELSIF #CommPerdue THEN
+      #Eclairage := TRUE;
+      #Mode := 1;
+   ELSIF #Auto THEN
+      #Eclairage := #Registres[3] <> 0;
+      #Mode := WORD_TO_INT(#Registres[4]);
+      IF #Mode > 2 THEN
+         #Mode := 2;
+      END_IF;
+   ELSE
+      #Eclairage := TRUE;
+      #Mode := 2;
+   END_IF;
+
+   #CycleRadiateur(IN := NOT #CycleRadiateur.Q, PT := T#60S);
+   #Chauffage := #Mode = 2 OR (#Mode = 1 AND #CycleRadiateur.ET < T#24S);
+
+   // état renvoyé au serveur (bits 5 et 6 du mot d'état, et mode appliqué)
+   IF #Eclairage THEN
+      #Registres[10] := #Registres[10] OR 16#0020;
+   END_IF;
+   IF #Chauffage THEN
+      #Registres[10] := #Registres[10] OR 16#0040;
+   END_IF;
+   #Registres[13] := INT_TO_WORD(#Mode);
 END_FUNCTION_BLOCK
 
 FUNCTION_BLOCK "FB_Modbus"
@@ -179,6 +245,15 @@ NON_RETAIN
 BEGIN
 END_DATA_BLOCK
 
+DATA_BLOCK "FB_Ambiance_DB"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+"FB_Ambiance"
+
+BEGIN
+END_DATA_BLOCK
+
 ORGANIZATION_BLOCK "Main"
 { S7_Optimized_Access := 'TRUE' }
 VERSION : 0.1
@@ -192,7 +267,14 @@ BEGIN
                        Petite => "Petite",
                        Grande => "Grande",
                        Vanne => "Vanne",
-                       VoyantAuto => "VoyantAuto",
                        VoyantDefaut => "VoyantDefaut",
                        Registres := "DB_Echange".Registres);
+
+   // Après FB_Ventilation, qui vient d'écrire le mot d'état (registre 10)
+   "FB_Ambiance_DB"(PasAU := "AU",
+                    Auto := "Auto",
+                    CommPerdue := "FB_Ventilation_DB".CommPerdue,
+                    Eclairage => "Eclairage",
+                    Chauffage => "Chauffage",
+                    Registres := "DB_Echange".Registres);
 END_ORGANIZATION_BLOCK

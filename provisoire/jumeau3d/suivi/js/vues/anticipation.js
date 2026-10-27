@@ -144,6 +144,33 @@ function tableauCapacite(cap) {
     <tbody>${lignes}</tbody></table></div></details>`;
 }
 
+// ---------- chauffage et éclairage selon l'occupation ----------
+
+const CHAUFFAGES = { confort: 'Confort', reduit: 'Réduit', hors_gel: 'Hors-gel' };
+
+function sectionAmbiance(a) {
+  const b = a.bilan;
+  const auto = a.automate.connecte
+    ? `l'automate applique : chauffage ${(CHAUFFAGES[a.automate.chauffage] || '?').toLowerCase()}, lumière ${a.automate.eclairage ? 'allumée' : 'éteinte'}`
+    : 'automate non connecté : consigne non appliquée';
+  const economie = e => (e && e.economie != null ? `−${pourcent(e.economie)}` : '—');
+  const tuiles = [
+    tuile(CHAUFFAGES[a.chauffage], `chauffage de ${echapper(a.salle)} maintenant`, `lumière ${a.eclairage ? 'allumée' : 'éteinte'} · ${auto}`),
+    tuile(economie(b && b.salle), `énergie de ${echapper(a.salle)} aujourd'hui`,
+      b ? `${b.salle.jumeau} kWh au lieu de ${b.salle.fixe} (horaire fixe) · confort ${b.heures_confort.jumeau} h au lieu de ${b.heures_confort.fixe} h` : '', 'bon'),
+    tuile(economie(b && b.batiment), 'si les 23 salles étaient pilotées ainsi',
+      b ? `${b.batiment.jumeau} kWh au lieu de ${b.batiment.fixe} aujourd'hui (estimation)` : '', 'bon'),
+  ];
+  return `<section class="section">
+      <h2 class="titre-section">Chauffage et éclairage selon l'occupation <span class="sous">le jumeau décide, l'automate applique</span></h2>
+      <div class="grille tuiles">${tuiles.join('')}</div>
+      <p class="sous">Chauffage en confort pendant un cours et 45 min avant, ou dès qu'il y a quelqu'un ; réduit le reste de la journée ;
+        hors-gel la nuit et le week-end. Lumière allumée seulement quand il y a quelqu'un. Comparé à l'horaire fixe d'avant
+        (confort de 7 h à 19 h, lumière de 8 h à 18 h). Puissances estimées : chauffage 50 W/m², éclairage 8 W/m².
+        L'automate garde la sécurité : arrêt d'urgence (lumière allumée, chauffage coupé), serveur muet (chauffage réduit).</p>
+    </section>`;
+}
+
 function sectionCapacite(cap) {
   const ch = cap.chiffres;
   const a = cap.appris;
@@ -299,6 +326,7 @@ export async function vueAnticipation(zone, ctx) {
       <div class="grille propositions">${propositions}</div>${changements}
     </section>
     ${d.capacite ? sectionCapacite(d.capacite) : ''}
+    ${d.ambiance ? sectionAmbiance(d.ambiance) : ''}
     <section class="section">
       <h2 class="titre-section">Ventilation de ${echapper(cmd.salle)} décidée par le jumeau</h2>
       <div class="carte">

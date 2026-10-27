@@ -24,7 +24,7 @@ class PontFactice:
         self.consigne = 'petite'
         self.etat = {'connecte': False}
 
-    def regler(self, consigne=None, personnes=None):
+    def regler(self, consigne=None, personnes=None, **_):
         self.consigne = consigne or self.consigne
 
 

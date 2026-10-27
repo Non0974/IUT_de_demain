@@ -12,7 +12,7 @@ Le temps "t" est simulé (secondes depuis 1970), il peut aller plus vite que le 
 import hashlib
 import json
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -112,7 +112,9 @@ class SimulateurBatiment:
 
     def annuaire(self):
         """Ce que la scolarité donnerait au serveur : empreinte de carte -> étudiant (pseudonyme) ou enseignant."""
-        for c in self.cours:
+        # Les cours de la semaine tels que le serveur les voit (en local, les enseignants y ont leur vrai nom)
+        semaine = [c for k in range(5) for c in self.cours_du_jour((DEBUT_SEMAINE + timedelta(days=k)).date())]
+        for c in self.cours + semaine:
             self._carte(c['enseignant'], 'enseignant')
             for cle in c['cles']:
                 effectif = self.groupes[cle]['effectif'] if cle in self.groupes else c['effectif']

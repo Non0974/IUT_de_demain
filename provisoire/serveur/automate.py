@@ -4,10 +4,14 @@ Registres (holding registers, adresse 0 = 40001 dans TIA Portal) :
   écrits par le serveur        0 : compteur de vie (+1 à chaque échange)
                                1 : consigne de ventilation (0 arrêt, 1 petite, 2 grande)
                                2 : personnes à simuler sur la maquette (0 à 30, injection de CO2)
+                               3 : éclairage demandé (0 éteint, 1 allumé)
+                               4 : chauffage demandé (0 hors-gel, 1 réduit, 2 confort)
   lus par le serveur          10 : état (bit 0 auto, bit 1 arrêt d'urgence, bit 2 ventilateur en marche,
-                                     bit 3 électrovanne CO2 ouverte, bit 4 communication perdue)
+                                     bit 3 électrovanne CO2 ouverte, bit 4 communication perdue,
+                                     bit 5 éclairage allumé, bit 6 radiateur en marche)
                               11 : vitesse appliquée (0, 1, 2)
                               12 : compteur de vie de l'automate
+                              13 : chauffage appliqué (0, 1, 2)
 Pas de bibliothèque : le protocole Modbus TCP tient en quelques lignes.
 """
 
@@ -17,6 +21,7 @@ import threading
 import time
 
 NIVEAUX = ['arret', 'petite', 'grande']
+CHAUFFAGES = ['hors_gel', 'reduit', 'confort']
 
 
 class ClientModbus:
@@ -85,6 +90,8 @@ class PontAutomate:
         self.periode = periode
         self.consigne = 'petite'
         self.personnes_maquette = 0
+        self.eclairage = True
+        self.chauffage = 'reduit'
         self.vie = 0
         self.etat = {'connecte': False, 'erreur': 'pas encore contacté'}
         self.verrou = threading.Lock()
@@ -97,16 +104,18 @@ class PontAutomate:
         while not self.arret:
             try:
                 with self.verrou:
-                    consigne = NIVEAUX.index(self.consigne)
-                    personnes = int(self.personnes_maquette)
+                    ecrits = [NIVEAUX.index(self.consigne), int(self.personnes_maquette), int(self.eclairage),
+                              CHAUFFAGES.index(self.chauffage)]
                 self.vie = (self.vie + 1) % 65536
-                self.client.ecrire(0, [self.vie, consigne, personnes])
-                mot, vitesse, vie_api = self.client.lire(10, 3)
+                self.client.ecrire(0, [self.vie, *ecrits])
+                mot, vitesse, vie_api, chauffage = self.client.lire(10, 4)
                 self.etat = {
                     'connecte': True, 'erreur': None,
                     'auto': bool(mot & 1), 'arret_urgence': bool(mot & 2), 'ventilateur': bool(mot & 4),
                     'electrovanne': bool(mot & 8), 'comm_perdue': bool(mot & 16),
+                    'eclairage': bool(mot & 32), 'radiateur': bool(mot & 64),
                     'vitesse': NIVEAUX[vitesse] if vitesse < 3 else '?', 'vie': vie_api,
+                    'chauffage': CHAUFFAGES[chauffage] if chauffage < 3 else '?',
                     'consigne': self.consigne,
                 }
             except (OSError, IOError, struct.error) as e:
@@ -114,9 +123,13 @@ class PontAutomate:
                 self.etat = {'connecte': False, 'erreur': str(e) or e.__class__.__name__, 'consigne': self.consigne}
             time.sleep(self.periode)
 
-    def regler(self, consigne=None, personnes=None):
+    def regler(self, consigne=None, personnes=None, eclairage=None, chauffage=None):
         with self.verrou:
             if consigne in NIVEAUX:
                 self.consigne = consigne
             if personnes is not None:
                 self.personnes_maquette = max(0, min(30, personnes))
+            if eclairage is not None:
+                self.eclairage = bool(eclairage)
+            if chauffage in CHAUFFAGES:
+                self.chauffage = chauffage

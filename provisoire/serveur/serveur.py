@@ -31,6 +31,7 @@ sys.path.insert(0, str(ICI))
 
 import config                                   # noqa: E402
 from assistant import SUGGESTIONS, Assistant, ErreurIA, Indisponible, Occupe   # noqa: E402
+from ambiance import BilanAmbiance, decider as decider_ambiance   # noqa: E402
 from automate import PontAutomate, niveau_automatique   # noqa: E402
 from capacite import capacite                    # noqa: E402
 from commande import HORIZON, BilanVentilation, CommandePredictive, bornes_vitesse   # noqa: E402
@@ -99,11 +100,14 @@ class Campus:
         self.mode = {'auto': True, 'niveau': 'petite', 'strategie': config.STRATEGIE}
         self.messages = 0
         self.derniere_synchro = 0
+        self.cartes_inconnues = {}                   # empreinte -> {salle, t} : badgée, pas encore enregistrée
         # Jumeau prédictif et ventilation anticipée
         self.prevision = Prevision(self, config)
         auto = self.salles.get(config.SALLE_AUTOMATE)
         self.commande = CommandePredictive(config, auto.estimateur.volume) if auto else None
         self.bilan = BilanVentilation(self.commande) if auto else None
+        self.bilan_ambiance = BilanAmbiance(config.SALLE_AUTOMATE)
+        self.ambiance = (True, 'reduit')              # éclairage, chauffage demandés pour la salle de l'automate
         self.consigne = None
         self.derniere_decision = 0
         self._previsions = (None, None)              # (minute, résultat) : recalculé une fois par minute
@@ -147,15 +151,59 @@ class Campus:
             elif type_ == 'presence':
                 salle.presence_radar(t, bool(m['presence']))
             elif type_ == 'badge':
-                salle.badge(t, str(m['carte']))
+                carte = str(m['carte'])
+                salle.badge(t, carte)
+                if carte not in self.annuaire:
+                    self.cartes_inconnues[carte] = {'salle': salle.id, 't': t}
+                return {'connue': carte in self.annuaire}     # le lecteur s'allume en vert ou en orange
             else:
                 raise ValueError(f'Type de message inconnu : {type_}')
 
     def ajouter_cartes(self, cartes):
         with self.verrou:
             self.annuaire.update(cartes)
-            if not self.simulation:      # la table de la scolarité est gardée pour le prochain démarrage
-                FICHIER_CARTES.write_text(json.dumps(self.annuaire, ensure_ascii=False, indent=1), encoding='utf-8')
+            self._garder_cartes()
+
+    def _garder_cartes(self):
+        if not self.simulation:          # la table des cartes est gardée pour le prochain démarrage
+            FICHIER_CARTES.write_text(json.dumps(self.annuaire, ensure_ascii=False, indent=1), encoding='utf-8')
+
+    # ---------- enregistrement des cartes (page « Cartes ») ----------
+
+    def places_cartes(self):
+        """Qui peut recevoir une carte : les étudiants des vrais groupes (TP1-01…) et les enseignants."""
+        porteurs = {p['id']: p for p in self.annuaire.values()}
+        groupes = [{'cle': cle, 'nom': g['nom'],
+                    'etudiants': [{'id': i, 'nom': porteurs.get(i, {}).get('nom'), 'carte': i in porteurs}
+                                  for i in (f'{cle}-{k + 1:02d}' for k in range(g['effectif']))]}
+                   for cle, g in self.edt['groupes'].items()]
+        enseignants = sorted({c['enseignant'] for c in self.edt['cours'] if c['reel'] and c['enseignant'] != '—'})
+        return groupes, [{'id': e, 'carte': e in porteurs} for e in enseignants]
+
+    def associer_carte(self, empreinte, ident, nom=''):
+        """Donne une carte à un étudiant (ou à un enseignant). Elle remplace sa carte d'avant (perdue, changée)."""
+        groupes, enseignants = self.places_cartes()
+        etudiants = {e['id']: g['cle'] for g in groupes for e in g['etudiants']}
+        if ident in etudiants:
+            groupe = etudiants[ident]
+        elif ident in {e['id'] for e in enseignants}:
+            groupe = 'enseignant'
+        else:
+            raise ValueError('Étudiant ou enseignant inconnu.')
+        if not (isinstance(empreinte, str) and len(empreinte) == 16 and all(c in '0123456789abcdef' for c in empreinte)):
+            raise ValueError('Empreinte de carte incorrecte.')
+        with self.verrou:
+            for ancienne in [k for k, p in self.annuaire.items() if p['id'] == ident]:
+                del self.annuaire[ancienne]
+            self.annuaire[empreinte] = {'id': ident, 'groupe': groupe, **({'nom': nom.strip()} if nom.strip() else {})}
+            self.cartes_inconnues.pop(empreinte, None)
+            self._garder_cartes()
+
+    def retirer_carte(self, empreinte):
+        with self.verrou:
+            if self.annuaire.pop(empreinte, None) is None:
+                raise KeyError('Carte inconnue.')
+            self._garder_cartes()
 
     # ---------- pilotage de la ventilation ----------
 
@@ -186,7 +234,9 @@ class Campus:
                 consigne = self.consigne
             else:
                 consigne = regle(salle.nombre(), co2)
-            self.pont.regler(consigne, personnes=salle.nombre())
+            # Lumière et chauffage selon l'occupation : le jumeau décide, l'automate applique (et garde la sécurité)
+            self.ambiance = decider_ambiance(cours, h, jour.weekday(), salle.nombre())
+            self.pont.regler(consigne, personnes=salle.nombre(), eclairage=self.ambiance[0], chauffage=self.ambiance[1])
             etat = self.pont.etat
             # La ventilation suit ce que l'automate applique vraiment (ou la consigne s'il ne répond pas,
             # ou si la simulation avance trop vite pour lui)
@@ -194,6 +244,7 @@ class Campus:
             salle.niveau = etat['vitesse'] if connecte else consigne
             if co2 is not None and self.bilan:
                 self.bilan.avancer(self.t, salle.nombre(), co2, salle.niveau, regle)
+            self.bilan_ambiance.avancer(self, self.t)
 
     # ---------- registre des présences ----------
 
@@ -286,6 +337,11 @@ class Campus:
                     'bilan': self.bilan.resume() if self.bilan else None,
                 },
                 'capacite': capacite(self, t),
+                'ambiance': {
+                    'salle': config.SALLE_AUTOMATE, 'eclairage': self.ambiance[0], 'chauffage': self.ambiance[1],
+                    'automate': {k: self.pont.etat.get(k) for k in ('connecte', 'eclairage', 'chauffage', 'radiateur')},
+                    'bilan': self.bilan_ambiance.resume(),
+                },
                 'propositions': propositions(self, t),
                 'changements': self.registre.changements_du_jour(jour),
             }
@@ -300,7 +356,8 @@ class Campus:
 PUBLIQUES = {'/api/connexion', '/api/mesure', '/api/cartes', '/api/info'}
 # Adresses réservées au directeur des études et à la scolarité (le jumeau 3D voit tout le bâtiment)
 DIRECTION = {'/api/etat', '/api/flux', '/api/historique', '/api/commande', '/api/simulation/panne',
-             '/api/previsions', '/api/proposition'}
+             '/api/previsions', '/api/proposition',
+             '/api/cartes/inconnues', '/api/cartes/liste', '/api/cartes/associer', '/api/cartes/retirer'}
 
 
 def creer_gestionnaire(campus, comptes, client_ia=None):
@@ -408,6 +465,19 @@ def creer_gestionnaire(campus, comptes, client_ia=None):
                     self.end_headers()
                     self.wfile.write(corps)
                     return
+                if chemin == '/api/cartes/inconnues':
+                    groupes, enseignants = campus.places_cartes()
+                    with campus.verrou:
+                        inconnues = sorted(({'empreinte': k, **v} for k, v in campus.cartes_inconnues.items()),
+                                           key=lambda x: -x['t'])
+                    return self._json({'cartes': [{**x, 'heure': heure_du_jour(x['t'])} for x in inconnues[:30]],
+                                       'groupes': groupes, 'enseignants': enseignants})
+                if chemin == '/api/cartes/liste':
+                    groupes, enseignants = campus.places_cartes()
+                    gardes = {e['id'] for g in groupes for e in g['etudiants']} | {e['id'] for e in enseignants}
+                    with campus.verrou:
+                        cartes = [{'empreinte': k, **p} for k, p in campus.annuaire.items() if p['id'] in gardes]
+                    return self._json({'cartes': sorted(cartes, key=lambda c: (c['groupe'], c['id']))})
                 if chemin == '/api/assistant':
                     role = 'direction' if u['role'] in TOUT_VOIR else 'enseignant'
                     return self._json(assistant.etat() | {'suggestions': SUGGESTIONS[role],
@@ -453,10 +523,9 @@ def creer_gestionnaire(campus, comptes, client_ia=None):
                     corps = self._corps()
                     if chemin == '/api/cartes':
                         campus.ajouter_cartes(corps)
-                    else:
-                        for m in corps if isinstance(corps, list) else [corps]:
-                            campus.recevoir(m)
-                    return self._json({'ok': True})
+                        return self._json({'ok': True})
+                    reponses = [campus.recevoir(m) for m in (corps if isinstance(corps, list) else [corps])]
+                    return self._json({'ok': True, **next((r for r in reversed(reponses) if r), {})})
                 if chemin == '/api/connexion':
                     corps = self._corps()
                     try:
@@ -472,6 +541,13 @@ def creer_gestionnaire(campus, comptes, client_ia=None):
                 if chemin == '/api/deconnexion':
                     comptes.deconnecter(self._jeton())
                     return self._json({'ok': True}, entetes=[('Set-Cookie', 'session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0')])
+                if chemin == '/api/cartes/associer':
+                    corps = self._corps()
+                    campus.associer_carte(str(corps.get('empreinte', '')), str(corps.get('etudiant', '')), str(corps.get('nom', '')))
+                    return self._json({'ok': True})
+                if chemin == '/api/cartes/retirer':
+                    campus.retirer_carte(str(self._corps().get('empreinte', '')))
+                    return self._json({'ok': True})
                 if chemin == '/api/assistant':
                     corps = self._corps()
                     if corps.get('nouvelle'):
