@@ -355,6 +355,38 @@ body.page-connexion { display: grid; place-items: center; grid-template-columns:
 .erreur { color: var(--absent); background: var(--absent-fond); padding: 8px 10px; border-radius: 8px; margin: 0 0 8px; }
 .note { color: var(--texte2); font-size: 12px; margin: 8px 0 0; }
 
+/* ---------- tickets ---------- */
+
+.colonnes-tickets { grid-template-columns: 3fr 2fr; }
+.liste-tickets { display: flex; flex-direction: column; gap: 12px; }
+.ticket { display: flex; flex-direction: column; gap: 6px; border-left: 4px solid var(--bord-fort); }
+.ticket.ticket-urgent { border-left-color: var(--absent-plein); }
+.ticket p { margin: 0; }
+.ticket .entete { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ticket .salle { font-weight: 700; font-size: 15px; }
+.titre-ticket { font-weight: 600; font-size: 15px; }
+.ticket .detail { color: var(--texte2); font-style: italic; }
+.creneau { font-size: 13px; color: var(--texte2); }
+.creneau.libre { color: var(--present); }
+.suivi-ticket summary { cursor: pointer; color: var(--primaire); font-size: 13px; }
+.suivi-ticket ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.commentaire { display: flex; gap: 6px; }
+.commentaire input { flex: 1; padding: 4px 8px; font-size: 13px; }
+.formulaire-ticket { display: flex; flex-direction: column; gap: 12px; }
+.formulaire-ticket h2, .formulaire-ticket p { margin: 0; }
+.formulaire-ticket > label, .ligne-formulaire label { display: flex; flex-direction: column; gap: 4px; }
+.ligne-formulaire { display: flex; gap: 12px; flex-wrap: wrap; }
+.ligne-formulaire label.large { flex: 1; min-width: 180px; }
+.ligne-formulaire input[type=number] { width: 90px; }
+fieldset.objets { border: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+fieldset.objets legend { font-weight: 600; font-size: 13px; margin-bottom: 6px; padding: 0; }
+.choix-objet { font-weight: 400; }
+.choix-objet input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.choix-objet span { display: inline-block; padding: 5px 11px; border: 1px solid var(--bord-fort); border-radius: 99px; cursor: pointer; background: #fff; }
+.choix-objet input:checked + span { background: var(--primaire); border-color: var(--primaire); color: #fff; }
+.choix-objet input:focus-visible + span { outline: 2px solid #f2b705; outline-offset: 2px; }
+.tickets-salle { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 14px; font-size: 13px; }
+
 /* ---------- téléphone et tablette ---------- */
 
 @media (max-width: 900px) {
@@ -367,7 +399,7 @@ body.page-connexion { display: grid; place-items: center; grid-template-columns:
   .utilisateur { display: none; }
   .haut { padding: 12px 16px; }
   main { padding: 16px; }
-  .deux-colonnes { grid-template-columns: 1fr; }
+  .deux-colonnes, .colonnes-tickets { grid-template-columns: 1fr; }
 }
 
 /* ---------- impression : feuille d'émargement ---------- */

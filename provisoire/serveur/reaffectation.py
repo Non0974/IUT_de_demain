@@ -39,7 +39,8 @@ def propositions(campus, t):
     h0 = datetime.fromtimestamp(t).hour + datetime.fromtimestamp(t).minute / 60
     cours_du_jour = [c for c in campus.planning.cours_du_jour(jour) if c['salle']]
     ignorees = campus.registre.propositions_ignorees(jour)
-    salles = {s['id']: s for s in campus.batiment['salles']}
+    # Places qui restent : moins les tables ou chaises manquantes signalées (tickets pas résolus)
+    salles = {s['id']: {**s, 'places': campus.places_restantes(s['id'])} for s in campus.batiment['salles']}
     resultat = []
     a_verifier = sorted((c for c in cours_du_jour if h0 + PAS_AVANT < c['debut'] and c['id'] not in ignorees),
                         key=lambda c: c['debut'])
@@ -89,7 +90,7 @@ def propositions(campus, t):
             'cours': c['id'], 'matiere': c['matiere'], 'groupes': c['groupes'], 'enseignant': c['enseignant'],
             'debut': c['debut'], 'fin': c['fin'], 'motifs': motifs,
             'personnes': etudiants + 1, 'etudiants': etudiants, 'inscrits': c['effectif'],
-            'salle': c['salle'], 'places': places, 'pic': round(pic) if pic is not None else None,
+            'salle': c['salle'], 'places': places, 'places_perdues': campus.perdues.get(c['salle'], 0), 'pic': round(pic) if pic is not None else None,
             'proposee': meilleure[1] if meilleure else None,
             'places_proposee': salles[meilleure[1]]['places'] if meilleure else None,
             'pic_propose': round(meilleure[2]) if meilleure else None,
@@ -125,8 +126,7 @@ def repondre(campus, t, jour, h0, minutes, cours_du_jour, prises, prevues, c, et
     if autre['debut'] <= h0 + PAS_AVANT:
         return {'salle': sid, 'reponse': 'occupée', 'detail': f'{autre["matiere"]} a déjà commencé'}
     autres = campus.prevision.etudiants_attendus(autre, jour)
-    ma_salle = campus.salles[c['salle']].salle
-    if autres > ma_salle['places']:
+    if autres > campus.places_restantes(c['salle']):
         return {'salle': sid, 'reponse': 'occupée', 'detail': f'{autre["matiere"]} ({autres} étudiants) ne tiendrait pas en {c["salle"]}'}
     if not libre([x for x in cours_du_jour if x['id'] != c['id']], c['salle'], autre['debut'], autre['fin']):
         return {'salle': sid, 'reponse': 'occupée', 'detail': f'{c["salle"]} n\'est pas libre pendant {autre["matiere"]}'}
@@ -153,7 +153,8 @@ def texte_proposition(x):
     if 'air' in x['motifs']:
         raisons.append(f'{x["pic"]} ppm prévus')
     if 'trop_petite' in x['motifs']:
-        raisons.append(f'{x["etudiants"]} étudiants attendus pour {x["places"]} places')
+        perdues = f', {x["places_perdues"]} en moins : matériel manquant' if x.get('places_perdues') else ''
+        raisons.append(f'{x["etudiants"]} étudiants attendus pour {x["places"]} places{perdues}')
     cours = f'{x["matiere"]} ({x["groupes"][0]}, {heure_texte(x["debut"])})'
     if x['proposee'] is None:
         return f'{cours} en {x["salle"]} : {" et ".join(raisons)}. Aucune salle libre assez grande, aucun échange possible.'

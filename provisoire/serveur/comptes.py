@@ -4,6 +4,7 @@ Rôles :
   directeur     directeur des études : voit tout, corrige tout, exporte
   scolarite     scolarité / vie scolaire : comme le directeur
   enseignant    voit et corrige seulement ses séances et les classes qu'il a en cours
+  technique     services techniques (logistique, informatique, maintenance) : voit seulement les tickets
 
 Les mots de passe ne sont jamais gardés : seulement une empreinte PBKDF2 (sel + 200 000 tours).
 Les comptes sont dans serveur/comptes.json (pas sur GitHub).
@@ -23,7 +24,7 @@ import time
 from pathlib import Path
 
 FICHIER = Path(__file__).resolve().parent / 'comptes.json'
-ROLES = ('directeur', 'scolarite', 'enseignant')
+ROLES = ('directeur', 'scolarite', 'enseignant', 'technique')
 TOURS = 200_000
 DUREE_SESSION = 10 * 3600          # s
 ESSAIS_MAX = 5                     # essais ratés par minute et par adresse avant blocage
@@ -93,6 +94,7 @@ def comptes_de_demo(enseignant):
     c = Comptes(fichier=None, comptes={})
     c.ajouter('directeur', 'demo', 'directeur', 'Directeur des études (démo)')
     c.ajouter('enseignant', 'demo', 'enseignant', f'{enseignant} (démo)', enseignant)
+    c.ajouter('technique', 'demo', 'technique', 'Services techniques (démo)')
     return c
 
 

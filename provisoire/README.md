@@ -21,7 +21,7 @@ SAE BUT 3 GEII, IUT de Cergy-Pontoise, site de Sarcelles. Louay Boubaya, Ariel G
   - capteur mal placé.
 - **Émargement vérifié.** Chaque étudiant badge sa carte (NFC) en entrant, et chaque badge est comparé aux passages comptés. On repère une entrée sans badge ou une carte prêtée. Seule une empreinte de la carte est gardée (RGPD).
   - Prêt pour un essai réel : un lecteur de badge seul (XIAO + PN532, vert ou orange selon la carte), et une page « Cartes » pour donner chaque carte à un étudiant.
-- **Interface de suivi des classes**, avec des comptes : directeur des études, scolarité, enseignant.
+- **Interface de suivi des classes**, avec des comptes : directeur des études, scolarité, enseignant, services techniques.
   - Tableau de bord en direct : séances en cours, présents, absents, alertes.
   - Séances du jour, et feuille d'émargement de chaque séance, imprimable.
   - Une classe sur la semaine : un tableau étudiants × séances, avec le taux de présence.
@@ -31,6 +31,13 @@ SAE BUT 3 GEII, IUT de Cergy-Pontoise, site de Sarcelles. Louay Boubaya, Ariel G
   - Un enseignant ne voit que ses cours et ses classes (RGPD).
   - Anticipation : CO₂ prévu, plan de ventilation, énergie économisée, places des salles, propositions de salle.
   - Assistant IA : questions en français.
+  - Tickets : il manque une table, des feutres, le vidéoprojecteur ne marche pas (voir plus bas).
+- **Tickets des salles.** Un enseignant signale en deux clics ce qui manque ou ne marche pas dans une salle. Le jumeau ajoute ce qu'un formulaire ne sait pas :
+  - l'échéance : le prochain cours dans la salle (« à faire avant 13h30 ») ;
+  - l'urgence : « urgent » s'il n'y a plus assez de places pour le prochain cours, ou s'il manque de quoi faire cours dans moins de 2 h ;
+  - quand intervenir sans déranger un cours (« salle libre de 12h30 à 13h30 ») ;
+  - les places perdues : 2 tables manquantes = 4 places de moins. La capacité et les propositions de changement de salle en tiennent compte jusqu'à la réparation.
+  - Le jumeau ouvre aussi lui-même un ticket quand il détecte une panne (ventilation, capteur). Le service technique a son compte et ne voit que les tickets, jamais les présences.
 - **Jumeau prédictif.** Le jumeau prévoit le CO₂ de chaque salle pour les 2 prochaines heures, avec l'emploi du temps, le taux de présence et le débit d'air qu'il a appris.
   - Dans SAR 200, il ventile avant que la salle se remplisse et coupe quand personne n'arrive (commande prédictive). Sur une semaine simulée : 16 % d'énergie de ventilation en moins que la règle simple, et 136 minutes au-dessus de 1000 ppm au lieu de 246.
   - **Places des salles.** Il apprend le taux de présence de chaque groupe et de chaque demi-journée (on vient moins le vendredi après-midi), et prévoit combien d'étudiants viendront à chaque cours : 1,4 étudiant d'écart en moyenne. Une frise montre le remplissage de chaque salle sur la journée, et une alerte part en direct quand une salle a plus de monde que de places.
@@ -53,7 +60,7 @@ SAE BUT 3 GEII, IUT de Cergy-Pontoise, site de Sarcelles. Louay Boubaya, Ariel G
 
 | Dossier | Contenu | État |
 | --- | --- | --- |
-| [jumeau3d/suivi](jumeau3d/suivi) | Interface de suivi des classes (tableau de bord, séances, classes, étudiants, anticipation, assistant IA) | marche, vérifiée dans le navigateur |
+| [jumeau3d/suivi](jumeau3d/suivi) | Interface de suivi des classes (tableau de bord, séances, classes, étudiants, anticipation, tickets, assistant IA) | marche, vérifiée dans le navigateur |
 | [jumeau3d](jumeau3d) | Jumeau 3D : vue de tout l'IUT (`iut.html`) et salle SAR 200 en détail (`index.html`) | marche, vérifié dans le navigateur |
 | [serveur](serveur) | Serveur Python sans installation : capteurs, diagnostic, registre des présences, comptes, prévisions, ventilation anticipée, lien avec l'automate, assistant IA | marche, testé en simulation (assistant : testé avec un faux client, pas encore avec la vraie API) |
 | [simulateurs](simulateurs) | Bâtiment simulé (mêmes messages que les vraies cartes) et automate simulé (Modbus TCP) | marche |
@@ -74,7 +81,8 @@ python serveur/serveur.py --simulation
 
 Puis ouvrir http://localhost:8000 et se connecter avec un compte de démonstration :
 - **directeur** / **demo** : voit tout l'IUT ;
-- **enseignant** / **demo** : voit seulement ses cours.
+- **enseignant** / **demo** : voit seulement ses cours ;
+- **technique** / **demo** : services techniques, voit seulement les tickets.
 
 Le serveur simule le bâtiment et l'automate. Au démarrage, il joue aussi la semaine précédente en quelques secondes, pour que le registre ait déjà des séances. Dans la page de la salle SAR 200, les boutons provoquent des pannes ou des fraudes, et on voit le diagnostic les trouver.
 
@@ -108,4 +116,5 @@ python tests/test_celcat.py        import d'un export CELCAT
 python tests/test_temoin.py        le CO₂ témoin de l'émargement
 python tests/test_transports.py    RER perturbé : retards prévus et expliqués
 python tests/test_negociation.py   salles qui négocient, échange de salles
+python tests/test_tickets.py       tickets : urgence, places perdues, droits, panne qui ouvre un ticket
 ```

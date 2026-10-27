@@ -15,7 +15,7 @@ python serveur/serveur.py --simulation       bâtiment et automate simulés, pou
 python serveur/serveur.py --simulation --vitesse 300
 ```
 
-Puis ouvrir http://localhost:8000 : l'interface de suivi des classes. En simulation, les comptes de démonstration sont **directeur** / **demo** et **enseignant** / **demo**.
+Puis ouvrir http://localhost:8000 : l'interface de suivi des classes. En simulation, les comptes de démonstration sont **directeur** / **demo**, **enseignant** / **demo** et **technique** / **demo**.
 
 ## Comptes de l'interface de suivi
 
@@ -24,6 +24,7 @@ Avec les vrais capteurs, il faut créer les comptes. Les mots de passe sont dema
 ```
 python serveur/comptes.py ajouter direction --role directeur --nom "Directeur des études"
 python serveur/comptes.py ajouter dupont --role enseignant --nom "M. Dupont" --enseignant "DUPONT Jean"
+python serveur/comptes.py ajouter technique --role technique --nom "Services techniques"
 python serveur/comptes.py liste
 ```
 
@@ -41,6 +42,9 @@ Le serveur les remet dans l'emploi du temps et dans l'interface.
 | --- | --- | --- |
 | `directeur`, `scolarite` | Tout l'IUT, le jumeau 3D | Corriger toutes les séances, exporter |
 | `enseignant` | Ses séances, ses classes, les étudiants de ses classes (pour ses cours) | Corriger ses séances, exporter ses classes |
+| `technique` | Seulement les tickets (pas les présences) | Prendre en charge et résoudre les tickets |
+
+Tout le monde peut signaler un problème (page Tickets). Un enseignant peut commenter un ticket et fermer celui qu'il a ouvert.
 
 - La session dure 10 h.
 - Après 5 mauvais mots de passe en une minute, l'adresse est bloquée une minute.
@@ -64,6 +68,7 @@ Le serveur les remet dans l'emploi du temps et dans l'interface.
 | [reaffectation.py](reaffectation.py) | Propositions de changement de salle (air qui va devenir mauvais, salle trop petite) : les salles négocient, échange de salles si aucune n'est libre |
 | [temoin.py](temoin.py) | Le CO₂ témoin de l'émargement : combien de personnes ont respiré dans la salle, comparé aux badges |
 | [transports.py](transports.py) | RER perturbé : retards appris, prévus et expliqués ; lien avec l'API PRIM d'Île-de-France Mobilités |
+| [tickets.py](tickets.py) | Tickets des salles (matériel manquant, pannes) : échéance, urgence, quand intervenir, places perdues ; tickets ouverts par le jumeau |
 | [ambiance.py](ambiance.py) | Chauffage et éclairage selon l'occupation, et énergie face à l'horaire fixe |
 | [assistant.py](assistant.py) | Assistant IA : outils en lecture seule, pseudonymes, appel à l'API Claude |
 | [config.py](config.py) | Adresse de l'automate, débits connus, clé des capteurs, sel des cartes, réglages de la ventilation et de l'assistant |
@@ -140,6 +145,16 @@ Quand une ligne qui dessert l'IUT est perturbée (RER D par défaut), le jumeau 
 - En vrai : messages d'info trafic de l'API PRIM d'Île-de-France Mobilités. Il faut une clé gratuite (prim.iledefrance-mobilites.fr) dans `PRIM_CLE` de `config.py`. **Pas encore testé avec la vraie API** : format et identifiant de la ligne à vérifier avec une clé.
 - En simulation : le RER D est perturbé un matin sur quatre, et 40 % des étudiants le prennent. Le jumeau apprend 7 % de retards d'habitude et 42 % pendant une perturbation, et prévoit les retards de chaque cours à 2 ou 3 près.
 
+## Tickets des salles
+
+Page « Tickets » du site. On choisit la salle et ce qui ne va pas : table, chaise, feutres, brosse, vidéoprojecteur, câble HDMI, poste informatique, chauffage, éclairage, prise, propreté, autre. Le ticket va au bon service (logistique, informatique, maintenance, entretien).
+- **Échéance et urgence.** Le jumeau regarde le prochain cours dans la salle et le nombre d'étudiants attendus. Urgent : plus assez de places pour un cours de la journée, ou il manque de quoi faire cours (feutres, vidéoprojecteur...) pour un cours dans moins de 2 h. Sinon « avant le prochain cours » (aujourd'hui ou demain), ou « pas pressé ».
+- **Quand intervenir.** « Salle libre maintenant jusqu'à 13h30 », ou « occupée, libre à partir de 12h30 » : le technicien ne dérange pas un cours.
+- **Places perdues.** Une table manquante enlève 2 places (table de TD pour 2, à ajuster), une chaise ou un poste 1. Tant que le ticket est ouvert, la capacité et les propositions de changement de salle comptent avec les places qui restent. Essai : 2 tables manquantes en SAR 122 (19 → 15 places), le cours de 9h30 attend 16 étudiants : ticket urgent, et la salle est signalée trop petite.
+- **Signalé deux fois** : un seul ticket, avec les deux signalements.
+- **Le jumeau ouvre des tickets** quand il détecte une panne : ventilation, capteur mal placé, comptage faux, et dérive du capteur (seulement dans SAR 200 : l'automate y purge l'air le soir avant la mesure ; ailleurs l'air d'un cours tardif fausse la mesure). Une seule fois tant que le ticket n'est pas résolu, et pas avant 12 h après une résolution.
+- Les tickets urgents apparaissent dans les alertes du tableau de bord du directeur. La fiche d'une séance montre les tickets de sa salle et un lien pour en signaler un.
+
 ## Cartes étudiantes
 
 Pour l'essai réel : on badge une carte sur un lecteur, elle apparaît dans la page « Cartes » du site (directeur, scolarité), et on choisit à qui elle est (TP1-01… et un nom, facultatif). Le lecteur répond aussitôt vert (carte connue) ou orange (carte inconnue). Le serveur ne garde qu'une empreinte de la carte ; les noms restent dans `serveur/cartes.json`, sur le PC.
@@ -191,6 +206,7 @@ python tests/test_celcat.py        import d'un export CELCAT
 python tests/test_temoin.py        le CO₂ témoin : fausses alertes sur une semaine honnête, 6 cartes en trop repérées
 python tests/test_transports.py    RER D perturbé : retards appris, prévus et expliqués
 python tests/test_negociation.py   aucune salle libre : une salle propose un échange
+python tests/test_tickets.py       tickets : urgence, places perdues, droits, panne qui ouvre un ticket
 ```
 
 Les outils pour brancher les vraies données (CELCAT, Wi-Fi de la DSI) sont dans [outils](../outils/README.md).

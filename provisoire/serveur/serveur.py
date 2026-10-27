@@ -9,7 +9,7 @@ Python seul suffit (aucune bibliothèque à installer), sauf pour l'assistant IA
     python serveur/serveur.py --simulation --vitesse 300 --historique 0
 
 Puis ouvrir http://localhost:8000 (interface de suivi des classes).
-En simulation, comptes de démonstration : directeur / demo et enseignant / demo.
+En simulation, comptes de démonstration : directeur / demo, enseignant / demo et technique / demo.
 """
 
 import argparse
@@ -44,6 +44,7 @@ from salle import EtatSalle, heure_du_jour, seance_id   # noqa: E402
 from stockage import Stockage                   # noqa: E402
 from suivi import TOUT_VOIR, Refus, Suivi, periode     # noqa: E402
 from temoin import Temoin                       # noqa: E402
+from tickets import OBJETS, SERVICES, STATUTS, analyser, nouveau, pannes_detectees, titre, trier   # noqa: E402
 from transports import PontPrim, Transports     # noqa: E402
 
 WEB = RACINE / 'jumeau3d'
@@ -51,6 +52,9 @@ DONNEES = WEB / 'donnees'
 FICHIER_CARTES = ICI / 'cartes.json'            # empreinte de carte -> étudiant (fourni par la scolarité)
 FICHIER_ENSEIGNANTS = ICI / 'enseignants.json'  # "Enseignant A" -> vrai nom (seulement en local, pas sur GitHub)
 SYNCHRO = 30                                    # s entre deux copies de l'émargement dans le registre
+VERIF_PANNES = 300                              # s entre deux recherches de pannes (tickets du jumeau)
+PAUSE_TICKET = 12 * 3600                        # s : un ticket du jumeau résolu n'est pas rouvert avant
+TICKETS_RESOLUS = 7 * 86400                     # s : les tickets résolus restent visibles une semaine
 
 
 def charger_enseignants():
@@ -91,6 +95,9 @@ class Campus:
         self.registre.noms_groupes = noms_groupes
         self.planning = Planning(self.edt, self.registre)
         self.batiment = bat
+        self.batiment_salles = {s['id']: s for s in bat['salles']}
+        self.perdues = self.registre.places_perdues()      # places perdues par salle (tickets pas résolus)
+        self.derniere_verif_pannes = 0
         self.salles = {s['id']: EtatSalle(s, bat['hauteur'], config, self.edt, self.annuaire, self.planning)
                        for s in bat['salles']}
         self.stockage = stockage
@@ -273,6 +280,9 @@ class Campus:
                     self.registre.noter(seance, liste, anomalies)
             self.registre.cloturer(datetime.fromtimestamp(t))
             self._temoigner(t)
+            if abs(t - self.derniere_verif_pannes) >= VERIF_PANNES:
+                self.derniere_verif_pannes = t
+                self._tickets_du_jumeau(t)
             for s in self.registre.seances_du_jour(datetime.fromtimestamp(t).date()):
                 if s['etat'] == 'terminée':
                     self.transports.apprendre(s)
@@ -300,6 +310,65 @@ class Campus:
                 self.registre.noter_temoin(sid, avis, t)
                 if len(ensemble) == 1:
                     self.temoin.apprendre(salle.id, avis)
+
+    # ---------- tickets (matériel manquant, pannes) ----------
+
+    def places_restantes(self, salle):
+        """Places de la salle, moins les tables, chaises ou postes manquants (tickets pas résolus)."""
+        return max(0, self.batiment_salles[salle]['places'] - self.perdues.get(salle, 0))
+
+    def _places_changees(self):
+        self.perdues = self.registre.places_perdues()
+        self._previsions = (None, None)            # capacité et propositions refaites avec les places qui restent
+
+    def _tickets_du_jumeau(self, t):
+        """Une panne détectée par le jumeau ouvre un ticket, une seule fois tant qu'il n'est pas résolu."""
+        ouverts = False
+        for (salle, objet), messages in pannes_detectees(self, t, config.SALLE_AUTOMATE).items():
+            ticket = {'salle': salle, 'objet': objet, 'quantite': None, 'detail': ' '.join(messages),
+                      'service': OBJETS[objet]['service'], 'places_perdues': 0}
+            ouverts |= self.registre.ouvrir_ticket_jumeau(ticket, f'{salle}:{objet}', t, PAUSE_TICKET) is not None
+        if ouverts:
+            self._places_changees()
+
+    def signaler(self, u, corps):
+        ticket = nouveau(self.batiment_salles, str(corps.get('salle', '')), str(corps.get('objet', '')),
+                         corps.get('quantite'), corps.get('detail'))
+        with self.verrou:
+            ident, deja = self.registre.ouvrir_ticket(ticket, u['nom'], u['login'],
+                                                      'direction' if u['role'] in TOUT_VOIR else u['role'], self.t)
+            self._places_changees()
+        return {'id': ident, 'deja': deja}
+
+    def changer_ticket(self, u, corps):
+        try:
+            ident = int(corps.get('id'))
+        except (TypeError, ValueError):
+            raise ValueError('Ticket inconnu.') from None
+        ticket = self.registre.ticket(ident)
+        if ticket is None:
+            raise KeyError('Ticket inconnu.')
+        statut = corps.get('statut') or None
+        texte = str(corps.get('texte') or '').strip()[:300]
+        if statut is not None and statut not in STATUTS:
+            raise ValueError('Statut inconnu.')
+        if not statut and not texte:
+            raise ValueError('Rien à changer.')
+        # Un enseignant commente, ou ferme le ticket qu'il a ouvert ; le service technique et la direction font tout
+        if u['role'] == 'enseignant' and statut and not (statut == 'résolu' and ticket['login'] == u['login']):
+            raise Refus("Seuls le service technique et la direction changent l'état d'un ticket.")
+        with self.verrou:
+            self.registre.changer_ticket(ident, statut, texte, u['nom'], self.t)
+            self._places_changees()
+
+    def liste_tickets(self):
+        """Tickets pas résolus (les plus urgents d'abord) et résolus de la semaine, avec ce qu'en dit le jumeau."""
+        with self.verrou:
+            t = self.t
+            liste = [{**x, 'titre': titre(x['objet'], x['quantite'], x['detail']), 'objet_nom': OBJETS[x['objet']]['nom'],
+                      'service_nom': SERVICES[x['service']], **analyser(self, x, t, self.perdues.get(x['salle'], 0))}
+                     for x in self.registre.tickets(resolus_depuis=t - TICKETS_RESOLUS)]
+            return trier(liste)
 
     def boucle(self):
         while True:
@@ -392,6 +461,8 @@ PUBLIQUES = {'/api/connexion', '/api/mesure', '/api/cartes', '/api/info'}
 DIRECTION = {'/api/etat', '/api/flux', '/api/historique', '/api/commande', '/api/simulation/panne',
              '/api/previsions', '/api/proposition',
              '/api/cartes/inconnues', '/api/cartes/liste', '/api/cartes/associer', '/api/cartes/retirer'}
+# Le service technique ne voit que les tickets (pas les présences des étudiants)
+TECHNIQUE = {'/api/moi', '/api/tickets', '/api/tickets/changer', '/api/deconnexion'}
 
 
 def creer_gestionnaire(campus, comptes, client_ia=None):
@@ -444,6 +515,9 @@ def creer_gestionnaire(campus, comptes, client_ia=None):
                 return None
             if chemin in DIRECTION and u['role'] not in TOUT_VOIR:
                 self._json({'erreur': 'réservé au directeur des études et à la scolarité'}, 403)
+                return None
+            if u['role'] == 'technique' and chemin not in TECHNIQUE:
+                self._json({'erreur': 'le service technique voit seulement les tickets'}, 403)
                 return None
             return u
 
@@ -516,6 +590,16 @@ def creer_gestionnaire(campus, comptes, client_ia=None):
                     role = 'direction' if u['role'] in TOUT_VOIR else 'enseignant'
                     return self._json(assistant.etat() | {'suggestions': SUGGESTIONS[role],
                                                           'conversation': assistant.historique(self._jeton())})
+                if chemin == '/api/tickets':
+                    tickets = [{k: v for k, v in x.items() if k != 'login'} | {'mien': x['login'] == u['login']}
+                               for x in campus.liste_tickets()]
+                    return self._json({
+                        'tickets': tickets, 'statuts': STATUTS, 'services': SERVICES,
+                        'objets': {k: {'nom': o['nom'], 'quantite': bool(o.get('quantite')), 'places': o.get('places', 0)}
+                                   for k, o in OBJETS.items() if not o.get('jumeau')},
+                        'salles': [{k: s[k] for k in ('id', 'libelle', 'type', 'places', 'etage')}
+                                   | {'places_restantes': campus.places_restantes(s['id'])} for s in campus.batiment['salles']],
+                        'peut_changer': u['role'] != 'enseignant'})
                 if chemin == '/api/previsions':
                     return self._json(campus.previsions())
                 if chemin == '/api/etat':
@@ -595,6 +679,11 @@ def creer_gestionnaire(campus, comptes, client_ia=None):
                         return self._json({'erreur': str(e)}, 429)
                     except ErreurIA as e:
                         return self._json({'erreur': str(e)}, 502)
+                if chemin == '/api/tickets':
+                    return self._json(campus.signaler(u, self._corps()))
+                if chemin == '/api/tickets/changer':
+                    campus.changer_ticket(u, self._corps())
+                    return self._json({'ok': True})
                 if chemin == '/api/seance/statut':
                     return self._json(suivi.corriger(u, self._corps()))
                 if chemin == '/api/commande':
@@ -641,7 +730,16 @@ def creer_gestionnaire(campus, comptes, client_ia=None):
     return functools.partial(Gestionnaire, directory=str(WEB))
 
 
-def lancer_simulation(campus, vitesse, jours_historique=5):
+# Tickets de la démonstration (lundi 7 h) : la page Tickets n'est pas vide
+TICKETS_DEMO = [
+    {'salle': 'SAR 101', 'objet': 'table', 'quantite': 2, 'detail': 'Deux tables cassées enlevées vendredi.'},
+    {'salle': 'SAR 102', 'objet': 'feutres', 'detail': 'Plus aucun feutre qui marche.'},
+    {'salle': 'SAR 221', 'objet': 'videoprojecteur', 'detail': "L'image clignote."},
+    {'salle': 'SAR 084', 'objet': 'prise', 'detail': 'Prise du bureau enseignant hors service.'},
+]
+
+
+def lancer_simulation(campus, vitesse, jours_historique=5, tickets_demo=False):
     """Simule le bâtiment. Avec un historique, la semaine précédente est jouée d'un coup au
     démarrage : le registre a déjà des séances, et la salle SAR 200 est déjà recalée."""
     module = charger_simulateur('batiment')
@@ -664,6 +762,10 @@ def lancer_simulation(campus, vitesse, jours_historique=5):
                 campus.synchroniser(force=True)
         campus.avance_rapide = False
         campus.synchroniser(force=True)
+    if tickets_demo:
+        campus.t = max(campus.t, sim.t)               # lundi 7 h
+        for corps in TICKETS_DEMO:
+            campus.signaler({'nom': 'Enseignant (démo)', 'login': 'enseignant', 'role': 'enseignant'}, corps)
 
     def boucle():
         pas = 10                                     # s simulées par pas
@@ -703,14 +805,14 @@ def main():
     if not a.simulation and config.PRIM_CLE:
         PontPrim(campus, config.PRIM_CLE, config.LIGNES_TRANSPORT).demarrer()
     if a.simulation:
-        lancer_simulation(campus, a.vitesse, a.historique)
+        lancer_simulation(campus, a.vitesse, a.historique, tickets_demo=True)
     threading.Thread(target=campus.boucle, daemon=True, name='pilotage').start()
 
     serveur = ThreadingHTTPServer(('0.0.0.0', a.port), creer_gestionnaire(campus, comptes))
     serveur.daemon_threads = True
     print(f'CampusTwin : http://localhost:{a.port}  ({"simulation" if a.simulation else "capteurs réels"})')
     if a.simulation:
-        print('Comptes de démonstration : directeur / demo, enseignant / demo')
+        print('Comptes de démonstration : directeur / demo, enseignant / demo, technique / demo')
     try:
         serveur.serve_forever()
     except KeyboardInterrupt:

@@ -53,7 +53,7 @@ Comment travailler :
 - Places : une salle est trop petite s'il y a plus d'étudiants que de places, pleine au-dessus de 90 %, trop grande sous 40 % (avec au moins 10 places vides).
 - Si un outil répond « Refusé », la personne connectée n'a pas les droits : dis-le simplement, sans chercher à contourner.
 
-Tu ne modifies rien. Corriger une présence se fait dans la page Séances, accepter un changement de salle dans la page Anticipation : tu peux dire où cliquer.
+Tu ne modifies rien. Corriger une présence se fait dans la page Séances, accepter un changement de salle dans la page Anticipation, signaler du matériel manquant ou en panne dans la page Tickets : tu peux dire où cliquer.
 
 Ta réponse : en français, courte et directe, comme un collègue. Commence par la réponse elle-même. Phrases simples. Une liste à tirets si tu cites plusieurs éléments. Pas de tableau, pas de titre. Donne les chiffres utiles (présents, ppm, heure) sans tout recopier. Si une donnée manque, dis-le."""
 
@@ -101,6 +101,11 @@ OUTILS = {o['nom']: o for o in [
            "Un étudiant sur une période : chaque séance avec son statut et son heure de badge, et les corrections. "
            "Appelle-le pour toute question sur un étudiant précis.",
            etudiant='Pseudonyme de l\'étudiant (ETU-…), donné par un autre outil ou par la question.', **PERIODE),
+    _outil('tickets', False,
+           "Tickets des salles : matériel manquant ou en panne (tables, chaises, feutres, vidéoprojecteur...) et pannes "
+           "détectées par le jumeau. Pour chacun : salle, problème, état, urgence, échéance (prochain cours dans la salle), "
+           "places perdues, quand intervenir sans déranger un cours. Appelle-le pour « qu'est-ce qui manque », "
+           "« quels problèmes en SAR 101 », « qu'est-ce qui est urgent pour le service technique »."),
     _outil('previsions_air', True,
            "Ce que le jumeau prévoit pour les 2 prochaines heures : pic de CO₂ de chaque salle et son heure, heure "
            "de dépassement de 1000 et 1200 ppm, plan de ventilation de la salle de l'automate et énergie économisée, "
@@ -124,12 +129,13 @@ DEFINITIONS = {
 }
 LIBELLES = {'tableau_de_bord': 'Tableau de bord', 'salles_maintenant': 'Salles', 'seances_du_jour': 'Séances du jour',
             'detail_seance': 'Émargement', 'classes': 'Classes', 'detail_classe': 'Classe', 'detail_etudiant': 'Étudiant',
-            'previsions_air': 'Prévisions', 'diagnostic_salle': 'Diagnostic', 'capacite_salles': 'Places des salles'}
+            'previsions_air': 'Prévisions', 'diagnostic_salle': 'Diagnostic', 'capacite_salles': 'Places des salles',
+            'tickets': 'Tickets'}
 SUGGESTIONS = {
     'direction': ['Qui est dans quelle salle en ce moment ?', 'Qui est absent dans les cours de ce matin ?',
                   "Quelle salle aura l'air mauvais dans les deux heures ?", 'Quelle classe a le plus d\'absences cette semaine ?',
                   'Pourquoi le CO₂ monte en SAR 101 ?', "Combien d'énergie la ventilation a économisé aujourd'hui ?",
-                  'Trouve une salle libre de 25 places cet après-midi.'],
+                  'Trouve une salle libre de 25 places cet après-midi.', "Qu'est-ce qui manque dans les salles aujourd'hui ?"],
     'enseignant': ['Qui est absent à mon cours en ce moment ?', "Où et quand j'ai cours demain ?",
                    'Quels étudiants de mes classes ont le plus d\'absences cette semaine ?'],
 }
@@ -410,6 +416,17 @@ class Outils:
             'corrections': [{'seance': c['seance'], 'avant': c['avant'], 'apres': c['apres'], 'motif_donne': bool(c['motif'])}
                             for c in d['corrections']],
         }
+
+    def tickets(self, e):
+        """Pas le nom de la personne qui a signalé : seulement si c'est un enseignant, la direction ou le jumeau."""
+        return {'tickets': [{
+            'salle': x['salle'], 'probleme': x['titre'], 'precision': x['detail'] or None, 'etat': x['statut'],
+            'urgence': x['urgence'], 'a_faire_avant': x['echeance']['texte'] if x['echeance'] else None,
+            'pourquoi': x['raison'] if x['statut'] != 'résolu' else None,
+            'quand_intervenir': x['creneau']['texte'] if x['creneau'] else None,
+            'places_perdues': x['places_perdues'], 'places_restantes': x['places_restantes'], 'service': x['service_nom'],
+            'signale_par': x['source'], 'suivi': len(x['suivi']) - 1,
+        } for x in self.campus.liste_tickets()]}
 
     # ---------- direction et scolarité ----------
 

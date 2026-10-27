@@ -54,6 +54,12 @@ class Registre:
                 CREATE TABLE IF NOT EXISTS temoins (
                     seance TEXT PRIMARY KEY, verdict TEXT, personnes INTEGER, mini INTEGER, maxi INTEGER,
                     badges INTEGER, texte TEXT, t REAL);
+                CREATE TABLE IF NOT EXISTS tickets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, salle TEXT, objet TEXT, quantite INTEGER, detail TEXT,
+                    service TEXT, statut TEXT DEFAULT 'ouvert', auteur TEXT, login TEXT, source TEXT, cle TEXT,
+                    places_perdues INTEGER DEFAULT 0, cree REAL, maj REAL);
+                CREATE TABLE IF NOT EXISTS tickets_suivi (
+                    ticket INTEGER, t REAL, auteur TEXT, statut TEXT, texte TEXT);
                 CREATE INDEX IF NOT EXISTS seances_date ON seances (date);
                 CREATE INDEX IF NOT EXISTS presences_etudiant ON presences (etudiant);
             ''')
@@ -187,6 +193,69 @@ class Registre:
             return [dict(r) for r in self.base.execute(
                 '''SELECT t.*, s.salle, s.matiere, s.debut, s.enseignant, s.groupes FROM temoins t JOIN seances s ON s.id = t.seance
                    WHERE s.date = ? ORDER BY s.debut''', (jour.isoformat(),))]
+
+    # ---------- tickets (matériel manquant, pannes) ----------
+
+    def ouvrir_ticket(self, ticket, auteur, login, source, t, cle=None):
+        """Nouveau ticket. Si la même chose est déjà signalée dans la salle (ticket pas résolu), on ne
+        l'ouvre pas deux fois : on note le nouveau signalement. Renvoie (id, déjà signalé)."""
+        with self.verrou:
+            deja = self.base.execute("SELECT id, quantite FROM tickets WHERE statut != 'résolu' AND salle = ? AND objet = ?",
+                                     (ticket['salle'], ticket['objet'])).fetchone()
+            if deja:
+                if ticket.get('quantite') and ticket['quantite'] > (deja['quantite'] or 0):
+                    self.base.execute('UPDATE tickets SET quantite = ?, places_perdues = ?, maj = ? WHERE id = ?',
+                                      (ticket['quantite'], ticket['places_perdues'], t, deja['id']))
+                self.base.execute('INSERT INTO tickets_suivi VALUES (?, ?, ?, ?, ?)',
+                                  (deja['id'], t, auteur, None, 'Signalé aussi' + (f' : {ticket["detail"]}' if ticket['detail'] else '.')))
+                self.base.commit()
+                return deja['id'], True
+            n = self.base.execute(
+                'INSERT INTO tickets (salle, objet, quantite, detail, service, auteur, login, source, cle, places_perdues, cree, maj) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                (ticket['salle'], ticket['objet'], ticket['quantite'], ticket['detail'], ticket['service'], auteur, login,
+                 source, cle, ticket['places_perdues'], t, t)).lastrowid
+            self.base.execute('INSERT INTO tickets_suivi VALUES (?, ?, ?, ?, ?)', (n, t, auteur, 'ouvert', ticket['detail'] or None))
+            self.base.commit()
+            return n, False
+
+    def ouvrir_ticket_jumeau(self, ticket, cle, t, pause):
+        """Ticket ouvert par le jumeau (panne détectée). Une seule fois : pas si le même ticket est encore
+        ouvert, ni s'il a été résolu il y a moins de pause s (le diagnostic met du temps à se mettre à jour)."""
+        with self.verrou:
+            dernier = self.base.execute('SELECT statut, maj FROM tickets WHERE cle = ? ORDER BY id DESC LIMIT 1', (cle,)).fetchone()
+            if dernier and (dernier['statut'] != 'résolu' or t - dernier['maj'] < pause):
+                return None
+        return self.ouvrir_ticket(ticket, 'CampusTwin (automatique)', None, 'jumeau', t, cle)[0]
+
+    def ticket(self, ident):
+        with self.verrou:
+            r = self.base.execute('SELECT * FROM tickets WHERE id = ?', (ident,)).fetchone()
+            if r is None:
+                return None
+            d = dict(r)
+            d['suivi'] = [dict(x) for x in self.base.execute('SELECT t, auteur, statut, texte FROM tickets_suivi WHERE ticket = ? ORDER BY t, rowid', (ident,))]
+            return d
+
+    def tickets(self, resolus_depuis=None):
+        """Tickets pas encore résolus, et ceux résolus depuis resolus_depuis (heure), avec leur suivi."""
+        with self.verrou:
+            lignes = self.base.execute("SELECT id FROM tickets WHERE statut != 'résolu' OR maj >= ? ORDER BY id",
+                                       (resolus_depuis if resolus_depuis is not None else float('inf'),)).fetchall()
+        return [self.ticket(r['id']) for r in lignes]
+
+    def changer_ticket(self, ident, statut, texte, auteur, t):
+        with self.verrou:
+            if statut:
+                self.base.execute('UPDATE tickets SET statut = ?, maj = ? WHERE id = ?', (statut, t, ident))
+            self.base.execute('INSERT INTO tickets_suivi VALUES (?, ?, ?, ?, ?)', (ident, t, auteur, statut, texte or None))
+            self.base.commit()
+
+    def places_perdues(self):
+        """Places perdues dans chaque salle (tables, chaises, postes manquants des tickets pas résolus)."""
+        with self.verrou:
+            return {r['salle']: r['n'] for r in self.base.execute(
+                "SELECT salle, SUM(places_perdues) AS n FROM tickets WHERE statut != 'résolu' GROUP BY salle HAVING n > 0")}
 
     # ---------- lecture ----------
 

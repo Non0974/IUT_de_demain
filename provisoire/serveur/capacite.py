@@ -11,6 +11,8 @@ du même type plus petite d'au moins 6 places où le groupe tient). Un demi-grou
 TP n'est donc pas « trop grand » : il n'y a pas plus petit. Pour une salle trop grande, on nomme la plus
 petite de ces salles qui est libre au même moment.
 Un cours à venir dans une salle trop petite donne une proposition de changement (reaffectation.py).
+Les places comptées sont celles qui restent : une table ou une chaise manquante signalée par un ticket
+(tickets.py) enlève ses places tant que le ticket n'est pas résolu.
 """
 
 from datetime import datetime
@@ -51,6 +53,7 @@ def capacite(campus, t):
     badges = {x['cours']: x['presents'] + x['retards'] + x['a_verifier'] for x in campus.registre.seances_du_jour(jour)}
     salles, tous = [], []
     for s in batiment:
+        places = campus.places_restantes(s['id'])
         etat_salle = campus.salles[s['id']]
         historique = [(heure_du_jour(tm), n) for tm, _, n in etat_salle.historique]
         liste = []
@@ -64,27 +67,28 @@ def capacite(campus, t):
                 elif c['id'] in badges:
                     compte, source = badges[c['id']], 'badges'
             etudiants = compte if compte is not None else prevus
-            e = etat(etudiants, s['places'])
+            e = etat(etudiants, places)
             plus_petite = None
             if e == 'trop_grande':
                 assez = [x for x in batiment if x['type'] == s['type']
-                         and etudiants / REMPLISSAGE_VISE <= x['places'] <= s['places'] - GAIN_PLACES]
+                         and etudiants / REMPLISSAGE_VISE <= campus.places_restantes(x['id']) <= places - GAIN_PLACES]
                 if not assez:
                     e = 'adaptee'           # pas plus petit dans le bâtiment (demi-groupe de TP) : c'est la bonne salle
                 plus_petite = min((x for x in assez if libre(cours, x['id'], c['debut'], c['fin'])),
-                                  key=lambda x: x['places'], default=None)
+                                  key=lambda x: campus.places_restantes(x['id']), default=None)
             x = {
                 'cours': c['id'], 'matiere': c['matiere'], 'groupes': c['groupes'], 'cles': c['cles'],
                 'enseignant': c['enseignant'], 'debut': c['debut'], 'fin': c['fin'], 'inscrits': c['effectif'],
                 'etudiants': etudiants, 'prevus': prevus, 'source': source,
                 'moment': 'fini' if h > c['fin'] else 'en cours' if h >= c['debut'] else 'à venir',
-                'remplissage': round(etudiants / s['places'], 3), 'etat': e, 'reel': c['reel'],
-                'plus_petite': {'salle': plus_petite['id'], 'places': plus_petite['places']} if plus_petite else None,
+                'remplissage': round(etudiants / places, 3) if places else 1.0, 'etat': e, 'reel': c['reel'],
+                'plus_petite': {'salle': plus_petite['id'], 'places': campus.places_restantes(plus_petite['id'])} if plus_petite else None,
             }
             liste.append(x)
-            tous.append((x, s['places']))
+            tous.append((x, places))
         reserve = sum(max(0.0, min(c['fin'], JOURNEE[1]) - max(c['debut'], JOURNEE[0])) for c in liste)
-        salles.append({'salle': s['id'], 'type': s['type'], 'libelle': s['libelle'], 'places': s['places'],
+        salles.append({'salle': s['id'], 'type': s['type'], 'libelle': s['libelle'], 'places': places,
+                       'places_perdues': s['places'] - places,
                        'cours': liste, 'occupation': round(reserve / (JOURNEE[1] - JOURNEE[0]), 3)})
 
     duree = [(x['fin'] - x['debut'], x['etudiants'], places) for x, places in tous]

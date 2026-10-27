@@ -13,6 +13,7 @@ import { vueEtudiant } from './vues/etudiant.js';
 import { vueAnticipation } from './vues/anticipation.js';
 import { vueAssistant } from './vues/assistant.js';
 import { vueCartes } from './vues/cartes.js';
+import { vueTickets } from './vues/tickets.js';
 
 const ROUTES = [
   [/^\/?$/, 'tableau', vueTableau],
@@ -24,9 +25,10 @@ const ROUTES = [
   [/^\/anticipation$/, 'anticipation', vueAnticipation],
   [/^\/assistant$/, 'assistant', vueAssistant],
   [/^\/cartes$/, 'cartes', vueCartes],
+  [/^\/tickets$/, 'tickets', vueTickets],
 ];
 
-const ROLES = { directeur: 'Directeur des études', scolarite: 'Scolarité', enseignant: 'Enseignant' };
+const ROLES = { directeur: 'Directeur des études', scolarite: 'Scolarité', enseignant: 'Enseignant', technique: 'Services techniques' };
 
 let utilisateur = null;
 let minuteur = null;
@@ -57,6 +59,7 @@ async function naviguer() {
     if (m) { route = r; morceaux = m.slice(1).map(decodeURIComponent); break; }
   }
   if (!route) { location.hash = '#/'; return; }
+  if (utilisateur.role === 'technique' && route[1] !== 'tickets') { location.hash = '#/tickets'; return; }
   const [, rubrique, vue] = route;
   document.querySelectorAll('.menu nav a[data-rubrique]').forEach(a => a.classList.toggle('actif', a.dataset.rubrique === rubrique));
 
@@ -67,6 +70,7 @@ async function naviguer() {
   zone.innerHTML = '<p class="chargement">Chargement…</p>';
   zone.dataset.html = '';
   zone.dataset.vue = '';
+  delete zone.dataset.ecoute;                      // cloneNode copie les attributs : la page neuve pose ses écouteurs
   const numero = ++numeroRendu;
   const ctx = {
     utilisateur,
@@ -110,6 +114,9 @@ async function demarrer() {
   document.getElementById('utilisateur-role').textContent = ROLES[utilisateur.role] || utilisateur.role;
   if (utilisateur.role === 'enseignant') {
     document.querySelectorAll('.direction-seulement').forEach(e => { e.hidden = true; });
+  }
+  if (utilisateur.role === 'technique') {         // le service technique voit seulement les tickets
+    document.querySelectorAll('.menu nav > *').forEach(e => { e.hidden = e.dataset.rubrique !== 'tickets'; });
   }
   document.getElementById('deconnexion').addEventListener('click', async () => {
     await api('/api/deconnexion', {}).catch(() => {});

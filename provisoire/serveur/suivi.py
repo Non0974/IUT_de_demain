@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 from reaffectation import texte_proposition
 from registre import debut_semaine, heure_texte, taux
 from salle import heure_du_jour, seance_id
+from tickets import titre
 
 TOUT_VOIR = ('directeur', 'scolarite')
 
@@ -101,6 +102,10 @@ class Suivi:
                 for x in p['propositions']:
                     alertes.append({'niveau': 'detecte' if x['proposee'] is None else 'suspect', 'salle': x['salle'],
                                     'proposition': True, 'texte': texte_proposition(x)})
+                for x in campus.liste_tickets():
+                    if x['urgence'] == 'urgent':
+                        alertes.append({'niveau': 'suspect', 'salle': x['salle'], 'ticket': x['id'],
+                                        'texte': f'Ticket urgent en {x["salle"]} : {x["titre"]}. {x["raison"]}'})
             # Une ligne de transport perturbée : retards attendus aux cours qui commencent bientôt
             visibles = [c for c in campus.planning.cours_du_jour(aujourd_hui)
                         if enseignant is None or c['enseignant'] == enseignant]
@@ -174,6 +179,8 @@ class Suivi:
         salle = self.campus.salles.get(s['salle'])
         s['temoin'] = self.campus.registre.temoin(ident)
         s['transport'] = self.campus.transports.explication(s)
+        s['tickets'] = [{'id': x['id'], 'titre': titre(x['objet'], x['quantite'], x['detail']), 'statut': x['statut']}
+                        for x in self.campus.registre.tickets() if x['salle'] == s['salle']]
         if salle and s['etat'] == 'en cours':
             with self.campus.verrou:
                 etat = salle.etat(self.campus.t)

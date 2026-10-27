@@ -118,6 +118,12 @@ export async function vueSeance(zone, ctx) {
       ${s.anomalies.map(a => `<div class="alerte ${a.type === 'carte prêtée' ? 'detecte' : 'suspect'}"><span class="i">!</span>
         <div><div><b>${a.nombre} × ${echapper(a.type)}</b></div><div class="quoi">${echapper(a.detail || explication(a.type))}</div></div></div>`).join('')}
     </div>` : '';
+  // Matériel manquant ou en panne dans la salle : tickets ouverts, et un lien pour en signaler un
+  const lienTicket = `#/tickets?salle=${encodeURIComponent(s.salle)}`;
+  const tickets = `<div class="tickets-salle pas-impression">${s.tickets.length
+    ? `<span class="statut s-retard"><span class="i" aria-hidden="true">⚑</span>${s.tickets.length} ticket${s.tickets.length > 1 ? 's' : ''} en ${echapper(s.salle)}</span>
+       ${s.tickets.map(x => `<a href="#/tickets">${echapper(x.titre)}</a>`).join(' · ')} ·` : ''}
+      <a href="${lienTicket}">Signaler un problème dans cette salle</a> <span class="sous">(table, feutres, vidéoprojecteur…)</span></div>`;
   const corrections = s.corrections.length ? `<section class="section pas-impression">
       <h2 class="titre-section">Modifications <span class="sous">qui a changé quoi</span></h2>
       <div class="tableau-conteneur"><table class="liste"><thead><tr><th>Quand</th><th>Étudiant</th><th>Avant</th><th>Après</th><th>Motif</th><th>Par</th></tr></thead><tbody>
@@ -142,6 +148,7 @@ export async function vueSeance(zone, ctx) {
       <div class="actions">${etatSeance(s.etat)} <button type="button" class="bouton" data-imprimer>Imprimer la feuille</button> ${exports}</div>
     </div>
     <p id="message" class="message" role="status"></p>
+    ${tickets}
     <section class="section"><div class="grille tuiles">${tuiles.join('')}</div>${barre(s)}${legendeBarre()}
       ${s.transport ? `<div class="alerte suspect"><span class="i" aria-hidden="true">🚆</span><div>${echapper(s.transport.texte)}</div></div>` : ''}</section>
     ${salle || anomalies || temoin ? `<section class="section deux-colonnes">${salle}${temoin}${anomalies}</section>` : ''}

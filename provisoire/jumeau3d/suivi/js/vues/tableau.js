@@ -16,7 +16,8 @@ function carteSeance(s) {
 }
 
 function alerte(a) {
-  const lien = a.seance ? `#/seance/${encodeURIComponent(a.seance)}` : a.etudiant ? `#/etudiant/${encodeURIComponent(a.etudiant)}` : '#/';
+  const lien = a.seance ? `#/seance/${encodeURIComponent(a.seance)}` : a.etudiant ? `#/etudiant/${encodeURIComponent(a.etudiant)}`
+    : a.ticket ? '#/tickets' : '#/';
   const quoi = a.salle ? `Salle ${echapper(a.salle)}` : a.etudiant ? `Étudiant ${echapper(a.nom || a.etudiant)}` : '';
   return `<a class="alerte ${a.niveau}" href="${lien}"><span class="i" aria-hidden="true">!</span>
     <div><div>${echapper(a.texte)}</div><div class="quoi">${quoi}</div></div></a>`;
@@ -32,7 +33,7 @@ export async function vueTableau(zone, ctx) {
     tuile(c.presents_maintenant, 'étudiants présents', c.attendus_maintenant ? `${c.attendus_maintenant} encore attendus` : 'dans les séances en cours', 'bon'),
     tuile(c.absents_maintenant, `absent${c.absents_maintenant > 1 ? 's' : ''}`, 'dans les séances en cours', c.absents_maintenant ? 'alerte' : ''),
     tuile(pourcent(c.taux_jour), 'taux de présence', 'aujourd\'hui, séances commencées'),
-    tuile(c.alertes, `alerte${c.alertes > 1 ? 's' : ''}`, 'air, émargement, assiduité', c.alertes ? 'alerte' : ''),
+    tuile(c.alertes, `alerte${c.alertes > 1 ? 's' : ''}`, 'air, émargement, assiduité, tickets', c.alertes ? 'alerte' : ''),
   ];
   const enCours = d.en_cours.length
     ? `<div class="grille cartes">${d.en_cours.map(carteSeance).join('')}</div>${legendeBarre()}`

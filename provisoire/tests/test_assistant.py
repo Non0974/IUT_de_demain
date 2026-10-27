@@ -151,7 +151,7 @@ def main():
     verifs.append(("pas d'outil imposé ni de température, réflexion réglée par l'effort",
                    'tool_choice' not in kw and 'temperature' not in kw and 'thinking' not in kw
                    and kw['output_config'] == {'effort': config.ASSISTANT_EFFORT}))
-    verifs.append(('10 outils stricts pour la direction', len(kw['tools']) == 10 and all(t['strict'] for t in kw['tools'])
+    verifs.append(('11 outils stricts pour la direction', len(kw['tools']) == 11 and all(t['strict'] for t in kw['tools'])
                    and kw['system'] == SYSTEME))
     res = vu['res2']
     tableau = json.loads(res['toolu_1'][0])
@@ -207,7 +207,7 @@ def main():
 
     faux.scenario = scenario_3
     assistant.repondre(ens, 'session-ens', f'Comment va la classe {autre} ? Et les prévisions ?')
-    verifs.append(("enseignant : 6 outils, pas ceux de la direction", len(vu['outils_ens']) == 6 and not
+    verifs.append(("enseignant : 7 outils, pas ceux de la direction", len(vu['outils_ens']) == 7 and not
                    {'salles_maintenant', 'previsions_air', 'diagnostic_salle'} & set(vu['outils_ens'])))
     pseudo = next(p for p, v in FAUX_ENSEIGNANTS.items() if v == nom_ens)
     verifs.append(("enseignant : son pseudonyme dans le contexte, pas son nom", nom_ens not in vu['q3'] and pseudo in vu['q3']))
