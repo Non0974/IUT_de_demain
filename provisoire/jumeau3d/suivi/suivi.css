@@ -295,6 +295,9 @@ svg.frise-salles { width: 100%; height: auto; display: block; }
 .raison { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
   background: var(--absent-fond); color: var(--absent); }
 .deplacement > div span:not(.sous) { font-size: 12px; }
+.echange { margin: 0; padding: 8px 10px; border-radius: 8px; background: var(--primaire-clair); font-size: 13px; }
+details.negociation summary { cursor: pointer; color: var(--primaire); font-size: 13px; }
+details.negociation ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
 details.vue-tableau { margin-top: 8px; }
 details.vue-tableau summary { cursor: pointer; color: var(--primaire); font-size: 13px; }
 

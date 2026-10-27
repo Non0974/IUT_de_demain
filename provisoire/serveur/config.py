@@ -44,6 +44,12 @@ ASSISTANT_MODELE = 'claude-opus-5-5'
 ASSISTANT_EFFORT = 'medium'          # 'low' : réponses plus rapides ; 'high' : réfléchit plus longtemps
 ASSISTANT_QUESTIONS_PAR_HEURE = 30   # par compte (chaque question coûte quelques centimes)
 
+# Transports : messages d'info trafic de l'API PRIM d'Île-de-France Mobilités (clé gratuite à créer sur
+# prim.iledefrance-mobilites.fr). Vide : pas de lien. Identifiants des lignes à vérifier dans le
+# référentiel des lignes de PRIM.
+PRIM_CLE = ''
+LIGNES_TRANSPORT = {'RER D': 'STIF:Line::C01728:'}
+
 # Fichiers de la base de données : messages des capteurs, et registre des présences
 BASE = 'campustwin.db'
 BASE_REGISTRE = 'registre.db'

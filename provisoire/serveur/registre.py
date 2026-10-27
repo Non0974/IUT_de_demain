@@ -51,6 +51,9 @@ class Registre:
                     PRIMARY KEY (date, cours));
                 CREATE TABLE IF NOT EXISTS propositions_ignorees (
                     date TEXT, cours TEXT, auteur TEXT, t REAL, PRIMARY KEY (date, cours));
+                CREATE TABLE IF NOT EXISTS temoins (
+                    seance TEXT PRIMARY KEY, verdict TEXT, personnes INTEGER, mini INTEGER, maxi INTEGER,
+                    badges INTEGER, texte TEXT, t REAL);
                 CREATE INDEX IF NOT EXISTS seances_date ON seances (date);
                 CREATE INDEX IF NOT EXISTS presences_etudiant ON presences (etudiant);
             ''')
@@ -163,6 +166,27 @@ class Registre:
                 compte[0] += r['presents']
                 compte[1] += r['decides']
         return appris
+
+    # ---------- témoin CO₂ ----------
+
+    def noter_temoin(self, seance, avis, t):
+        with self.verrou:
+            self.base.execute('INSERT OR REPLACE INTO temoins VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                              (seance, avis['verdict'], avis.get('personnes'), avis.get('min'), avis.get('max'),
+                               avis['badges'], avis['texte'], t))
+            self.base.commit()
+
+    def temoin(self, seance):
+        with self.verrou:
+            r = self.base.execute('SELECT * FROM temoins WHERE seance = ?', (seance,)).fetchone()
+        return {'verdict': r['verdict'], 'personnes': r['personnes'], 'min': r['mini'], 'max': r['maxi'],
+                'badges': r['badges'], 'texte': r['texte']} if r else None
+
+    def temoins_du_jour(self, jour):
+        with self.verrou:
+            return [dict(r) for r in self.base.execute(
+                '''SELECT t.*, s.salle, s.matiere, s.debut, s.enseignant, s.groupes FROM temoins t JOIN seances s ON s.id = t.seance
+                   WHERE s.date = ? ORDER BY s.debut''', (jour.isoformat(),))]
 
     # ---------- lecture ----------
 

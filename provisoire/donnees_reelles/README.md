@@ -18,6 +18,7 @@ Les données ne sont pas dans le dossier. Pour relancer, télécharger les deux 
 python test_wifi_robod.py <dossier ROBOD>
 python test_wifi_ia.py <dossier ROBOD>
 python test_co2_salle_danoise.py <dossier Dataset OU44>
+python test_temoin_co2.py <dossier ROBOD>
 ```
 
 ## Résultat 1 : le Wi-Fi compte à ±2 personnes près
@@ -69,6 +70,26 @@ On a essayé un modèle d'apprentissage (gradient boosting) qui voit le Wi-Fi de
 - Le niveau de la salle vide varie de 424 à 554 ppm selon les jours. Le capteur dérive vraiment : notre vérification de la dérive est utile.
 
 Dans ROBOD, le test CO₂ ne marche pas : les salles sont très ventilées et presque vides (7 personnes en moyenne), donc le CO₂ ne monte que de 30 à 100 ppm. Dans une salle, le CO₂ ne suit même pas le nombre de personnes (capteur mal placé).
+
+## Résultat 3 : le CO₂, témoin de l'émargement ([test_temoin_co2.py](test_temoin_co2.py))
+
+Le CO₂ dit combien de personnes ont respiré dans la salle. Si 20 cartes ont badgé mais que le CO₂ correspond à 13 personnes, il y a des cartes en trop. On teste l'idée sur les 5 salles de ROBOD, où l'on connaît le vrai nombre de personnes :
+- personnes = a × (montée du CO₂) + b × (CO₂ − extérieur) + c × (CO₂ − extérieur) × ventilation ;
+- a, b, c appris sur les cours d'avant (badges supposés honnêtes), cours après cours ;
+- on ajoute 2 à 8 badges de trop au vrai nombre, et on regarde si l'écart est repéré.
+
+| Salle | Écart moyen | Fausses alertes | 4 cartes en trop repérées | 6 cartes | 8 cartes |
+| --- | --- | --- | --- | --- | --- |
+| Salle de cours 2 | 4,2 pers. | 11 % | 55 % | 92 % | 95 % |
+| Bureau 1 | 3,3 pers. | 3 % | 39 % | 68 % | 100 % |
+| Bureau 2 | 4,8 pers. | 0 % | 38 % | 88 % | 100 % |
+| Bibliothèque | 4,1 pers. | 6 % | 30 % | 51 % | 77 % |
+| Salle de cours 1 | 6,4 pers. | 0 % | 7 % | 7 % | 7 % |
+
+- **Le témoin repère une fraude de groupe** (un étudiant qui badge pour 6 à 8 absents) dans la plupart des salles, avec peu de fausses alertes.
+- Il ne voit pas 1 ou 2 cartes : c'est le rôle du comptage à la porte.
+- Dans une salle très ventilée (salle de cours 1 : le CO₂ ne dépasse pas 761 ppm), il ne voit rien. Le serveur le dit (« signal trop faible ») au lieu de donner un avis.
+- Apprendre au fil de l'eau et tenir compte de la ventilation améliore un peu le résultat (avec la seule première semaine : 76 % au lieu de 92 % pour 6 cartes en salle de cours 2).
 
 ## Ce que ça change pour le projet
 

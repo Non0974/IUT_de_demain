@@ -103,6 +103,16 @@ export async function vueSeance(zone, ctx) {
       <p>CO₂ : ${ppm(maintenant.co2)}</p>
       ${maintenant.alertes.map(a => `<div class="alerte ${a.niveau}"><span class="i">!</span><div>${echapper(a.texte)}</div></div>`).join('')}
     </div>` : '';
+  // Le CO₂ témoin : combien de personnes ont vraiment respiré dans la salle, comparé aux badges
+  const t = s.temoin;
+  const doute = t && ['badges_en_trop', 'personnes_sans_badge'].includes(t.verdict);
+  const temoin = t ? `<div class="carte">
+      <h2 class="titre-section">Témoin CO₂ <span class="sous">combien de personnes ont respiré dans la salle</span></h2>
+      ${t.personnes != null ? `<p><b>${t.personnes}</b> personnes selon le CO₂ (entre ${t.min} et ${t.max}),
+        pour <b>${t.badges}</b> badges, enseignant compris.</p>` : ''}
+      ${doute ? `<div class="alerte suspect"><span class="i">!</span><div>${echapper(t.texte)}</div></div>`
+        : `<p class="sous">${t.verdict === 'coherent' ? '✓ ' : ''}${echapper(t.texte)}</p>`}
+    </div>` : '';
   const anomalies = s.anomalies.length ? `<div class="carte">
       <h2 class="titre-section">Badges et passages qui ne collent pas</h2>
       ${s.anomalies.map(a => `<div class="alerte ${a.type === 'carte prêtée' ? 'detecte' : 'suspect'}"><span class="i">!</span>
@@ -132,8 +142,9 @@ export async function vueSeance(zone, ctx) {
       <div class="actions">${etatSeance(s.etat)} <button type="button" class="bouton" data-imprimer>Imprimer la feuille</button> ${exports}</div>
     </div>
     <p id="message" class="message" role="status"></p>
-    <section class="section"><div class="grille tuiles">${tuiles.join('')}</div>${barre(s)}${legendeBarre()}</section>
-    ${salle || anomalies ? `<section class="section deux-colonnes">${salle}${anomalies}</section>` : ''}
+    <section class="section"><div class="grille tuiles">${tuiles.join('')}</div>${barre(s)}${legendeBarre()}
+      ${s.transport ? `<div class="alerte suspect"><span class="i" aria-hidden="true">🚆</span><div>${echapper(s.transport.texte)}</div></div>` : ''}</section>
+    ${salle || anomalies || temoin ? `<section class="section deux-colonnes">${salle}${temoin}${anomalies}</section>` : ''}
     <section class="section">
       <h2 class="titre-section">Émargement <span class="sous">${s.etat === 'en cours' ? 'en direct, mis à jour toutes les 5 s' : 'séance close'}</span></h2>
       <div class="tableau-conteneur"><table class="liste">

@@ -43,6 +43,8 @@ from registre import Registre                   # noqa: E402
 from salle import EtatSalle, heure_du_jour, seance_id   # noqa: E402
 from stockage import Stockage                   # noqa: E402
 from suivi import TOUT_VOIR, Refus, Suivi, periode     # noqa: E402
+from temoin import Temoin                       # noqa: E402
+from transports import PontPrim, Transports     # noqa: E402
 
 WEB = RACINE / 'jumeau3d'
 DONNEES = WEB / 'donnees'
@@ -101,6 +103,9 @@ class Campus:
         self.messages = 0
         self.derniere_synchro = 0
         self.cartes_inconnues = {}                   # empreinte -> {salle, t} : badgée, pas encore enregistrée
+        self.temoin = Temoin(config)                 # le CO₂ témoin de l'émargement
+        self.transports = Transports()               # RER perturbé -> retards prévus
+        self.temoins_faits = set()
         # Jumeau prédictif et ventilation anticipée
         self.prevision = Prevision(self, config)
         auto = self.salles.get(config.SALLE_AUTOMATE)
@@ -122,7 +127,7 @@ class Campus:
     def recevoir(self, m):
         with self.verrou:
             type_ = m.get('type')
-            if type_ != 'wifi' and m.get('salle') not in self.salles:
+            if type_ not in ('wifi', 'transport') and m.get('salle') not in self.salles:
                 raise ValueError(f'Salle inconnue : {m.get("salle")}')
             if self.simulation:
                 # temps simulé : un message sans heure prend l'heure de la simulation
@@ -138,6 +143,9 @@ class Campus:
             self.messages += 1
             if self.stockage:
                 self.stockage.enregistrer({**m, 't': t})
+            if type_ == 'transport':
+                self.transports.recevoir(t, str(m['ligne']), bool(m['perturbe']), str(m.get('texte', '')))
+                return
             if type_ == 'wifi':
                 for salle, n in m.get('bornes', {}).items():
                     if salle in self.salles:
@@ -228,7 +236,7 @@ class Campus:
                 # Le jumeau décide une fois par minute, en regardant 90 min devant
                 if self.consigne is None or abs(self.t - self.derniere_decision) >= 60:
                     occupation = self.prevision.occupation(salle.id, self.t, HORIZON)
-                    bornes = bornes_vitesse(cours, h, HORIZON, occupation)
+                    bornes = bornes_vitesse(cours, h, HORIZON, occupation, salle.estimateur.mesure_restante())
                     self.consigne = self.commande.decider(co2, occupation, bornes)
                     self.derniere_decision = self.t
                 consigne = self.consigne
@@ -264,8 +272,34 @@ class Campus:
                               'cles': c['cles'], 'reel': c['reel']}
                     self.registre.noter(seance, liste, anomalies)
             self.registre.cloturer(datetime.fromtimestamp(t))
+            self._temoigner(t)
+            for s in self.registre.seances_du_jour(datetime.fromtimestamp(t).date()):
+                if s['etat'] == 'terminée':
+                    self.transports.apprendre(s)
             plan = {config.SALLE_AUTOMATE: self.commande.plan} if self.commande and self.commande.plan else None
             self.prevision.verifier(t, plan)
+
+    def _temoigner(self, t):
+        """5 min après la fin de chaque cours, le CO₂ dit combien de personnes ont respiré dans la salle."""
+        jour = datetime.fromtimestamp(t).date()
+        h = heure_du_jour(t)
+        seances = {s['cours']: s for s in self.registre.seances_du_jour(jour)}
+        cours_du_jour = self.planning.cours_du_jour(jour)
+        for salle in self.salles.values():
+            cours = [c for c in cours_du_jour if c['salle'] == salle.id]
+            for c in cours:
+                sid = seance_id(c, t)
+                if sid in self.temoins_faits or h < c['fin'] + 5 / 60 or c['id'] not in seances:
+                    continue
+                self.temoins_faits.add(sid)
+                # Deux cours en même temps dans la salle : le CO₂ voit tout le monde, on compte tous les badges
+                ensemble = [x for x in cours if x['debut'] < c['fin'] and x['fin'] > c['debut'] and x['id'] in seances]
+                badges = sum(seances[x['id']]['presents'] + seances[x['id']]['retards'] + seances[x['id']]['a_verifier'] + 1
+                             for x in ensemble)                  # + 1 : l'enseignant
+                avis = self.temoin.evaluer(salle, min(x['debut'] for x in ensemble), max(x['fin'] for x in ensemble), t, badges)
+                self.registre.noter_temoin(sid, avis, t)
+                if len(ensemble) == 1:
+                    self.temoin.apprendre(salle.id, avis)
 
     def boucle(self):
         while True:
@@ -579,9 +613,12 @@ def creer_gestionnaire(campus, comptes, client_ia=None):
                     with campus.verrou:
                         jour = datetime.fromtimestamp(campus.t).date()
                         if corps.get('action') == 'accepter':
-                            if corps.get('salle') not in campus.salles:
+                            echange = corps.get('echange') or {}
+                            if corps.get('salle') not in campus.salles or (echange and echange.get('salle') not in campus.salles):
                                 raise ValueError('Salle inconnue.')
                             campus.planning.changer_salle(jour, corps['cours'], corps['salle'], u['nom'], campus.t)
+                            if echange:                       # les deux cours échangent leurs salles
+                                campus.planning.changer_salle(jour, echange['cours'], echange['salle'], u['nom'], campus.t)
                         elif corps.get('action') == 'ignorer':
                             campus.registre.ignorer_proposition(jour, corps['cours'], u['nom'], campus.t)
                         else:
@@ -663,6 +700,8 @@ def main():
 
     campus = Campus(stockage, pont, registre)
     pont.demarrer()
+    if not a.simulation and config.PRIM_CLE:
+        PontPrim(campus, config.PRIM_CLE, config.LIGNES_TRANSPORT).demarrer()
     if a.simulation:
         lancer_simulation(campus, a.vitesse, a.historique)
     threading.Thread(target=campus.boucle, daemon=True, name='pilotage').start()

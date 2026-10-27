@@ -11,7 +11,8 @@ Contraintes :
   - salle occupée : au moins la petite vitesse (air neuf obligatoire) ;
   - fenêtres de mesure du jumeau : exactement la petite vitesse (débit stable et connu), sinon il ne
     peut plus mesurer la décroissance du CO2 ni vérifier le capteur le soir :
-      * 20 min après chaque fin de cours ;
+      * 20 min après chaque fin de cours, et jusqu'au bout d'une décroissance commencée (la salle
+        se vide parfois tard : sans ça, la mesure était coupée avant la fin) ;
       * de 18 h 30 à 20 h 30 les jours de cours (l'air doit être revenu à l'extérieur à 19 h 30).
     Sans ces fenêtres, les essais montraient que la dérive du capteur et le comptage faux n'étaient
     plus détectés : le jumeau économisait de l'énergie mais ne se surveillait plus.
@@ -107,14 +108,16 @@ class CommandePredictive:
         return self.dernier
 
 
-def bornes_vitesse(cours, h0, minutes, occupation):
+def bornes_vitesse(cours, h0, minutes, occupation, mesure_restante=0):
     """(Vitesse min, vitesse max) de chaque minute : petite imposée pendant les fenêtres de mesure,
-    au moins petite si la salle est occupée, libre sinon."""
+    au moins petite si la salle est occupée, libre sinon. mesure_restante : minutes qu'il faut encore
+    à la décroissance en cours."""
     fins = [c['fin'] for c in cours]
     bornes = []
     for k in range(minutes):
         h = h0 + k / 60
-        mesure = any(f <= h <= f + APRES_COURS for f in fins) or (bool(fins) and SOIR[0] <= h <= SOIR[1])
+        mesure = (k < mesure_restante or any(f <= h <= f + APRES_COURS for f in fins)
+                  or (bool(fins) and SOIR[0] <= h <= SOIR[1]))
         if mesure and occupation[k] < 1:
             bornes.append(('petite', 'petite'))
         elif occupation[k] >= 1:

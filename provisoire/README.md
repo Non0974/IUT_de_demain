@@ -32,13 +32,17 @@ SAE BUT 3 GEII, IUT de Cergy-Pontoise, site de Sarcelles. Louay Boubaya, Ariel G
   - Anticipation : CO₂ prévu, plan de ventilation, énergie économisée, places des salles, propositions de salle.
   - Assistant IA : questions en français.
 - **Jumeau prédictif.** Le jumeau prévoit le CO₂ de chaque salle pour les 2 prochaines heures, avec l'emploi du temps, le taux de présence et le débit d'air qu'il a appris.
-  - Dans SAR 200, il ventile avant que la salle se remplisse et coupe quand personne n'arrive (commande prédictive). Sur une semaine simulée : 16 % d'énergie de ventilation en moins que la règle simple, et 136 minutes au-dessus de 1000 ppm au lieu de 259.
+  - Dans SAR 200, il ventile avant que la salle se remplisse et coupe quand personne n'arrive (commande prédictive). Sur une semaine simulée : 16 % d'énergie de ventilation en moins que la règle simple, et 136 minutes au-dessus de 1000 ppm au lieu de 246.
   - **Places des salles.** Il apprend le taux de présence de chaque groupe et de chaque demi-journée (on vient moins le vendredi après-midi), et prévoit combien d'étudiants viendront à chaque cours : 1,4 étudiant d'écart en moyenne. Une frise montre le remplissage de chaque salle sur la journée, et une alerte part en direct quand une salle a plus de monde que de places.
   - Si l'air d'un cours va dépasser 1200 ppm, ou s'il y aura plus d'étudiants que de places, il propose une salle libre qui convient. Le directeur accepte ou ignore, dans la page Anticipation.
 - **Assistant IA.** On pose une question en français : « Qui est absent en SAR 109 ? », « Quelle salle aura l'air mauvais dans l'heure ? ». Claude (Anthropic) lit les données et répond.
   - Il ne voit aucun nom : les étudiants deviennent ETU-001, ETU-002…, les enseignants « Enseignant A, B… », et les motifs d'absence ne partent pas. Le serveur remet les vrais noms à l'affichage.
   - Il a les droits de la personne connectée et ne modifie rien.
 - **Chauffage et éclairage selon l'occupation.** L'automate allume la lumière seulement quand il y a quelqu'un et chauffe en confort pendant les cours (et 45 min avant). Sur un lundi simulé, les 23 salles consommeraient 29 % de moins qu'avec l'horaire fixe (estimation).
+- **Trois idées qu'on n'a pas vues ailleurs** (à notre connaissance) :
+  - **le CO₂ témoin de l'émargement** : il compare le nombre de personnes qui ont respiré dans la salle au nombre de badges. Il repère un étudiant qui badge pour 6 absents, même sans capteurs à la porte. Testé sur de vraies salles (ROBOD) : repéré dans 68 à 92 % des cours selon la salle, avec 0 à 11 % de fausses alertes ;
+  - **le RER qui prévient la salle** : quand le RER D est perturbé, le jumeau prévoit combien d'étudiants arriveront en retard à chaque cours, et explique les retards ;
+  - **les salles qui négocient** : quand un cours a un problème (trop de monde, air mauvais) et qu'aucune salle n'est libre, une salle occupée peut proposer d'échanger.
 - **Vue 3D du directeur des études.** Le plan 3D de l'IUT montre, pour chaque salle :
   - le cours, le groupe et l'enseignant ;
   - les présents, retards et absents ;
@@ -101,4 +105,7 @@ python tests/test_assistant.py     assistant IA avec un faux client : aucun nom 
 python tests/test_ambiance.py      chauffage et éclairage selon l'occupation
 python tests/test_wifi_dsi.py      import du Wi-Fi de la DSI
 python tests/test_celcat.py        import d'un export CELCAT
+python tests/test_temoin.py        le CO₂ témoin de l'émargement
+python tests/test_transports.py    RER perturbé : retards prévus et expliqués
+python tests/test_negociation.py   salles qui négocient, échange de salles
 ```

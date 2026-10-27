@@ -101,6 +101,17 @@ class Suivi:
                 for x in p['propositions']:
                     alertes.append({'niveau': 'detecte' if x['proposee'] is None else 'suspect', 'salle': x['salle'],
                                     'proposition': True, 'texte': texte_proposition(x)})
+            # Une ligne de transport perturbée : retards attendus aux cours qui commencent bientôt
+            visibles = [c for c in campus.planning.cours_du_jour(aujourd_hui)
+                        if enseignant is None or c['enseignant'] == enseignant]
+            for x in campus.transports.alertes(visibles, t, lambda c: campus.prevision.etudiants_attendus(c, aujourd_hui)):
+                alertes.append({'niveau': 'suspect', 'salle': x['salle'], 'transport': True, 'texte': x['texte']})
+            # Le CO₂ témoin : plus de badges que de personnes (cartes pour des absents), ou l'inverse
+            for x in campus.registre.temoins_du_jour(aujourd_hui):
+                if x['verdict'] in ('badges_en_trop', 'personnes_sans_badge') and self.voit_seance(utilisateur, x):
+                    alertes.append({'niveau': 'suspect', 'salle': x['salle'], 'seance': x['seance'], 'temoin': True,
+                                    'texte': f'Témoin CO₂ en {x["salle"]} ({x["matiere"]}, {heure_texte(x["debut"])}) : '
+                                             f'{x["badges"]} badges pour {x["mini"]} à {x["maxi"]} personnes. {x["texte"]}'})
             du = debut_semaine(aujourd_hui)
             for e in campus.registre.alertes_assiduite(du, du + timedelta(days=6), self.cles_de(utilisateur)):
                 alertes.append({'niveau': 'suspect', 'etudiant': e['etudiant'], 'nom': self.nom(e['etudiant']),
@@ -159,11 +170,15 @@ class Suivi:
             raise Refus('Cette séance n\'est pas la vôtre.')
         self._avec_noms(s['presences'])
         s['peut_corriger'] = True
-        # Séance en cours : on ajoute ce que voit la salle maintenant
+        # Séance en cours : on ajoute ce que voit la salle maintenant, et l'avis du CO₂ sur ce qui est passé
         salle = self.campus.salles.get(s['salle'])
+        s['temoin'] = self.campus.registre.temoin(ident)
+        s['transport'] = self.campus.transports.explication(s)
         if salle and s['etat'] == 'en cours':
             with self.campus.verrou:
                 etat = salle.etat(self.campus.t)
+                badges = s['presents'] + s['retards'] + s['a_verifier'] + 1
+                s['temoin'] = self.campus.temoin.evaluer(salle, s['debut'], s['fin'], self.campus.t, badges)
             s['salle_maintenant'] = {k: etat[k] for k in ('personnes', 'source', 'co2', 'alertes')}
         return s
 

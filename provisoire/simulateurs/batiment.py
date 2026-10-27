@@ -26,6 +26,23 @@ SEL = 'campustwin-demo'    # sel du hachage des cartes (le vrai est secret, dans
 DEBITS_SAR200 = {'arret': 25, 'petite': 375, 'grande': 725}
 DEBUT_SEMAINE = datetime(2026, 11, 16, 7, 0)  # lundi 16 novembre 2026, 7 h (semaine réelle de l'emploi du temps)
 ABSENCES = (0.03, 0.20)     # part d'absents d'un groupe, tirée une fois pour chaque groupe
+CARTES_PRETEES = 6          # fraude « cartes prêtées » : un étudiant badge pour 6 absents
+PERTURBATION_RER = 0.25     # part des jours de semaine où le RER D est perturbé le matin
+PREND_LE_RER = 0.4          # part des étudiants qui viennent par le RER D
+MESSAGE_RER = 'RER D : trafic perturbé entre Garges-Sarcelles et Paris Gare du Nord (incident technique).'
+
+
+def perturbation_rer(date):
+    """(début, fin) en heures de la perturbation du RER D ce jour-là, ou None (inventé, tiré une fois par jour)."""
+    r = random.Random(f'rer-{date.date()}')
+    if date.weekday() >= 5 or r.random() >= PERTURBATION_RER:
+        return None
+    debut = 6.5 + 1.5 * r.random()
+    return debut, debut + 0.75 + 1.25 * r.random()
+
+
+def prend_le_rer(etudiant):
+    return random.Random(f'rer-{etudiant}').random() < PREND_LE_RER
 VENDREDI_APRES_MIDI = 0.08  # absents en plus le vendredi après-midi
 
 
@@ -52,7 +69,7 @@ class SalleSimulee:
         self.n_reel = 0
         self.compteur_porte = 0     # ce que les capteurs de la porte ont compté
         self.pannes = {'ventilation': False, 'fenetre': False, 'derive': False, 'comptage': False,
-                       'badgePrete': False, 'sansBadge': False}
+                       'badgePrete': False, 'sansBadge': False, 'cartesPretees': False}
         self.niveau = 'petite'
 
     def debit(self, heure):
@@ -100,6 +117,8 @@ class SimulateurBatiment:
         self.uid = {}               # id étudiant -> uid de sa carte
         self.prochain_co2 = {s: 0 for s in self.salles}
         self.prochain_wifi = 0
+        self.rer = None                 # perturbation du RER D du jour : (début, fin) en heures
+        self.rer_annonce = False
 
     # ---------- étudiants et cartes ----------
 
@@ -125,6 +144,7 @@ class SimulateurBatiment:
     def _preparer_jour(self, date):
         alea = random.Random(1000 + date.toordinal())
         self.participations = {}
+        self.rer = perturbation_rer(date)
         for c in self.cours_du_jour(date.date()):
             if not c['salle']:
                 continue
@@ -143,6 +163,11 @@ class SimulateurBatiment:
                         'appareils': 0 if alea.random() < 0.15 else (1 if alea.random() < 0.7 else 2),
                         'dedans': False, 'a_badge': False,
                     })
+            # RER D perturbé pendant l'arrivée : ceux qui le prennent arrivent 10 à 30 min en retard
+            if self.rer and self.rer[0] - 0.5 <= c['debut'] <= self.rer[1] + 0.75:
+                for p in personnes:
+                    if prend_le_rer(p['id']):
+                        p['arrivee'] = c['debut'] + (10 + 20 * random.Random(f'{date.date()}{p["id"]}{c["id"]}').random()) / 60
             # l'enseignant badge aussi en arrivant : il ouvre la séance
             personnes.append({'id': c['enseignant'], 'groupe': 'enseignant', 'etudiant': False, 'absent': False,
                               'arrivee': c['debut'] - 5 / 60, 'depart': c['fin'] + 5 / 60, 'badge': True,
@@ -185,6 +210,14 @@ class SimulateurBatiment:
                             self.fraudes_faites.add(('sans', c['id']))     # il entre sans badger
                         else:
                             self._badge(salle.id, self._carte(p['id'], p['groupe']), instant)
+                            if p['etudiant'] and salle.pannes['cartesPretees'] and ('groupe', c['id']) not in self.fraudes_faites:
+                                # Le premier arrivé badge les cartes de 6 copains qui ne viendront pas
+                                self.fraudes_faites.add(('groupe', c['id']))
+                                pas_la = [q for q in personnes if q['etudiant'] and q is not p and not q['dedans'] and not q['a_badge']]
+                                for k, q in enumerate(self.alea.sample(pas_la, min(CARTES_PRETEES, len(pas_la)))):
+                                    q['absent'] = True
+                                    q['a_badge'] = True
+                                    self._badge(salle.id, self._carte(q['id'], q['groupe']), instant + 1.5 * (k + 1))
                             if p['etudiant'] and salle.pannes['badgePrete'] and ('pret', c['id']) not in self.fraudes_faites:
                                 absent = next((q for q in personnes if q['etudiant'] and q['absent']), None)
                                 if absent:
@@ -210,6 +243,12 @@ class SimulateurBatiment:
                     msg['temp'] = round(s.T_fenetre + self.alea.gauss(0, 0.1), 2)
                     self.envoyer({'type': 'presence', 'salle': s.id, 'presence': s.n_reel > 0, 't': self.t})
                 self.envoyer(msg)
+        # Info trafic du RER D (comme l'API PRIM)
+        en_cours = bool(self.rer) and self.rer[0] <= heure < self.rer[1]
+        if en_cours != self.rer_annonce:
+            self.rer_annonce = en_cours
+            self.envoyer({'type': 'transport', 'ligne': 'RER D', 'perturbe': en_cours,
+                          'texte': MESSAGE_RER if en_cours else '', 't': self.t})
         if self.t >= self.prochain_wifi:
             self.prochain_wifi = self.t + 60
             bornes = {k: v + (1 if self.alea.random() < 0.15 else 0) for k, v in appareils.items()}

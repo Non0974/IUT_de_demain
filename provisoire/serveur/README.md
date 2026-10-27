@@ -61,7 +61,9 @@ Le serveur les remet dans l'emploi du temps et dans l'interface.
 | [prevision.py](prevision.py) | Jumeau prédictif : personnes attendues et CO₂ de chaque salle pour les 2 prochaines heures, et précision mesurée |
 | [commande.py](commande.py) | Ventilation anticipée de la salle de l'automate (commande prédictive) et bilan d'énergie face à la règle simple |
 | [capacite.py](capacite.py) | Places des salles : chaque cours de la journée face aux places de sa salle (compté ou prévu) |
-| [reaffectation.py](reaffectation.py) | Propositions de changement de salle : air qui va devenir mauvais, ou salle trop petite |
+| [reaffectation.py](reaffectation.py) | Propositions de changement de salle (air qui va devenir mauvais, salle trop petite) : les salles négocient, échange de salles si aucune n'est libre |
+| [temoin.py](temoin.py) | Le CO₂ témoin de l'émargement : combien de personnes ont respiré dans la salle, comparé aux badges |
+| [transports.py](transports.py) | RER perturbé : retards appris, prévus et expliqués ; lien avec l'API PRIM d'Île-de-France Mobilités |
 | [ambiance.py](ambiance.py) | Chauffage et éclairage selon l'occupation, et énergie face à l'horaire fixe |
 | [assistant.py](assistant.py) | Assistant IA : outils en lecture seule, pseudonymes, appel à l'API Claude |
 | [config.py](config.py) | Adresse de l'automate, débits connus, clé des capteurs, sel des cartes, réglages de la ventilation et de l'assistant |
@@ -118,9 +120,25 @@ Toutes ces adresses demandent d'être connecté. Celles du jumeau 3D et des pré
 - **Prévision.** Pour chaque salle : les cours de l'emploi du temps, le nombre de personnes attendues, et le débit d'air appris par la salle. Le jumeau simule le CO₂ des 2 heures suivantes. Toutes les 10 min, il note sa prévision à 30 et 60 min et la compare à la mesure.
 - **Qui viendra.** Le taux de présence est appris sur les 14 derniers jours : celui de chaque groupe, et l'effet de chaque demi-journée de la semaine. Un groupe vu une seule fois garde un taux proche de la moyenne (une séance seule varie trop par hasard). Étudiants attendus = effectif × taux du groupe × effet de la demi-journée.
 - **Places des salles.** Chaque cours de la journée face aux places de sa salle : compté pour un cours commencé (capteurs de la porte, sinon badges, car le Wi-Fi se trompe de 2 ou 3 personnes), prévu pour un cours à venir. Salle trop petite (plus d'étudiants que de places), pleine (plus de 90 %), adaptée, ou trop grande (moins de 40 %, alors qu'une salle du même type plus petite existe). Alerte en direct si une salle a plus de monde que de places pendant 5 minutes en plein cours.
-- **Ventilation anticipée (SAR 200).** Chaque minute, le jumeau essaie les vitesses possibles pour les 20 minutes suivantes, simule 90 minutes et garde le plan le moins coûteux : énergie (chauffage de l'air neuf + ventilateur) plus une pénalité au-dessus de 800 et 1000 ppm. Il garde la petite vitesse 20 min après chaque cours et le soir, sinon le diagnostic ne peut plus mesurer la décroissance ni la dérive du capteur.
-- **Changement de salle.** Si l'air d'un cours doit dépasser 1200 ppm, ou s'il y aura plus d'étudiants que de places, le jumeau cherche une salle libre du même type, assez grande, dont il connaît la ventilation, où le pic reste sous 1200 ppm. Sans salle libre assez grande, le problème est signalé quand même. Le directeur accepte ou ignore dans la page Anticipation. Un cours déplacé change dans le planning du jour.
+- **Ventilation anticipée (SAR 200).** Chaque minute, le jumeau essaie les vitesses possibles pour les 20 minutes suivantes, simule 90 minutes et garde le plan le moins coûteux : énergie (chauffage de l'air neuf + ventilateur) plus une pénalité au-dessus de 800 et 1000 ppm. Il garde la petite vitesse 20 min après chaque cours (plus longtemps si la salle s'est vidée tard, jusqu'au bout de la mesure) et le soir, sinon le diagnostic ne peut plus mesurer la décroissance ni la dérive du capteur.
+- **Changement de salle : les salles négocient.** Si l'air d'un cours doit dépasser 1200 ppm, ou s'il y aura plus d'étudiants que de places, la salle interroge chaque salle du même type. Chacune répond avec ses propres données : libre (et l'air qu'elle aurait), trop petite, ventilation inconnue, occupée, ou **échange possible** (son cours tiendrait dans la salle qui a le problème, et l'air resterait correct des deux côtés). On garde la meilleure salle libre, sinon le meilleur échange. Le directeur voit la négociation et accepte ou ignore dans la page Anticipation. Un échange refusé pour l'air est expliqué (« échanger rendrait l'air mauvais »).
 - **Limite.** En simulation, la prévision utilise la même physique que le bâtiment simulé : sa précision y est forcément bonne. Le vrai test se fera sur la salle réelle.
+
+## Le CO₂ témoin de l'émargement
+
+5 min après la fin de chaque cours, le jumeau calcule combien de personnes ont respiré dans la salle (bilan de CO₂ : volume de la salle, débit d'air appris) et le compare au nombre de badges, enseignant compris.
+- **Plus de badges que de personnes** : cartes badgées pour des absents ? **Plus de personnes que de badges** : oublis, ou personnes extérieures ? Alerte « à vérifier » dans le tableau de bord et sur la fiche de la séance.
+- Les 5 premiers cours d'une salle servent à l'apprendre (pas d'alerte). Ensuite, elle se recale sur ses cours sans alerte.
+- Pas d'avis si le CO₂ monte trop peu (salle très ventilée) ou si le débit de la salle n'est pas encore mesuré.
+- Testé sur de vraies salles ([donnees_reelles](../donnees_reelles/README.md#résultat-3--le-co₂-témoin-de-lémargement)) : repère un groupe de 6 à 8 cartes en trop dans la plupart des salles, pas 1 ou 2.
+- En simulation : 6 cartes badgées pour des absents repérées à chaque cours, 4 % de fausses alertes sur une semaine honnête.
+
+## Le RER qui prévient la salle
+
+Quand une ligne qui dessert l'IUT est perturbée (RER D par défaut), le jumeau prévient pour les cours qui commencent dans l'heure et demie : « RER D perturbé depuis 07h30 : environ 7 retards attendus au cours de Vie de l'entreprise (SAR 102, 08h10), au lieu de 1 d'habitude ». Sur la fiche de la séance, les retards sont expliqués.
+- Il apprend sur les séances closes la part d'étudiants en retard, ligne perturbée ou non. Aucune donnée personnelle : on ne sait pas qui prend quelle ligne.
+- En vrai : messages d'info trafic de l'API PRIM d'Île-de-France Mobilités. Il faut une clé gratuite (prim.iledefrance-mobilites.fr) dans `PRIM_CLE` de `config.py`. **Pas encore testé avec la vraie API** : format et identifiant de la ligne à vérifier avec une clé.
+- En simulation : le RER D est perturbé un matin sur quatre, et 40 % des étudiants le prennent. Le jumeau apprend 7 % de retards d'habitude et 42 % pendant une perturbation, et prévoit les retards de chaque cours à 2 ou 3 près.
 
 ## Cartes étudiantes
 
@@ -170,6 +188,9 @@ python tests/test_assistant.py     assistant IA avec un faux client : aucun nom 
 python tests/test_ambiance.py      chauffage et éclairage selon l'occupation, énergie face à l'horaire fixe
 python tests/test_wifi_dsi.py      import du Wi-Fi de la DSI
 python tests/test_celcat.py        import d'un export CELCAT
+python tests/test_temoin.py        le CO₂ témoin : fausses alertes sur une semaine honnête, 6 cartes en trop repérées
+python tests/test_transports.py    RER D perturbé : retards appris, prévus et expliqués
+python tests/test_negociation.py   aucune salle libre : une salle propose un échange
 ```
 
 Les outils pour brancher les vraies données (CELCAT, Wi-Fi de la DSI) sont dans [outils](../outils/README.md).

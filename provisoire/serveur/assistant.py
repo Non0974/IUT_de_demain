@@ -86,8 +86,9 @@ OUTILS = {o['nom']: o for o in [
            date='Jour voulu, AAAA-MM-JJ. Vide : aujourd\'hui.'),
     _outil('detail_seance', False,
            "Émargement complet d'une séance : statut de chaque étudiant (ETU-…), heure de badge, anomalies (carte "
-           "prêtée, entrée sans badge), corrections faites à la main. Appelle-le pour savoir qui était absent ou en "
-           "retard à un cours.",
+           "prêtée, entrée sans badge), corrections faites à la main, et l'avis du témoin CO₂ (combien de personnes "
+           "ont vraiment respiré dans la salle, comparé aux badges). Appelle-le pour savoir qui était absent ou en "
+           "retard à un cours, ou si des cartes ont été badgées pour des absents.",
            seance='Identifiant de la séance donné par seances_du_jour ou tableau_de_bord (ex. 2026-03-16_r3).'),
     _outil('classes', False,
            "Taux de présence de chaque classe (groupe) sur une période. Appelle-le pour comparer les classes ou "
@@ -359,6 +360,10 @@ class Outils:
             'corrections': [{'etudiant': self.p.jeton(c['etudiant']), 'avant': c['avant'], 'apres': c['apres'],
                              'motif_donne': bool(c['motif'])} for c in s['corrections']],
         }
+        if s.get('temoin'):
+            t = s['temoin']
+            r['temoin_co2'] = {'avis': t['texte'], 'badges_enseignant_compris': t['badges'],
+                               'personnes_selon_le_co2': t.get('personnes'), 'entre': [t.get('min'), t.get('max')]}
         if 'salle_maintenant' in s:
             m = s['salle_maintenant']
             r['salle_maintenant'] = {'personnes': m['personnes'], 'comptage': m['source'], 'co2_ppm': m['co2'],
@@ -453,7 +458,11 @@ class Outils:
                  'raisons': [{'air': 'air mauvais prévu', 'trop_petite': 'salle trop petite'}[m] for m in x['motifs']],
                  'etudiants_attendus': x['etudiants'], 'salle_prevue': x['salle'], 'places': x['places'],
                  'pic_prevu_ppm': x['pic'], 'salle_proposee': x['proposee'] or 'aucune salle libre assez grande',
-                 'places_salle_proposee': x['places_proposee'], 'pic_avec_changement_ppm': x['pic_propose']}
+                 'places_salle_proposee': x['places_proposee'], 'pic_avec_changement_ppm': x['pic_propose'],
+                 **({'echange_avec': {'cours': x['echange']['matiere'], 'etudiants': x['echange']['etudiants'],
+                                      'de': x['echange']['salle'], 'vers': x['echange']['vers'],
+                                      'pic_avant_ppm': x['echange']['pic_avant'], 'pic_apres_ppm': x['echange']['pic_apres']}}
+                    if x.get('echange') else {})}
                 for x in p['propositions']],
             'changements_acceptes_aujourd_hui': [{'cours': c['cours'], 'de': c['salle_avant'], 'vers': c['salle_apres']}
                                                  for c in p['changements']],

@@ -151,6 +151,13 @@ class EstimateurSalle:
             self.vide['compare'] = True
             self._apres_depart(self.vide['occ_avant'], q, e['niveau'])
 
+    def mesure_restante(self):
+        """Minutes de ventilation stable qu'il faut encore pour finir la décroissance en cours (0 sinon)."""
+        if not self.vide or self.vide['compare'] or self.vide['C0'] - self.c_ext < 150:
+            return 0
+        fin = self.vide['t'] + ATTENTE_DECROISSANCE + 2 * DUREE_MIN_DECROISSANCE + 1 / 60
+        return max(0, round((fin - self.echantillons[-1]['t']) * 60))
+
     def _rapport(self, occ, q_dec, niveau_dec, brut=False):
         """Rapport entre les deux méthodes. Si la ventilation a changé de vitesse au départ des
         occupants, on compare chaque débit à celui attendu pour sa vitesse."""

@@ -224,7 +224,8 @@ export async function vueAnticipation(zone, ctx) {
         if (bouton.dataset.action === 'strategie') {
           await api('/api/commande', { strategie: bouton.dataset.valeur });
         } else {
-          await api('/api/proposition', { action: bouton.dataset.action, cours: bouton.dataset.cours, salle: bouton.dataset.salle });
+          const echange = bouton.dataset.echangeCours ? { cours: bouton.dataset.echangeCours, salle: bouton.dataset.echangeSalle } : null;
+          await api('/api/proposition', { action: bouton.dataset.action, cours: bouton.dataset.cours, salle: bouton.dataset.salle, echange });
         }
       } finally {
         await ctx.redessiner();
@@ -299,9 +300,17 @@ export async function vueAnticipation(zone, ctx) {
         ${salleDe('Salle prévue', p.salle, p.places, p.etudiants, p.pic)}
         <span class="fleche" aria-hidden="true">→</span>
         ${salleDe('Salle proposée', p.proposee, p.places_proposee, p.etudiants, p.pic_propose)}
-      </div>` : `<p class="message erreur">${p.etudiants} étudiants attendus pour ${p.places} places en ${echapper(p.salle)}, et aucune salle libre assez grande à cette heure : à régler à la main.</p>`}
+      </div>` : `<p class="message erreur">${p.etudiants} étudiants attendus pour ${p.places} places en ${echapper(p.salle)}, aucune salle libre assez grande et aucun échange possible à cette heure : à régler à la main.</p>`}
+      ${p.echange ? `<p class="echange"><b>Échange de salles :</b> ${echapper(p.echange.matiere)} (${echapper(p.echange.groupes.join(' + '))},
+        ${heure(p.echange.debut)}–${heure(p.echange.fin)}, ${p.echange.etudiants} étudiants) passe de ${echapper(p.echange.salle)}
+        à ${echapper(p.echange.vers)}. Son air : <span class="${classePpm(p.echange.pic_apres)}">${p.echange.pic_apres} ppm prévus</span>
+        ${p.echange.pic_avant != null ? `au lieu de ${p.echange.pic_avant}` : ''}.</p>` : ''}
+      <details class="negociation"><summary>Négociation : ${p.negociation.length} salle${p.negociation.length > 1 ? 's' : ''} interrogée${p.negociation.length > 1 ? 's' : ''}</summary>
+        <ul>${p.negociation.map(r => `<li><b>${echapper(r.salle)}</b> : ${echapper(r.reponse)}${r.detail ? ` <span class="sous">(${echapper(r.detail)})</span>` : ''}</li>`).join('')}</ul>
+      </details>
       <div class="actions">
-        ${p.proposee ? `<button type="button" class="bouton principal-bouton" data-action="accepter" data-cours="${echapper(p.cours)}" data-salle="${echapper(p.proposee)}">Accepter le changement</button>` : ''}
+        ${p.proposee ? `<button type="button" class="bouton principal-bouton" data-action="accepter" data-cours="${echapper(p.cours)}" data-salle="${echapper(p.proposee)}"
+          ${p.echange ? `data-echange-cours="${echapper(p.echange.cours)}" data-echange-salle="${echapper(p.echange.vers)}"` : ''}>${p.echange ? 'Accepter l\'échange' : 'Accepter le changement'}</button>` : ''}
         <button type="button" class="bouton" data-action="ignorer" data-cours="${echapper(p.cours)}">Ignorer</button>
       </div>
     </div>`).join('') : '<p class="vide">Aucune proposition : l\'air et la place des prochains cours devraient aller.</p>';
