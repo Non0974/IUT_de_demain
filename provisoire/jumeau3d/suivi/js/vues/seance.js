@@ -62,7 +62,7 @@ export async function vueSeance(zone, ctx) {
       <p>L'émargement commence 15 minutes avant le cours.</p></div>`);
     return;
   }
-  ctx.titre(`${s.matiere} — ${s.groupes.join(' + ')}`);
+  ctx.titre(`${s.matiere}, ${s.groupes.join(' + ')}`);
 
   if (!zone.dataset.ecoute) {
     zone.dataset.ecoute = '1';
@@ -126,13 +126,13 @@ export async function vueSeance(zone, ctx) {
       <h2 class="titre-section">Modifications</h2>
       <div class="tableau-conteneur"><table class="liste"><thead><tr><th>Quand</th><th>Étudiant</th><th>Avant</th><th>Après</th><th>Motif</th><th>Par</th></tr></thead><tbody>
       ${s.corrections.map(c => `<tr><td>${heureBadge(c.t)}</td><td>${echapper(c.etudiant)}</td><td>${puce(c.avant)}</td><td>${puce(c.apres)}</td>
-        <td>${echapper(c.motif || '—')}</td><td>${echapper(c.auteur)}</td></tr>`).join('')}
+        <td>${echapper(c.motif || '-')}</td><td>${echapper(c.auteur)}</td></tr>`).join('')}
       </tbody></table></div></section>` : '';
   const exports = s.cles.map(cle => `<a class="bouton" href="/api/export?classe=${encodeURIComponent(cle)}&du=${s.date}&au=${s.date}">Exporter ${echapper(cle)} (CSV)</a>`).join('');
 
   afficher(zone, `
     <a class="retour" href="#/seances?date=${s.date}">← Séances du ${dateLongue(s.date)}</a>
-    <div class="seulement-impression"><h2>Feuille d'émargement — IUT de Sarcelles</h2></div>
+    <div class="seulement-impression"><h2>Feuille d'émargement, IUT de Sarcelles</h2></div>
     <div class="fiche-entete">
       <div>
         <h2>${echapper(s.matiere)} ${etiquetteSource(s.reel)}</h2>

@@ -79,7 +79,7 @@ async function naviguer() {
     info: () => info,
     titre: t => {
       document.getElementById('titre').textContent = t;
-      document.title = `${t} — CampusTwin`;
+      document.title = `${t} - CampusTwin`;
     },
     redessiner: () => executer(),
   };

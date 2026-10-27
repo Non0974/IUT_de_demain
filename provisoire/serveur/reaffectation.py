@@ -153,13 +153,12 @@ def texte_proposition(x):
     if 'air' in x['motifs']:
         raisons.append(f'{x["pic"]} ppm prévus')
     if 'trop_petite' in x['motifs']:
-        perdues = f', {x["places_perdues"]} en moins : matériel manquant' if x.get('places_perdues') else ''
+        perdues = f' ({x["places_perdues"]} en moins, matériel manquant)' if x.get('places_perdues') else ''
         raisons.append(f'{x["etudiants"]} étudiants attendus pour {x["places"]} places{perdues}')
-    cours = f'{x["matiere"]} ({x["groupes"][0]}, {heure_texte(x["debut"])})'
+    cours = f'{x["matiere"]} de {heure_texte(x["debut"])}'
     if x['proposee'] is None:
-        return f'{cours} en {x["salle"]} : {" et ".join(raisons)}. Aucune salle libre assez grande, aucun échange possible.'
+        return f"{cours} : {' et '.join(raisons)}. Pas de salle libre ni d'échange possible."
     if x.get('echange'):
         e = x['echange']
-        return (f'Proposition : échanger les salles de {cours} ({x["salle"]}) et de {e["matiere"]} ({e["salle"]}), '
-                f'{" et ".join(raisons)}.')
-    return f'Proposition : déplacer {cours} de {x["salle"]} à {x["proposee"]} ({" et ".join(raisons)}).'
+        return f'{cours} : {" et ".join(raisons)}. On peut échanger avec {e["matiere"]} ({e["salle"]}).'
+    return f'{cours} : {" et ".join(raisons)}. On peut le mettre en {x["proposee"]}.'

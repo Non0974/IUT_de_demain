@@ -1,4 +1,4 @@
-# Automate S7-1200 — maquette de ventilation
+# Automate S7-1200 : maquette de ventilation
 
 L'automate pilote la maquette, une boîte de 60 L qui reproduit la salle SAR 200 :
 - le ventilateur (2 vitesses) joue la ventilation ;

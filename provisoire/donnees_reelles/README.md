@@ -1,9 +1,6 @@
-# CampusTwin — tests sur des données réelles
+# CampusTwin : tests sur des données réelles
 
-Jusqu'ici, le jumeau 3D tournait sur une salle simulée avec la même équation que notre estimateur. Le test ne pouvait que marcher. Ici, on teste nos deux idées sur de vraies salles de cours :
-
-1. compter les personnes avec le Wi-Fi ;
-2. retrouver le débit d'air réel avec le CO₂, de deux façons (avec et sans le comptage).
+Au début, le jumeau tournait sur une salle simulée avec la même équation que notre estimateur, donc le test ne pouvait que marcher. Ici, on teste nos deux idées sur de vraies salles de cours : compter les personnes avec le Wi-Fi, et retrouver le débit d'air réel avec le CO₂ (avec et sans le comptage).
 
 ## Les données
 
@@ -35,8 +32,7 @@ Modèle le plus simple possible : personnes = a × appareils + b, réglé sur la
 
 ![Wi-Fi](figures/wifi_robod_salle1.png)
 
-- Le Wi-Fi suit bien le remplissage, mais il bruite (les téléphones se connectent et se déconnectent).
-- Le coefficient change d'une salle à l'autre (0,6 à 1,4 personne par appareil). Utiliser tel quel le modèle d'une salle dans une autre donne 3,3 personnes d'erreur. Pour tout l'IUT, chaque salle doit être recalée. C'est le rôle de la salle équipée de capteurs à la porte.
+Le Wi-Fi suit bien le remplissage, mais il est bruité parce que les téléphones se connectent et se déconnectent. Le coefficient change d'une salle à l'autre (0,6 à 1,4 personne par appareil) : utiliser le modèle d'une salle dans une autre donne 3,3 personnes d'erreur. Il faut donc recaler chaque salle, et c'est à ça que sert la salle équipée de capteurs à la porte.
 
 ### Une vraie IA fait-elle mieux ? ([test_wifi_ia.py](test_wifi_ia.py))
 
@@ -50,33 +46,27 @@ On a essayé un modèle d'apprentissage (gradient boosting) qui voit le Wi-Fi de
 | Bureau 2 | 2,0 (70 %) | 1,6 (78 %) | 2,3 (64 %) |
 | Bibliothèque | 2,2 (70 %) | 1,8 (75 %) | 1,8 (74 %) |
 
-- L'IA gagne un peu dans les bureaux et la bibliothèque, pas dans les salles de cours. Le gain est faible : on ne peut pas dire que l'IA « compte » mieux que la droite.
-- Le résultat utile pour tout l'IUT : un modèle appris sur d'autres salles marche déjà dans une nouvelle salle, sans réglage (sauf la salle 2, où même le CO₂ ne suit pas les personnes).
-- Recaler une salle sur 1 à 3 jours peut faire pire que ne rien faire (salle de cours 1 : 4,7 personnes d'erreur au lieu de 2,2), car les premiers jours ne ressemblent pas aux suivants. Le serveur part donc du modèle commun et ne s'en éloigne que peu à peu, avec des semaines de badges ([serveur/salle.py](../serveur/salle.py), `ModeleWifi`).
+L'IA gagne un peu dans les bureaux et la bibliothèque, pas dans les salles de cours. Le gain est trop faible pour dire qu'elle compte mieux que la droite. Par contre, un modèle appris sur d'autres salles marche déjà dans une nouvelle salle sans réglage (sauf la salle 2, où même le CO₂ ne suit pas les personnes), ce qui est utile pour tout l'IUT.
+
+On a aussi vu que recaler une salle sur 1 à 3 jours peut faire pire que ne rien faire (salle de cours 1 : 4,7 personnes d'erreur au lieu de 2,2), car les premiers jours ne ressemblent pas aux suivants. Le serveur part donc du modèle commun et ne s'en éloigne que peu à peu, avec des semaines de badges ([serveur/salle.py](../serveur/salle.py), `ModeleWifi`).
 
 ## Résultat 2 : le CO₂ marche, mais moins bien qu'en simulation
 
 ![Journée](figures/co2_journee_salle_danoise.png)
 
-À chaque fois que la salle danoise se vide, on calcule le débit d'air comme dans le jumeau :
-- avec le comptage, sur les 30 min avant les départs ;
-- sans le comptage, par la décroissance du CO₂ dans les 16 min qui suivent.
+À chaque fois que la salle danoise se vide, on calcule le débit d'air comme dans le jumeau : avec le comptage sur les 30 minutes avant les départs, et sans le comptage avec la décroissance du CO₂ dans les 16 minutes qui suivent.
 
 ![Départs](figures/co2_departs_salle_danoise.png)
 
-- 12 départs exploitables. Sur 7 d'entre eux, les deux débits sont d'accord à un facteur 2 près, avec un rapport médian de 1,55 (de 1,0 à 1,9). Les débits trouvés (1 000 à 3 000 m³/h, soit 2 à 7 volumes par heure) sont réalistes pour cette salle.
-- Sur 5 départs, la décroissance donne un débit beaucoup trop faible. Causes probables : le CO₂ n'est mesuré que toutes les 5 min, donc il n'y a que 3 ou 4 points pour la décroissance, et le volet change pendant la décroissance.
-- L'écart de 1,55 est le même d'un départ à l'autre : c'est un biais propre à la salle (production réelle de CO₂ par personne, placement du capteur). Il se corrige par un recalage.
-- Le niveau de la salle vide varie de 424 à 554 ppm selon les jours. Le capteur dérive vraiment : notre vérification de la dérive est utile.
+On a 12 départs exploitables. Sur 7, les deux débits sont d'accord à un facteur 2 près, avec un rapport médian de 1,55 (de 1,0 à 1,9), et les débits trouvés (1 000 à 3 000 m³/h, soit 2 à 7 volumes par heure) sont réalistes pour cette salle. Sur les 5 autres, la décroissance donne un débit beaucoup trop faible. Sans doute parce que le CO₂ n'est mesuré que toutes les 5 minutes (3 ou 4 points seulement pour la décroissance) et que le volet de ventilation bouge pendant ce temps.
+
+L'écart de 1,55 est le même d'un départ à l'autre. C'est un biais propre à la salle (production réelle de CO₂ par personne, placement du capteur), qui se corrige par un recalage. On a aussi vu que le niveau de la salle vide varie de 424 à 554 ppm selon les jours : le capteur dérive vraiment, donc la vérification de la dérive sert à quelque chose.
 
 Dans ROBOD, le test CO₂ ne marche pas : les salles sont très ventilées et presque vides (7 personnes en moyenne), donc le CO₂ ne monte que de 30 à 100 ppm. Dans une salle, le CO₂ ne suit même pas le nombre de personnes (capteur mal placé).
 
 ## Résultat 3 : vérifier l'émargement avec le CO₂ ([test_temoin_co2.py](test_temoin_co2.py))
 
-Le CO₂ dit combien de personnes ont respiré dans la salle. Si 20 cartes ont badgé mais que le CO₂ correspond à 13 personnes, il y a des cartes en trop. On teste l'idée sur les 5 salles de ROBOD, où l'on connaît le vrai nombre de personnes :
-- personnes = a × (montée du CO₂) + b × (CO₂ − extérieur) + c × (CO₂ − extérieur) × ventilation ;
-- a, b, c appris sur les cours d'avant (badges supposés honnêtes), cours après cours ;
-- on ajoute 2 à 8 badges de trop au vrai nombre, et on regarde si l'écart est repéré.
+Le CO₂ donne une idée du nombre de personnes qui ont été dans la salle. Si 20 cartes ont badgé mais que le CO₂ correspond à 13 personnes, il y a des cartes en trop. On a testé ça sur les 5 salles de ROBOD, où on connaît le vrai nombre de personnes. On estime personnes = a × (montée du CO₂) + b × (CO₂ − extérieur) + c × (CO₂ − extérieur) × ventilation, avec a, b et c appris sur les cours d'avant. Ensuite on ajoute 2 à 8 badges de trop au vrai nombre et on regarde si l'écart est repéré.
 
 | Salle | Écart moyen | Fausses alertes | 4 cartes en trop repérées | 6 cartes | 8 cartes |
 | --- | --- | --- | --- | --- | --- |
@@ -86,10 +76,7 @@ Le CO₂ dit combien de personnes ont respiré dans la salle. Si 20 cartes ont b
 | Bibliothèque | 4,1 pers. | 6 % | 30 % | 51 % | 77 % |
 | Salle de cours 1 | 6,4 pers. | 0 % | 7 % | 7 % | 7 % |
 
-- On repère une fraude de groupe (un étudiant qui badge pour 6 à 8 absents) dans la plupart des salles, avec peu de fausses alertes.
-- Il ne voit pas 1 ou 2 cartes : c'est le rôle du comptage à la porte.
-- Dans une salle très ventilée (salle de cours 1 : le CO₂ ne dépasse pas 761 ppm), il ne voit rien. Le serveur le dit (« signal trop faible ») au lieu de donner un avis.
-- Apprendre au fil de l'eau et tenir compte de la ventilation améliore un peu le résultat (avec la seule première semaine : 76 % au lieu de 92 % pour 6 cartes en salle de cours 2).
+Un étudiant qui badge pour 6 à 8 absents est repéré dans la plupart des salles, avec peu de fausses alertes. Par contre 1 ou 2 cartes en trop ne se voient pas, il faut le comptage à la porte pour ça. Dans une salle très ventilée (salle de cours 1, où le CO₂ ne dépasse pas 761 ppm), la méthode ne voit rien, et le serveur répond « signal trop faible » au lieu de donner un avis. Apprendre cours après cours et tenir compte de la ventilation aide un peu : avec seulement la première semaine, on repère 6 cartes en trop dans 76 % des cours de la salle 2, au lieu de 92 %.
 
 ## Ce que ça change pour le projet
 

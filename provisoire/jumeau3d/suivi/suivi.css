@@ -33,8 +33,6 @@ body {
   font-size: 14px;
   color: var(--texte);
   background: var(--fond);
-  display: grid;
-  grid-template-columns: 236px 1fr;
 }
 a { color: var(--primaire); }
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, tr:focus-visible {
@@ -45,45 +43,39 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .aller-contenu { position: absolute; left: -999px; }
 .aller-contenu:focus { left: 8px; top: 8px; z-index: 10; background: #fff; padding: 6px 10px; }
 
-/* ---------- menu de gauche ---------- */
+/* ---------- bandeau du haut et menu ---------- */
 
 .menu {
-  background: var(--menu);
-  color: var(--menu-texte);
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  position: sticky;
-  top: 0;
-  padding: 16px 12px;
+  background: var(--menu); color: var(--menu-texte);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; padding: 0 18px;
 }
-.marque { padding: 0 8px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); margin-bottom: 10px; }
-.marque strong { display: block; color: #fff; font-size: 17px; }
-.marque span { font-size: 12px; }
-.menu nav { display: flex; flex-direction: column; gap: 2px; }
+.marque { padding: 10px 0; }
+.marque strong { color: #fff; font-size: 16px; }
+.marque span { font-size: 12px; margin-left: 8px; }
+.menu nav { display: flex; flex-wrap: wrap; flex: 1; }
 .menu nav a {
   display: block; color: var(--menu-texte); text-decoration: none;
-  padding: 7px 10px; border-left: 3px solid transparent;
+  padding: 12px 8px 9px; border-bottom: 3px solid transparent;
 }
 .menu nav a:hover { color: #fff; text-decoration: underline; }
-.menu nav a.actif { color: #fff; font-weight: 600; border-left-color: #fff; background: rgba(255, 255, 255, 0.08); }
-.separateur { margin: 16px 10px 4px; font-size: 12px; opacity: 0.7; }
-.pied-menu { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding: 0 6px; }
-.utilisateur { display: flex; flex-direction: column; color: #fff; }
-.utilisateur .sous { color: var(--menu-texte); }
+.menu nav a.actif { color: #fff; font-weight: 600; border-bottom-color: #fff; }
+.separateur { display: none; }
+.pied-menu { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.utilisateur { display: flex; gap: 6px; color: #fff; }
+.utilisateur .sous { display: none; }
 .pastille-simulation { font-size: 12px; color: #f2c94c; }
-.menu .bouton.discret { color: var(--menu-texte); border-color: rgba(255, 255, 255, 0.25); background: transparent; }
+.menu .bouton.discret { color: var(--menu-texte); border-color: rgba(255, 255, 255, 0.35); background: transparent; padding: 3px 8px; }
 
 /* ---------- haut de page et contenu ---------- */
 
-.principal { min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+.principal { max-width: 1280px; margin: 0 auto; }
 .haut {
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 16px 28px; background: var(--carte); border-bottom: 1px solid var(--bord);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  padding: 18px 28px 0;
 }
 .haut h1 { margin: 0; font-size: 20px; }
-.horloge { display: flex; flex-direction: column; align-items: flex-end; color: var(--texte2); font-size: 12px; }
-.horloge strong { color: var(--texte); font-size: 18px; }
+.horloge { color: var(--texte2); font-size: 13px; }
+.horloge strong { color: var(--texte); font-weight: 600; margin-left: 6px; }
 main { padding: 22px 28px 40px; outline: none; }
 .chargement { color: var(--texte2); }
 
@@ -97,14 +89,14 @@ main { padding: 22px 28px 40px; outline: none; }
   box-shadow: var(--ombre); padding: 16px;
 }
 .grille { display: grid; gap: 14px; }
-.grille.tuiles { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.grille.tuiles { display: flex; flex-wrap: wrap; gap: 0; background: #fff; border: 1px solid var(--bord); }
 .grille.cartes { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 .deux-colonnes { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; align-items: start; }
 
 /* Tuiles de chiffres */
-.tuile { display: flex; flex-direction: column; gap: 2px; }
-.tuile .valeur { font-size: 22px; font-weight: 700; line-height: 1.2; }
-.tuile .libelle { color: var(--texte2); }
+.tuile { padding: 8px 16px; border-right: 1px solid var(--bord); }
+.tuile:last-child { border-right: none; }
+.tuile .valeur { font-weight: 700; }
 .tuile.ton-alerte .valeur { color: var(--absent); }
 .tuile.ton-bon .valeur { color: var(--present); }
 
@@ -366,12 +358,7 @@ body.page-connexion { display: grid; place-items: center; grid-template-columns:
 /* ---------- téléphone et tablette ---------- */
 
 @media (max-width: 900px) {
-  body { grid-template-columns: 1fr; }
-  .menu { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; }
-  .marque { padding: 0; }
-  .menu nav { flex-direction: row; flex-wrap: wrap; flex: 1; }
-  .separateur { display: none; }
-  .pied-menu { margin: 0; flex-direction: row; align-items: center; }
+  .menu { padding: 0 12px; }
   .utilisateur { display: none; }
   .haut { padding: 12px 16px; }
   main { padding: 16px; }

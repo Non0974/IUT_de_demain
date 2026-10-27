@@ -97,13 +97,12 @@ class Transports:
                 if not t <= debut <= t + A_VENIR * 3600 or not c['salle']:
                     continue
                 n = attendus(c)
-                texte = f'{ligne} perturbé depuis {datetime.fromtimestamp(depuis):%Hh%M}'
+                texte = f'{ligne} perturbé depuis {datetime.fromtimestamp(depuis):%Hh%M}.'
                 if perturbe is not None and vues >= MIN_SEANCES:
-                    texte += (f' : environ {round(n * perturbe)} retards attendus au cours de {c["matiere"]} '
-                              f'({c["salle"]}, {heure_texte(c["debut"])}), '
-                              f'au lieu de {round(n * normal)} d\'habitude.')
+                    texte += (f' Environ {round(n * perturbe)} retards attendus en {c["matiere"]} à {heure_texte(c["debut"])}, '
+                              f'contre {round(n * normal)} d\'habitude.')
                 else:
-                    texte += f' : des retards sont possibles au cours de {c["matiere"]} ({c["salle"]}).'
+                    texte += f' Il risque d\'y avoir des retards en {c["matiere"]} à {heure_texte(c["debut"])}.'
                 alertes.append({'ligne': ligne, 'cours': c['id'], 'salle': c['salle'], 'enseignant': c['enseignant'],
                                 'texte': texte, 'message': self.textes.get(ligne, '')})
         return alertes
@@ -117,7 +116,7 @@ class Transports:
         morceaux = [f'{l} perturbé ({datetime.fromtimestamp(d):%Hh%M} – '
                     f'{datetime.fromtimestamp(f):%Hh%M})' if f else f'{l} perturbé depuis {datetime.fromtimestamp(d):%Hh%M}'
                     for l, (d, f) in lignes.items()]
-        return {'lignes': list(lignes), 'texte': f'Retards probablement dus aux transports : {", ".join(morceaux)}.'}
+        return {'lignes': list(lignes), 'texte': f'Les retards viennent sans doute des transports ({", ".join(morceaux)}).'}
 
 
 def perturbations_siri(donnees, ligne_ref):

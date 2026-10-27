@@ -38,7 +38,7 @@ function bulleQuestion(e) {
 function bulleReponse(e) {
   const consulte = e.outils.length ? `Données lues : ${e.outils.map(echapper).join(', ')}` : 'Aucune donnée lue';
   return `<div class="msg msg-reponse">${rendre(e.texte, e.noms)}
-    <span class="pied-msg">${consulte} · ${String(e.duree).replace('.', ',')} s</span></div>`;
+    <span class="pied-msg">${consulte}, ${String(e.duree).replace('.', ',')} s</span></div>`;
 }
 
 const VIDE = `<p class="vide-assistant">Posez une question sur les présences, les salles ou l'air.</p>`;

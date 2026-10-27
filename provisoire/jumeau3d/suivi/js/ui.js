@@ -46,13 +46,13 @@ export function lundiDe(texte) {
 }
 
 export function heureBadge(t) {
-  if (t == null) return '—';
+  if (t == null) return '-';
   const d = new Date(t * 1000);
   return `${String(d.getHours()).padStart(2, '0')}h${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 export function pourcent(x) {
-  return x == null ? '—' : `${Math.round(x * 100)} %`;
+  return x == null ? '-' : `${Math.round(x * 100)} %`;
 }
 
 // ---------- statuts ----------
@@ -63,7 +63,7 @@ export const STATUTS = {
   absent: { libelle: 'Absent', court: 'A', classe: 'absent' },
   'justifié': { libelle: 'Justifié', court: 'J', classe: 'justifie' },
   'à vérifier': { libelle: 'À vérifier', court: '?', classe: 'verifier' },
-  attendu: { libelle: 'Attendu', court: '·', classe: 'attendu' },
+  attendu: { libelle: 'Attendu', court: '-', classe: 'attendu' },
 };
 
 export function puce(statut) {
@@ -106,14 +106,14 @@ export function etiquetteSource(reel) {
 }
 
 export function ppm(co2) {
-  if (co2 == null) return '—';
+  if (co2 == null) return '-';
   const classe = co2 >= 1200 ? 'mauvais' : co2 >= 800 ? 'moyen' : 'bon';
   const texte = { bon: 'bon', moyen: 'moyen', mauvais: 'mauvais' }[classe];
   return `<span class="ppm-${classe}">${Math.round(co2)} ppm (${texte})</span>`;
 }
 
 export function tuile(valeur, libelle, detail = '', ton = '') {
-  return `<div class="carte tuile${ton ? ` ton-${ton}` : ''}"><span class="valeur">${valeur}</span><span class="libelle">${libelle}</span>${detail ? `<span class="sous">${detail}</span>` : ''}</div>`;
+  return `<div class="tuile${ton ? ` ton-${ton}` : ''}"><span class="valeur">${valeur}</span> ${libelle}${detail ? ` <span class="sous">(${detail})</span>` : ''}</div>`;
 }
 
 export function nomEtudiant(id, nom) {
@@ -153,7 +153,7 @@ export function navigationPeriode(base, { du, au }, autres = '') {
 }
 
 export function barreTaux(taux) {
-  if (taux == null) return '<span class="sous">—</span>';
+  if (taux == null) return '<span class="sous">-</span>';
   return `<div class="cellule-barre"><div class="barre" aria-hidden="true"><span class="b-present" style="flex:${taux}"></span>
     <span class="b-attendu" style="flex:${1 - taux}"></span></div><b>${pourcent(taux)}</b></div>`;
 }

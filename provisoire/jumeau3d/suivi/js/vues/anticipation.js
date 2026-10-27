@@ -95,7 +95,7 @@ const niveauRemplissage = r => REMPLISSAGE.find(n => r >= n.min);
 
 function frise(cap) {
   const L = 760;
-  const marge = { g: 112, d: 8, h: 22 };              // assez pour « SAR Amphi 1 · 120 »
+  const marge = { g: 112, d: 8, h: 22 };              // assez pour « SAR Amphi 1 (120) »
   const ligne = 28;
   const epaisseur = 22;
   const [h0, h1] = [8, 19];
@@ -151,7 +151,7 @@ const CHAUFFAGES = { confort: 'Confort', reduit: 'Réduit', hors_gel: 'Hors-gel'
 function sectionAmbiance(a) {
   const b = a.bilan;
   const auto = a.automate.connecte ? 'automate connecté' : 'automate non connecté';
-  const economie = e => (e && e.economie != null ? `−${pourcent(e.economie)}` : '—');
+  const economie = e => (e && e.economie != null ? `−${pourcent(e.economie)}` : '-');
   const tuiles = [
     tuile(CHAUFFAGES[a.chauffage], `chauffage ${echapper(a.salle)}`, `lumière ${a.eclairage ? 'allumée' : 'éteinte'}, ${auto}`),
     tuile(economie(b && b.salle), `énergie ${echapper(a.salle)} aujourd'hui`,
@@ -245,7 +245,7 @@ export async function vueAnticipation(zone, ctx) {
       curseur.setAttribute('x1', xp);
       curseur.setAttribute('x2', xp);
       bulle.hidden = false;
-      bulle.textContent = `${heure(p.h)} · ${Math.round(p.c)} ppm (${p.t})`;
+      bulle.textContent = `${heure(p.h)} : ${Math.round(p.c)} ppm (${p.t})`;
       bulle.style.left = `${(xp / L) * r.width}px`;
     });
     zone.addEventListener('mouseleave', () => { const bulle = zone.querySelector('#bulle'); if (bulle) bulle.hidden = true; }, true);
@@ -273,9 +273,9 @@ export async function vueAnticipation(zone, ctx) {
   }
 
   const tuiles = [
-    tuile(b && b.economie != null ? `−${pourcent(b.economie)}` : '—', 'énergie de ventilation', b ? `${b.energie_kwh.jumeau} kWh au lieu de ${b.energie_kwh.regle} kWh` : '', 'bon'),
-    tuile(b ? `${b.minutes_au_dessus_1000.jumeau} min` : '—', 'au-dessus de 1000 ppm', b ? `${b.minutes_au_dessus_1000.regle} min avec la règle simple` : ''),
-    tuile(d.precision['30 min'].erreur_moyenne != null ? `± ${d.precision['30 min'].erreur_moyenne} ppm` : '—', 'erreur de prévision à 30 min',
+    tuile(b && b.economie != null ? `−${pourcent(b.economie)}` : '-', 'énergie de ventilation', b ? `${b.energie_kwh.jumeau} kWh au lieu de ${b.energie_kwh.regle} kWh` : '', 'bon'),
+    tuile(b ? `${b.minutes_au_dessus_1000.jumeau} min` : '-', 'au-dessus de 1000 ppm', b ? `${b.minutes_au_dessus_1000.regle} min avec la règle simple` : ''),
+    tuile(d.precision['30 min'].erreur_moyenne != null ? `± ${d.precision['30 min'].erreur_moyenne} ppm` : '-', 'erreur de prévision à 30 min',
       d.precision['60 min'].erreur_moyenne != null ? `± ${d.precision['60 min'].erreur_moyenne} ppm à 1 h` : ''),
     tuile(d.propositions.length, `proposition${d.propositions.length > 1 ? 's' : ''} de salle`, `${d.changements.length} acceptée${d.changements.length > 1 ? 's' : ''}`),
   ];
@@ -316,7 +316,7 @@ export async function vueAnticipation(zone, ctx) {
   const salles = d.salles.slice().sort((a, c) => (c.pic?.co2 || 0) - (a.pic?.co2 || 0)).map(s => `<tr>
       <td class="nowrap"><b>${echapper(s.salle)}</b></td>
       <td class="nombre"><span class="${classePpm(s.maintenant)}">${s.maintenant}</span></td>
-      <td>${s.pic ? `<span class="${classePpm(s.pic.co2)}">${s.pic.co2} ppm</span> vers ${heure(s.pic.heure)}` : '—'}</td>
+      <td>${s.pic ? `<span class="${classePpm(s.pic.co2)}">${s.pic.co2} ppm</span> vers ${heure(s.pic.heure)}` : '-'}</td>
       <td>${s.au_dessus_1200 != null ? `<span class="ppm-mauvais">dès ${heure(s.au_dessus_1200)}</span>` : 'non'}</td>
       <td>${petiteCourbe(s.serie)}</td>
       <td class="sous">${{ appris: 'mesuré', automate: 'automate', 'a priori': 'supposé' }[s.source_debit]}</td>
@@ -334,7 +334,7 @@ export async function vueAnticipation(zone, ctx) {
       <h2 class="titre-section">Ventilation de ${echapper(cmd.salle)}</h2>
       <div class="carte">
         <div class="barre-outils">
-          <span>Maintenant : <b>${VITESSES[cmd.niveau] || '—'}</b>${prochain ? `, puis ${VITESSES[prochain.niveau].toLowerCase()} à ${heure(prochain.debut)}` : ''}</span>
+          <span>Maintenant : <b>${VITESSES[cmd.niveau] || '-'}</b>${prochain ? `, puis ${VITESSES[prochain.niveau].toLowerCase()} à ${heure(prochain.debut)}` : ''}</span>
           <span class="espace"></span>
           <span>Commande :</span>
           <button type="button" class="bouton petit ${cmd.strategie === 'predictive' ? 'principal-bouton' : ''}" data-action="strategie" data-valeur="predictive">Prédictive</button>

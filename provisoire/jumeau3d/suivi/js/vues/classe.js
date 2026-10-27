@@ -20,13 +20,13 @@ export async function vueClasse(zone, ctx) {
   const taux = decides ? (tous.presents + tous.retards) / decides : null;
 
   const entetes = c.seances.map(s => `<th class="seance" scope="col" title="${echapper(`${s.matiere}, ${s.salle}, ${s.enseignant}`)}">
-    ${dateCourte(s.date)} ${heure(s.debut)} · ${echapper(s.matiere)}</th>`).join('');
+    ${dateCourte(s.date)} ${heure(s.debut)}, ${echapper(s.matiere)}</th>`).join('');
   const lignes = c.etudiants.map(e => `<tr>
     <th scope="row"><a href="#/etudiant/${encodeURIComponent(e.id)}?du=${periode.du}&au=${periode.au}">${nomEtudiant(e.id, e.nom)}</a></th>
     ${c.seances.map(s => {
       const x = e.cases[s.id];
       if (!x) return '<td class="case"></td>';
-      const titre = `${e.id} — ${dateCourte(s.date)} ${heure(s.debut)} ${s.matiere} : ${STATUTS[x.statut]?.libelle || x.statut}${x.corrige ? ' (corrigé)' : ''}`;
+      const titre = `${e.id}, ${dateCourte(s.date)} ${heure(s.debut)} ${s.matiere} : ${STATUTS[x.statut]?.libelle || x.statut}${x.corrige ? ' (corrigé)' : ''}`;
       return `<td class="case">${caseStatut(x.statut, x.corrige, titre, `#/seance/${encodeURIComponent(s.id)}`)}</td>`;
     }).join('')}
     <td>${barreTaux(e.taux)}</td><td class="nombre">${e.absents}</td><td class="nombre">${e.retards}</td><td class="nombre">${e.justifies}</td>

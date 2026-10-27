@@ -10,7 +10,7 @@ let message = null;                  // dernier résultat, gardé quelques secon
 
 function choixPorteur(d) {
   const groupes = d.groupes.map(g => `<optgroup label="${echapper(g.nom)}">${g.etudiants.map(e =>
-    `<option value="${echapper(e.id)}">${echapper(e.id)}${e.nom ? ` — ${echapper(e.nom)}` : ''}${e.carte ? ' (a déjà une carte)' : ''}</option>`).join('')}</optgroup>`);
+    `<option value="${echapper(e.id)}">${echapper(e.id)}${e.nom ? ` (${echapper(e.nom)})` : ''}${e.carte ? ' (a déjà une carte)' : ''}</option>`).join('')}</optgroup>`);
   const enseignants = d.enseignants.length ? `<optgroup label="Enseignants">${d.enseignants.map(e =>
     `<option value="${echapper(e.id)}">${echapper(e.id)}${e.carte ? ' (a déjà une carte)' : ''}</option>`).join('')}</optgroup>` : '';
   return `<option value="">Choisir…</option>${groupes.join('')}${enseignants}`;
@@ -55,7 +55,7 @@ export async function vueCartes(zone, ctx) {
     : '<p class="vide">Aucune carte en attente. Badgez une carte sur un lecteur pour la voir ici.</p>';
 
   const lignes = liste.cartes.map(c => `<tr>
-      <td class="nowrap"><b>${echapper(c.id)}</b></td><td>${echapper(c.nom || '—')}</td>
+      <td class="nowrap"><b>${echapper(c.id)}</b></td><td>${echapper(c.nom || '-')}</td>
       <td>${c.groupe === 'enseignant' ? 'Enseignant' : echapper(c.groupe)}</td><td class="sous">${fin(c.empreinte)}</td>
       <td><button type="button" class="bouton petit" data-retirer="${echapper(c.empreinte)}">Retirer</button></td></tr>`).join('');
 

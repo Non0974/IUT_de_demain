@@ -39,7 +39,7 @@ export async function vueEtudiant(zone, ctx) {
     ${e.corrections.length ? `<section class="section">
       <h2 class="titre-section">Modifications</h2>
       <div class="tableau-conteneur"><table class="liste"><thead><tr><th>Quand</th><th>Avant</th><th>Après</th><th>Motif</th><th>Par</th></tr></thead><tbody>
-      ${e.corrections.map(c => `<tr><td>${heureBadge(c.t)}</td><td>${puce(c.avant)}</td><td>${puce(c.apres)}</td><td>${echapper(c.motif || '—')}</td><td>${echapper(c.auteur)}</td></tr>`).join('')}
+      ${e.corrections.map(c => `<tr><td>${heureBadge(c.t)}</td><td>${puce(c.avant)}</td><td>${puce(c.apres)}</td><td>${echapper(c.motif || '-')}</td><td>${echapper(c.auteur)}</td></tr>`).join('')}
       </tbody></table></div></section>` : ''}
     <p class="sous">Visible par la direction, la scolarité et les enseignants de la classe.</p>`);
 
